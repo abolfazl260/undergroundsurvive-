@@ -12,7 +12,7 @@ const english: Readonly<Record<string, string>> = {
   "روایت بازی": "Game story",
   "داستان تصویری": "Visual story",
   "وضعیت منابع و پیشرفت پناهگاه": "Shelter resources and progress",
-  "سکه": "Coins",
+  "سکه": "coins",
   "موجودی سکه": "Coin balance",
   "هنوز تغییری ثبت نشده است": "No changes recorded yet",
   "اتاق‌های پناهگاه": "Shelter rooms",

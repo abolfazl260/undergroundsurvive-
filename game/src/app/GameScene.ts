@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { MenuSettings } from './menuSettings';
+import { getLocale } from '../i18n';
 import type { AudioCue } from '../modules/audio/AudioManager';
 import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/grid';
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
@@ -12,6 +13,10 @@ import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
 import { panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
+const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
+  command: 'فرمان', habitat: 'مسکونی', generator: 'برق', hydroponics: 'گلخانه',
+  medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
+};
 
 export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade';
 
@@ -119,6 +124,11 @@ export class GameScene extends Phaser.Scene {
     if (!this.sceneReady || !this.residentTween) return;
     if (settings.reducedMotion) this.residentTween.pause();
     else this.residentTween.resume();
+  }
+
+  /** Repaint display-only nameplates when the interface language changes. */
+  refreshLanguage(): void {
+    if (this.sceneReady) this.paintRooms();
   }
 
   /** Exposed to the responsive HTML zoom controls. */
@@ -490,7 +500,7 @@ export class GameScene extends Phaser.Scene {
       const badge = this.add.container(left + 6, top + height - 18);
       const plate = this.add.graphics();
       plate.fillStyle(0x09131f, 0.82).fillRoundedRect(0, 0, badgeWidth, 14, 3);
-      const name = this.add.text(4, 1, definition.label, {
+      const name = this.add.text(4, 1, getLocale() === 'fa' ? localizedRoomBadges[room.type] : definition.label, {
         fontSize: '9px', fontFamily: 'Arial', fontStyle: 'bold', color: '#f4f7fa'
       }).setResolution(3);
       const level = this.add.text(badgeWidth - 4, 1, 'LV ' + room.level, {

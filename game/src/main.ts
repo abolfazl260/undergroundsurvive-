@@ -17,7 +17,11 @@ import { BUILD_COSTS, DIG_COST, DEMO_BONUS_COINS, STARTING_COINS, getFloorCost }
 import { MAX_ROOM_LEVEL } from './modules/building/upgrades';
 import type { UpgradeDetails } from './modules/economy/session';
 import type { TransactionKind } from './modules/economy/wallet';
+import type { GameSnapshot } from './modules/economy/session';
+import { formatNumber, getLocale, loadLocale, localizeGameMessage, mountStaticTranslations, setLocale, subscribeLocaleChange, t } from './i18n';
 
+setLocale(loadLocale());
+mountStaticTranslations(document);
 enhanceIcons();
 
 const audio = new AudioManager();
@@ -27,8 +31,7 @@ const renderHud = mountHud(document);
 const bonusButton = document.querySelector<HTMLButtonElement>('#demo-bonus');
 const historyNode = document.querySelector<HTMLElement>('#transaction-list');
 const digButton = document.querySelector<HTMLButtonElement>('[data-tool="dig"]');
-const numberFormat = new Intl.NumberFormat('fa-IR');
-const formatCoins = (amount: number): string => numberFormat.format(amount);
+const formatCoins = formatNumber;
 const kindTitles: Record<TransactionKind, string> = {
   'starting-balance': 'سرمایهٔ اولیه',
   build: 'ساخت اتاق',
@@ -66,31 +69,30 @@ function renderUpgradePanel(): void {
   if (activeTool !== 'upgrade') return;
   const details = upgradeSelection;
   if (!details) {
-    if (upgradeTitle) upgradeTitle.textContent = 'یک اتاق را برای ارتقا انتخاب کنید';
-    if (upgradeEffect) upgradeEffect.textContent = 'برای دیدن ظرفیت و هزینه، روی اتاق بزنید.';
+    if (upgradeTitle) upgradeTitle.textContent = t('یک اتاق را برای ارتقا انتخاب کنید');
+    if (upgradeEffect) upgradeEffect.textContent = t('برای دیدن ظرفیت و هزینه، روی اتاق بزنید.');
     if (upgradeCost) upgradeCost.textContent = '';
     if (confirmUpgrade) {
-      confirmUpgrade.textContent = 'ابتدا اتاق را انتخاب کنید';
+      confirmUpgrade.textContent = t('ابتدا اتاق را انتخاب کنید');
       confirmUpgrade.disabled = true;
     }
     return;
   }
-  if (upgradeTitle) upgradeTitle.textContent = details.label + ' · سطح ' +
-    formatCoins(details.level) + ' از ' + formatCoins(MAX_ROOM_LEVEL);
-  if (upgradeEffect) upgradeEffect.textContent = details.current.label + ': ' +
-    formatCoins(details.current.value) + ' ' + details.current.unit +
-    (details.next ? ' ← ' + formatCoins(details.next.value) + ' ' + details.next.unit : '');
+  if (upgradeTitle) upgradeTitle.textContent = details.label + ' · ' +
+    t('سطح {level} از {max}', { level: formatCoins(details.level), max: formatCoins(MAX_ROOM_LEVEL) });
+  if (upgradeEffect) upgradeEffect.textContent = t(details.current.label) + ': ' +
+    formatCoins(details.current.value) + ' ' + t(details.current.unit) +
+    (details.next ? ' ← ' + formatCoins(details.next.value) + ' ' + t(details.next.unit) : '');
   if (upgradeCost) upgradeCost.textContent = details.cost === null
-    ? 'این اتاق به بالاترین سطح رسیده است.'
-    : 'هزینهٔ سطح بعد: ' + formatCoins(details.cost) + ' سکه' +
-      (latestBalance < details.cost ? ' — موجودی کافی نیست.' : '');
+    ? t('این اتاق به بالاترین سطح رسیده است.')
+    : t('هزینهٔ سطح بعد: {value} سکه', { value: formatCoins(details.cost) }) +
+      (latestBalance < details.cost ? ' — ' + t('موجودی کافی نیست.') : '');
   if (confirmUpgrade) {
     confirmUpgrade.disabled = details.cost === null || latestBalance < details.cost;
-    confirmUpgrade.textContent = details.cost === null ? 'حداکثر سطح' :
-      'تأیید ارتقا · ' + formatCoins(details.cost) + ' سکه';
+    confirmUpgrade.textContent = details.cost === null ? t('حداکثر سطح') :
+      t('تأیید ارتقا · {value} سکه', { value: formatCoins(details.cost) });
   }
 }
-
 
 roomButtons.forEach((button) => {
   const type = button.dataset.room as BuildableRoomType;
@@ -99,32 +101,38 @@ roomButtons.forEach((button) => {
   const amount = document.createElement('span');
   amount.textContent = formatCoins(BUILD_COSTS[type]);
   price.append(createIcon('coin'), amount);
-  price.setAttribute('aria-label', 'هزینه: ' + formatCoins(BUILD_COSTS[type]) + ' سکه');
+  price.setAttribute('aria-label', t('هزینه: {value} سکه', { value: formatCoins(BUILD_COSTS[type]) }));
   button.append(price);
 });
-if (digButton) setButtonLabel(digButton, 'حفاری · ' + formatCoins(DIG_COST) + ' سکه', 'pickaxe');
+function renderDigLabel(): void {
+  if (digButton) setButtonLabel(digButton, t('حفاری') + ' · ' + formatCoins(DIG_COST) + ' ' + t('سکه'), 'pickaxe');
+}
+renderDigLabel();
 
 let activeRoom: BuildableRoomType = 'habitat';
 let activeTool: ToolMode = 'build';
 
 const savedGame = loadLocalBase();
-const scene = new GameScene((snapshot, message) => {
-  const saved = saveLocalBase(snapshot);
+let lastSnapshot: GameSnapshot | null = null;
+let lastSaved = false;
+let lastMessage = '';
+
+function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string): void {
   latestBalance = snapshot.wallet.balance;
   renderUpgradePanel();
   renderHud(snapshot, saved);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
     setButtonLabel(bonusButton, snapshot.demoBonusClaimed
-      ? 'کمک‌هزینهٔ آزمایشی دریافت شده'
-      : 'دریافت ' + formatCoins(DEMO_BONUS_COINS) + ' سکهٔ آزمایشی (یک‌بار)', 'gift');
+      ? t('کمک‌هزینهٔ آزمایشی دریافت شده')
+      : t('دریافت {value} سکهٔ آزمایشی (یک‌بار)', { value: formatCoins(DEMO_BONUS_COINS) }), 'gift');
   }
   if (historyNode) {
     historyNode.replaceChildren();
     for (const txn of [...snapshot.wallet.transactions].reverse().slice(0, 6)) {
       const item = document.createElement('li');
       const label = document.createElement('span');
-      label.textContent = kindTitles[txn.kind];
+      label.textContent = t(kindTitles[txn.kind]);
       const amount = document.createElement('b');
       amount.className = txn.delta < 0 ? 'spent' : 'earned';
       amount.textContent = (txn.delta > 0 ? '+' : '−') + formatCoins(Math.abs(txn.delta));
@@ -132,15 +140,24 @@ const scene = new GameScene((snapshot, message) => {
       historyNode.append(item);
     }
   }
-  if (status) status.textContent = saved ? message : message + ' (ذخیرهٔ محلی در دسترس نیست)';
+  if (status) status.textContent = localizeGameMessage(saved ? message : message + ' (ذخیرهٔ محلی در دسترس نیست)');
   if (unlockButton) {
     const maxed = snapshot.base.terrain.highestFloor >= WORLD.maxY;
     unlockButton.disabled = maxed;
     setButtonLabel(unlockButton, maxed
-      ? 'تمام طبقات باز شده‌اند'
-      : 'طبقهٔ +' + (snapshot.base.terrain.highestFloor + 1) + ' · ' +
-        formatCoins(getFloorCost(snapshot.base.terrain.highestFloor)) + ' سکه', 'layers');
+      ? t('تمام طبقات باز شده‌اند')
+      : t('طبقهٔ +{floor} · {value} سکه', {
+        floor: formatCoins(snapshot.base.terrain.highestFloor + 1),
+        value: formatCoins(getFloorCost(snapshot.base.terrain.highestFloor))
+      }), 'layers');
   }
+}
+const scene = new GameScene((snapshot, message) => {
+  const saved = saveLocalBase(snapshot);
+  lastSnapshot = snapshot;
+  lastSaved = saved;
+  lastMessage = message;
+  renderSceneUi(snapshot, saved, message);
 }, savedGame, (zoom) => {
   if (zoomLevel) zoomLevel.textContent = Math.round(zoom * 100) + '%';
   if (zoomIn) zoomIn.disabled = zoom >= ZOOM.max - 0.001;
@@ -157,7 +174,7 @@ function renderAudioControls(): void {
   const settings = audio.getSettings();
   if (audioMute) {
     audioMute.setAttribute('aria-pressed', String(settings.muted));
-    audioMute.textContent = settings.muted ? 'فعال‌کردن صدا' : 'قطع همهٔ صداها';
+    audioMute.textContent = t(settings.muted ? 'فعال‌کردن صدا' : 'قطع همهٔ صداها');
   }
   if (musicEnabled) musicEnabled.checked = settings.musicEnabled;
   if (effectsEnabled) effectsEnabled.checked = settings.effectsEnabled;
@@ -174,8 +191,8 @@ function renderAudioControls(): void {
   if (audioPreview) audioPreview.disabled = !audio.supported || settings.muted || !settings.effectsEnabled;
   if (audioHint) {
     audioHint.textContent = audio.supported
-      ? 'پخش موسیقی پس از اولین لمس یا کلیک شروع می‌شود. تنظیمات روی همین دستگاه ذخیره می‌شوند.'
-      : 'این مرورگر از Web Audio پشتیبانی نمی‌کند؛ بازی بدون صدا قابل استفاده است.';
+      ? t('پخش موسیقی پس از اولین لمس یا کلیک شروع می‌شود. تنظیمات روی همین دستگاه ذخیره می‌شوند.')
+      : t('این مرورگر از Web Audio پشتیبانی نمی‌کند؛ بازی بدون صدا قابل استفاده است.');
   }
 }
 
@@ -254,3 +271,18 @@ document.querySelector<HTMLButtonElement>('#reset-layout')?.addEventListener('cl
 
 const storyButton = document.querySelector<HTMLButtonElement>('#story-open');
 if (storyButton) mountStoryViewer(storyButton);
+
+subscribeLocaleChange(() => {
+  if (lastSnapshot) renderSceneUi(lastSnapshot, lastSaved, lastMessage);
+  roomButtons.forEach((button) => {
+    const type = button.dataset.room as BuildableRoomType;
+    const amount = button.querySelector<HTMLElement>('.room-cost span');
+    const cost = button.querySelector<HTMLElement>('.room-cost');
+    if (amount) amount.textContent = formatCoins(BUILD_COSTS[type]);
+    if (cost) cost.setAttribute('aria-label', t('هزینه: {value} سکه', { value: formatCoins(BUILD_COSTS[type]) }));
+  });
+  renderDigLabel();
+  renderUpgradePanel();
+  renderAudioControls();
+  scene.refreshLanguage();
+});
