@@ -46,7 +46,7 @@ export function achievementArtPaths(
 }
 
 /** Responsive, keyboard-accessible dialog; rewards are granted only by GameSession. */
-export function mountAchievements(root: Document): (snapshot: GameSnapshot) => void {
+export function mountAchievements(root: Document, announceInitialRewards = false): (snapshot: GameSnapshot) => void {
   const get = <T extends HTMLElement>(selector: string): T => {
     const node = root.querySelector<T>(selector);
     if (!node) throw new Error('Missing achievements element: ' + selector);
@@ -255,8 +255,9 @@ export function mountAchievements(root: Document): (snapshot: GameSnapshot) => v
     );
     // On the initial render the saved ledger is only a baseline; old toasts
     // never replay on reload. Subsequent payments trigger one concise toast.
-    const newlyPaid = priorRewardTransactions === null ? [] :
-      paid.filter((entry) => !priorRewardTransactions!.has(entry.id));
+    const newlyPaid = priorRewardTransactions === null
+      ? (announceInitialRewards ? paid : [])
+      : paid.filter((entry) => !priorRewardTransactions!.has(entry.id));
     if (newlyPaid.length > 0) {
       const total = newlyPaid.reduce((sum, entry) => sum + entry.delta, 0);
       const only = newlyPaid.length === 1
