@@ -8,6 +8,7 @@ import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/
 import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE } from './roomArt';
 import { AssetManager } from './assets/assetManager';
+import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
 import { panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
@@ -17,7 +18,7 @@ export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade';
 export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
   private readonly assets = new AssetManager(
-    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET], import.meta.env.BASE_URL,
+    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND], import.meta.env.BASE_URL,
     Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
   );
   private get layout(): BuildingLayout { return this.session.layout; }
@@ -398,20 +399,22 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawBackdrop(): void {
-    const g = this.add.graphics().setDepth(0);
-    // Oversized background keeps the sky and soil visible at 75% zoom.
-    g.fillStyle(0x111e2e).fillRect(-600, -400, 2160, 712);
-    g.fillStyle(0x24394b).fillRect(-600, 246, 2160, 66);
-    g.fillStyle(0x42392f).fillRect(-600, 312, 2160, 1000);
-    g.fillStyle(0x7d8965).fillRect(-600, 310, 2160, 4);
-    g.fillStyle(0x9bbcc9, 0.38);
-    for (let i = 0; i < 25; i++) {
-      g.fillCircle(22 + i * 181 % 911, 18 + i * 67 % 150, 1.5);
+    // Keep an oversized solid fallback behind the artwork for panning, zooming
+    // out, or a failed texture request. The artwork itself maps 1:1 onto the
+    // 960×600 game canvas (source resolution: 1920×1200 for crisp zoom).
+    const fallback = this.add.graphics().setDepth(-1);
+    fallback.fillStyle(0x211f2a).fillRect(-600, -400, 2160, WORLD.groundLineY + 400);
+    fallback.fillStyle(0x33271e).fillRect(-600, WORLD.groundLineY, 2160, 1000);
+
+    const background = this.assets.resolve(RUINED_CITY_BACKGROUND.key, this.textures);
+    if (background) {
+      this.add.image(0, 0, background.key)
+        .setOrigin(0, 0)
+        .setDisplaySize(this.cameras.main.width, this.cameras.main.height)
+        .setDepth(0);
     }
-    g.fillStyle(0x53684f).fillTriangle(25, 310, 95, 268, 170, 310);
-    g.fillTriangle(770, 310, 831, 257, 929, 310);
-    this.add.text(20, 20, 'SURFACE / BUILD ABOVE', { fontSize: '13px', color: '#aac4d3' }).setDepth(2);
-    this.add.text(20, 566, 'UNDERGROUND / EXCAVATE BELOW', { fontSize: '13px', color: '#b3a18e' }).setDepth(2);
+    this.add.text(20, 20, 'SURFACE / BUILD ABOVE', { fontSize: '13px', color: '#e2e5ed' }).setDepth(2);
+    this.add.text(20, 566, 'UNDERGROUND / EXCAVATE BELOW', { fontSize: '13px', color: '#cbb7a0' }).setDepth(2);
   }
 
   private drawLevelMarkers(): void {
@@ -433,7 +436,7 @@ export class GameScene extends Phaser.Scene {
         const open = this.layout.terrain.isOpen(x, y);
         const color = y < 0 ? (open ? 0x1a3441 : ((x + y) % 2 ? 0x504136 : 0x493a31)) :
           y === 0 ? 0x2a4751 : open ? 0x263f50 : 0x172634;
-        g.fillStyle(color, y > 0 && !open ? 0.50 : 1);
+        g.fillStyle(color, terrainOverlayOpacity(y, open));
         g.fillRect(left + 1, top + 1, WORLD.cellSize - 2, WORLD.cellSize - 2);
         if (!open && y < 0) {
           g.lineStyle(1, 0x8c7359, 0.26);
