@@ -218,6 +218,11 @@
               <span class="menu-choice-copy"><strong>تنظیمات</strong></span>
               <span class="menu-choice-icon" data-ui-icon="settings" aria-hidden="true"></span>
             </button>
+            <button class="menu-choice" type="button" data-menu-action="policies">
+              <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
+              <span class="menu-choice-copy"><strong>قوانین و دسترسی‌ها</strong></span>
+              <span class="menu-choice-icon" data-ui-icon="info" aria-hidden="true"></span>
+            </button>
           </div>
 
         </div>
@@ -241,6 +246,11 @@
               <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
               <span class="menu-choice-copy"><strong>تنظیمات</strong></span>
               <span class="menu-choice-icon" data-ui-icon="settings" aria-hidden="true"></span>
+            </button>
+            <button class="menu-choice" type="button" data-menu-action="policies">
+              <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
+              <span class="menu-choice-copy"><strong>قوانین و دسترسی‌ها</strong></span>
+              <span class="menu-choice-icon" data-ui-icon="info" aria-hidden="true"></span>
             </button>
             <button class="menu-choice" type="button" data-menu-action="new">
               <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
@@ -281,8 +291,22 @@
           <span>کاهش حرکت‌های تزئینی</span>
         </label>
 
+        <button class="menu-policy-link" type="button" data-menu-action="policies">
+          قوانین و دسترسی‌ها
+        </button>
         <div class="menu-actions">
           <button class="menu-primary" type="button" data-menu-action="back">بازگشت</button>
+        </div>
+      </section>
+      <section data-menu-screen="policies" class="menu-screen menu-screen--policies" hidden>
+        <span class="menu-kicker">GAME POLICIES</span>
+        <h2 id="menu-policies-title" tabindex="-1">قوانین و دسترسی‌ها</h2>
+        <p id="menu-policies-intro" class="menu-policy-lead" data-no-i18n></p>
+        <div id="menu-policies-sections" class="menu-policy-sections" data-no-i18n></div>
+        <p id="menu-policies-version" class="menu-policy-version" data-no-i18n></p>
+        <p id="menu-policies-notice" class="menu-policy-notice" data-no-i18n></p>
+        <div class="menu-actions">
+          <button class="menu-primary" type="button" data-menu-action="policy-back">بازگشت</button>
         </div>
       </section>
       <section data-menu-screen="confirm-new" class="menu-screen" hidden>
