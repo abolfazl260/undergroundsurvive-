@@ -162,3 +162,18 @@ button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3c
 #confirm-upgrade{width:100%;min-height:44px;padding:12px;border:1px solid #6ac9a6;border-radius:9px;background:#25644f;color:#fff;font-size:12px;font-weight:700;touch-action:manipulation}
 #confirm-upgrade:disabled{opacity:.45;cursor:not-allowed}
 #confirm-upgrade:not(:disabled):hover{background:#317e65}
+
+/* Localization: preserve desktop/mobile layout while making text flow follow locale. */
+html[dir="ltr"] .sidebar, html[dir="ltr"] .player-profile,
+html[dir="ltr"] .hud-bar, html[dir="ltr"] .scene-header,
+html[dir="ltr"] .scene-footer, html[dir="ltr"] .menu-screen {
+  direction:ltr;text-align:left;
+}
+html[dir="ltr"] .menu-kicker, html[dir="ltr"] .room-button,
+html[dir="ltr"] .room-button small {text-align:left}
+html[dir="ltr"] .room-arrow {margin-left:auto;margin-right:0}
+html[dir="ltr"] .room-cost {margin-left:auto;margin-right:0}
+html[dir="ltr"] .coin-unit {direction:ltr}
+.menu-language select {width:100%;margin-top:12px;padding:11px 12px;border-radius:9px;
+  border:1px solid #537783;background:#203745;color:#eef9ff;font:inherit}
+.menu-language select:focus-visible {outline:2px solid #a4e3cd;outline-offset:2px}

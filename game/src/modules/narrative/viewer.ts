@@ -1,6 +1,7 @@
 import { contentUrl, type StoryChapter, type StoryScene } from './content';
 import { loadStoryCatalog } from './loader';
 import { readStoryProgress, saveStoryPosition, storyCompleted, storyResumeIndex } from './progress';
+import { getLocale, mountStaticTranslations, subscribeLocaleChange, t } from '../../i18n';
 import './viewer.css';
 
 export function mountStoryViewer(openButton: HTMLButtonElement): void {
@@ -27,6 +28,9 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
       </footer>
     </section>`;
   document.body.append(dialog);
+  mountStaticTranslations(dialog);
+  dialog.dir = getLocale() === 'fa' ? 'rtl' : 'ltr';
+  subscribeLocaleChange(() => { dialog.dir = getLocale() === 'fa' ? 'rtl' : 'ltr'; });
 
   const select = dialog.querySelector<HTMLSelectElement>('#story-chapter')!;
   const stage = dialog.querySelector<HTMLElement>('.story-stage')!;
@@ -45,6 +49,7 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
   let chapterIndex = 0;
   let sceneIndex = 0;
   let loaded = false;
+  let loadedLocale: 'fa' | 'en' | null = null;
   let loading = false;
   let slideTimer: number | undefined;
   const storage = (() => {
@@ -76,20 +81,20 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
     stopMedia();
     if (scene.poster) {
       const poster = document.createElement('img');
-      poster.alt = scene.title || 'پوستر جایگزین';
+      poster.alt = scene.title || t('پوستر جایگزین');
       poster.src = mediaUrl(scene.poster);
       poster.addEventListener('error', () => {
         poster.remove();
         const notice = document.createElement('p');
         notice.className = 'story-placeholder';
-        notice.textContent = 'رسانه در دسترس نیست؛ متن صحنه را دنبال کنید.';
+        notice.textContent = t('رسانه در دسترس نیست؛ متن صحنه را دنبال کنید.');
         stage.append(notice);
       }, { once: true });
       stage.append(poster);
     } else {
       const notice = document.createElement('p');
       notice.className = 'story-placeholder';
-      notice.textContent = 'رسانه در دسترس نیست؛ متن صحنه را دنبال کنید.';
+      notice.textContent = t('رسانه در دسترس نیست؛ متن صحنه را دنبال کنید.');
       stage.append(notice);
     }
   }
@@ -101,7 +106,7 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
   function render(): void {
     const chapter = activeChapter();
     if (!chapter) {
-      message('هنوز فصل قابل‌نمایشی ثبت نشده است.');
+      message(t('هنوز فصل قابل‌نمایشی ثبت نشده است.'));
       return;
     }
     const scene = chapter.scenes[sceneIndex];
@@ -116,7 +121,7 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
     prev.disabled = sceneIndex === 0;
     next.disabled = false;
     skip.disabled = false;
-    next.textContent = sceneIndex === chapter.scenes.length - 1 ? 'پایان فصل' : 'بعدی';
+    next.textContent = sceneIndex === chapter.scenes.length - 1 ? t('پایان فصل') : t('بعدی');
 
     if (scene.type === 'image') {
       const image = document.createElement('img');
@@ -137,7 +142,7 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
       if (scene.captions) {
         const track = document.createElement('track');
         track.kind = 'subtitles';
-        track.label = 'زیرنویس';
+        track.label = t('زیرنویس');
         track.srclang = chapter.locale.split('-')[0];
         track.src = mediaUrl(scene.captions);
         track.default = true;
@@ -186,6 +191,7 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
   async function open(): Promise<void> {
     if (dialog.open) return;
     dialog.showModal();
+    if (loadedLocale !== getLocale()) loaded = false;
     if (loaded) {
       const chapter = activeChapter();
       if (chapter) sceneIndex = storyResumeIndex(chapter, readStoryProgress(storage));
@@ -194,11 +200,12 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
     }
     if (loading) return;
     loading = true;
-    message('در حال بارگذاری فصل‌ها…');
+    message(t('در حال بارگذاری فصل‌ها…'));
     try {
-      const catalog = await loadStoryCatalog(baseUrl, pageUrl);
+      const catalog = await loadStoryCatalog(baseUrl, pageUrl, undefined, getLocale());
       chapters = catalog.chapters;
       loaded = true;
+      loadedLocale = getLocale();
       select.replaceChildren();
       const progress = readStoryProgress(storage);
       for (const chapter of chapters) {
@@ -209,18 +216,18 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
       }
       select.disabled = chapters.length === 0;
       if (catalog.errors.length) {
-        status.textContent = catalog.errors.length + ' فصل بارگذاری نشد.';
+        status.textContent = catalog.errors.length + ' ' + t('فصل بارگذاری نشد.');
       }
       if (chapters.length) {
         chapterIndex = 0;
         sceneIndex = storyResumeIndex(chapters[0], progress);
         if (dialog.open) render();
       } else {
-        message(catalog.errors.length ? 'فصل‌ها قابل بارگذاری نیستند. فایل‌های محتوا را بررسی کنید.' : 'هنوز فصل فعالی وجود ندارد.');
+        message(t(catalog.errors.length ? 'فصل‌ها قابل بارگذاری نیستند. فایل‌های محتوا را بررسی کنید.' : 'هنوز فصل فعالی وجود ندارد.'));
       }
     } catch (error) {
-      message('دریافت محتوای داستان ناموفق بود. اتصال اینترنت یا انتشار فایل‌های محتوا را بررسی کنید.');
-      status.textContent = error instanceof Error ? error.message : 'خطای بارگذاری';
+      message(t('دریافت محتوای داستان ناموفق بود. اتصال اینترنت یا انتشار فایل‌های محتوا را بررسی کنید.'));
+      status.textContent = error instanceof Error ? error.message : t('خطای بارگذاری');
     } finally {
       loading = false;
     }

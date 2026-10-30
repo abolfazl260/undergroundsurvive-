@@ -9,14 +9,15 @@ export interface StoryCatalog {
 export async function loadStoryCatalog(
   baseUrl: string,
   pageUrl: string,
-  request: typeof fetch = fetch
+  request: typeof fetch = fetch,
+  locale: 'fa' | 'en' = 'fa'
 ): Promise<StoryCatalog> {
   const getJson = async (path: string): Promise<unknown> => {
     const response = await request(contentUrl(path, baseUrl, pageUrl), { cache: 'no-cache' });
     if (!response.ok) throw new Error('HTTP ' + response.status);
     return response.json() as Promise<unknown>;
   };
-  const manifest = parseManifest(await getJson('manifest.json'));
+  const manifest = parseManifest(await getJson(locale === 'en' ? 'manifest.en.json' : 'manifest.json'));
   const chapters: StoryChapter[] = [];
   const errors: string[] = [];
   for (const entry of manifest.chapters) {

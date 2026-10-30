@@ -128,7 +128,7 @@
         </aside>
       </main>
     </div>
-    <dialog id="game-menu-dialog" class="game-menu" aria-labelledby="menu-home-title" dir="rtl">
+    <dialog id="game-menu-dialog" class="game-menu" aria-labelledby="menu-home-title">
       <section data-menu-screen="home" class="menu-screen">
         <span class="menu-kicker">UNDERGROUND SURVIVE</span>
         <h2 id="menu-home-title" tabindex="-1">پناهگاه زیرزمینی</h2>
@@ -153,6 +153,13 @@
       <section data-menu-screen="settings" class="menu-screen" hidden>
         <span class="menu-kicker">PREFERENCES</span>
         <h2 id="menu-settings-title" tabindex="-1">تنظیمات بازی</h2>
+        <div class="menu-field menu-language">
+          <label for="menu-language"><span>زبان بازی</span></label>
+          <select id="menu-language" aria-label="انتخاب زبان بازی">
+            <option value="fa">فارسی</option>
+            <option value="en">انگلیسی</option>
+          </select>
+        </div>
         <div class="menu-field menu-audio">
           <button id="menu-audio-mute" type="button" class="menu-audio-mute" aria-pressed="false">قطع همهٔ صداها</button>
           <label class="menu-audio-toggle" for="menu-music-enabled"><span>موسیقی</span><input id="menu-music-enabled" type="checkbox" /></label>

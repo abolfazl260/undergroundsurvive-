@@ -1,7 +1,6 @@
 import type { GameSnapshot } from '../../modules/economy/session';
 import { WORLD } from '../../modules/world/grid';
-
-const formatter = new Intl.NumberFormat('fa-IR');
+import { formatNumber, t } from '../../i18n';
 
 export interface HudView {
   balance: string;
@@ -20,15 +19,15 @@ export function toHudView(snapshot: GameSnapshot, saved: boolean): HudView {
   const showChange = latest !== undefined && latest.kind !== 'starting-balance';
   const changeKind = !showChange ? 'none' : latest.delta > 0 ? 'earned' : 'spent';
   return {
-    balance: formatter.format(snapshot.wallet.balance),
+    balance: formatNumber(snapshot.wallet.balance),
     lastChange: showChange
-      ? (latest.delta > 0 ? '+' : '−') + formatter.format(Math.abs(latest.delta))
+      ? (latest.delta > 0 ? '+' : '−') + formatNumber(Math.abs(latest.delta))
       : '—',
     changeKind,
-    rooms: formatter.format(snapshot.base.rooms.length),
-    floors: formatter.format(snapshot.base.terrain.highestFloor) + ' / ' + formatter.format(WORLD.maxY),
-    excavated: formatter.format(snapshot.base.terrain.excavated.length),
-    saveLabel: saved ? 'ذخیره روی دستگاه' : 'ذخیره نشد',
+    rooms: formatNumber(snapshot.base.rooms.length),
+    floors: formatNumber(snapshot.base.terrain.highestFloor) + ' / ' + formatNumber(WORLD.maxY),
+    excavated: formatNumber(snapshot.base.terrain.excavated.length),
+    saveLabel: t(saved ? 'ذخیره روی دستگاه' : 'ذخیره نشد'),
     saveState: saved ? 'saved' : 'failed'
   };
 }
@@ -53,8 +52,8 @@ export function mountHud(root: ParentNode): (snapshot: GameSnapshot, saved: bool
     change.textContent = view.lastChange;
     change.dataset.kind = view.changeKind;
     change.setAttribute('aria-label', view.changeKind === 'none'
-      ? 'هنوز تغییری ثبت نشده است'
-      : 'آخرین تغییر موجودی: ' + view.lastChange + ' سکه');
+      ? t('هنوز تغییری ثبت نشده است')
+      : t('آخرین تغییر موجودی: {value} سکه', { value: view.lastChange }));
     rooms.textContent = view.rooms;
     floors.textContent = view.floors;
     excavated.textContent = view.excavated;

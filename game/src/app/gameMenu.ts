@@ -2,6 +2,7 @@ import type { GameScene } from './GameScene';
 import type { AudioManager } from '../modules/audio/AudioManager';
 import type { AudioSettings } from '../modules/audio/settings';
 import { loadMenuSettings, saveMenuSettings, type MenuSettings } from './menuSettings';
+import { getLocale, setLocale, subscribeLocaleChange, t, formatNumber } from '../i18n';
 
 type MenuScreen = 'home' | 'pause' | 'settings' | 'confirm-new';
 type ReturnScreen = 'home' | 'pause';
@@ -18,6 +19,7 @@ export function setupGameMenu(
   const continueButton = document.querySelector<HTMLButtonElement>('#menu-continue');
   const newButton = document.querySelector<HTMLButtonElement>('#menu-new');
   const reducedMotion = document.querySelector<HTMLInputElement>('#menu-reduced-motion');
+  const language = document.querySelector<HTMLSelectElement>('#menu-language');
   const mute = document.querySelector<HTMLButtonElement>('#menu-audio-mute');
   const musicEnabled = document.querySelector<HTMLInputElement>('#menu-music-enabled');
   const effectsEnabled = document.querySelector<HTMLInputElement>('#menu-effects-enabled');
@@ -26,7 +28,7 @@ export function setupGameMenu(
   const musicValue = document.querySelector<HTMLOutputElement>('#menu-music-volume-value');
   const effectsValue = document.querySelector<HTMLOutputElement>('#menu-effects-volume-value');
   if (!dialog || !menuButton || !continueButton || !newButton || !reducedMotion || !mute ||
-      !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue) return;
+      !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue || !language) return;
 
   let playing = false;
   let hasSave = savedGameExists;
@@ -35,14 +37,14 @@ export function setupGameMenu(
   let settings: MenuSettings = loadMenuSettings();
 
   function renderHome(): void {
-    continueButton!.textContent = hasSave ? 'ادامهٔ بازی' : 'شروع بازی';
+    continueButton!.textContent = t(hasSave ? 'ادامهٔ بازی' : 'شروع بازی');
     newButton!.hidden = !hasSave;
   }
 
   function renderAudio(): void {
     const state = audio.getSettings();
     mute!.setAttribute('aria-pressed', String(state.muted));
-    mute!.textContent = state.muted ? 'فعال‌کردن صدا' : 'قطع همهٔ صداها';
+    mute!.textContent = t(state.muted ? 'فعال‌کردن صدا' : 'قطع همهٔ صداها');
     mute!.disabled = !audio.supported;
     musicEnabled!.checked = state.musicEnabled;
     effectsEnabled!.checked = state.effectsEnabled;
@@ -52,8 +54,8 @@ export function setupGameMenu(
     effectsVolume!.value = String(Math.round(state.effectsVolume * 100));
     musicVolume!.disabled = !audio.supported || !state.musicEnabled;
     effectsVolume!.disabled = !audio.supported || !state.effectsEnabled;
-    musicValue!.textContent = Math.round(state.musicVolume * 100) + '٪';
-    effectsValue!.textContent = Math.round(state.effectsVolume * 100) + '٪';
+    musicValue!.textContent = formatNumber(Math.round(state.musicVolume * 100)) + '%';
+    effectsValue!.textContent = formatNumber(Math.round(state.effectsVolume * 100)) + '%';
   }
 
   function changeAudio(patch: Partial<AudioSettings>): void {
@@ -100,11 +102,18 @@ export function setupGameMenu(
 
   scene.applyMenuSettings(settings);
   renderHome();
+  language.value = getLocale();
   reducedMotion.checked = settings.reducedMotion;
   showScreen('home');
   dialog.showModal();
   menuButton.addEventListener('click', openPauseMenu);
 
+  language.addEventListener('change', () => setLocale(language.value));
+  subscribeLocaleChange(() => {
+    language.value = getLocale();
+    renderHome();
+    renderAudio();
+  });
   mute.addEventListener('click', () => changeAudio({ muted: !audio.getSettings().muted }));
   musicEnabled.addEventListener('change', () => changeAudio({ musicEnabled: musicEnabled.checked }));
   effectsEnabled.addEventListener('change', () => changeAudio({ effectsEnabled: effectsEnabled.checked }));
