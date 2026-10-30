@@ -89,7 +89,7 @@ function renderUpgradePanel(): void {
     formatCoins(details.current.value) + ' ' + t(details.current.unit) +
     (details.next ? ' ← ' + formatCoins(details.next.value) + ' ' + t(details.next.unit) : '');
   if (upgradeCost) upgradeCost.textContent = details.cost === null
-    ? t('این اتاق به بالاترین سطح رسیده است.')
+    ? (details.blockedReason ? t(details.blockedReason) : t('این اتاق به بالاترین سطح رسیده است.'))
     : t('هزینهٔ سطح بعد: {value} سکه', { value: formatCoins(details.cost) }) +
       (latestBalance < details.cost ? ' — ' + t('موجودی کافی نیست.') : '');
   if (confirmUpgrade) {
