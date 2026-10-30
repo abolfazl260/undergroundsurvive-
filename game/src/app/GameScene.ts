@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { MenuSettings } from './menuSettings';
+import type { AudioCue } from '../modules/audio/AudioManager';
 import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/grid';
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
 import { BuildingLayout } from '../modules/building/layout';
@@ -33,13 +34,15 @@ export class GameScene extends Phaser.Scene {
   private gestureUsed = false;
   private gameplayPaused = true;
   private sceneReady = false;
-  private menuSettings: MenuSettings = { masterVolume: 80, reducedMotion: false };
+  private menuSettings: MenuSettings = { reducedMotion: false };
   private residentTween?: Phaser.Tweens.Tween;
 
   constructor(
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
     saved: unknown,
-    private readonly onZoomChange: (zoom: number) => void = () => {}
+    private readonly onZoomChange: (zoom: number) => void = () => {},
+    private readonly onAudioCue: (cue: AudioCue) => void = () => {},
+    private readonly onAudioActivate: () => void = () => {}
   ) {
     super({ key: 'UndergroundScene' });
     this.session = GameSession.fromSave(saved);
@@ -65,7 +68,10 @@ export class GameScene extends Phaser.Scene {
     this.applyMenuSettings(this.menuSettings);
 
     this.input.addPointer(2); // Accept simultaneous touch contacts for pinch gestures.
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.startContact(pointer));
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      this.onAudioActivate(); // Unlock Web Audio during a touch/mouse gesture.
+      this.startContact(pointer);
+    });
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => this.moveContact(pointer));
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => this.endContact(pointer, false));
     this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => this.endContact(pointer, true));
@@ -89,7 +95,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gameplayPaused) this.scene.pause();
   }
 
-  /** Pause actual scene updates/tweens, not just the HTML controls. */
+  /** Pause scene updates, resident animations and world interactions. */
   pauseGameplay(): void {
     this.gameplayPaused = true;
     this.contacts.clear();
@@ -107,12 +113,9 @@ export class GameScene extends Phaser.Scene {
 
   applyMenuSettings(settings: MenuSettings): void {
     this.menuSettings = { ...settings };
-    if (!this.sceneReady) return;
-    this.sound.volume = this.menuSettings.masterVolume / 100;
-    if (this.residentTween) {
-      if (this.menuSettings.reducedMotion) this.residentTween.pause();
-      else this.residentTween.resume();
-    }
+    if (!this.sceneReady || !this.residentTween) return;
+    if (settings.reducedMotion) this.residentTween.pause();
+    else this.residentTween.resume();
   }
 
   /** Exposed to the responsive HTML zoom controls. */
@@ -256,6 +259,7 @@ export class GameScene extends Phaser.Scene {
       remove: 'برای تخریب روی اتاق کلیک کنید. اتاق فرمان محفوظ است.',
       upgrade: 'روی یک اتاق بزنید؛ هزینهٔ ارتقا براساس نوع و سطح اتاق محاسبه می‌شود.'
     };
+    this.onAudioCue('select');
     this.notify(messages[tool]);
   }
 
@@ -263,18 +267,21 @@ export class GameScene extends Phaser.Scene {
     const cost = this.session.floorCost();
     const result = this.session.unlockFloor();
     if (result.ok) this.paintTerrain();
+    this.onAudioCue(result.ok ? 'floor' : 'error');
     this.paintPreview();
     this.notify(result.ok ? 'طبقهٔ جدید با پرداخت ' + cost + ' سکه آزاد شد؛ برای ساخت تکیه‌گاه لازم است.' : result.reason);
   }
 
   claimDemoBonus(): void {
     const result = this.session.claimDemoBonus();
+    this.onAudioCue(result.ok ? 'reward' : 'error');
     this.paintPreview();
     this.notify(result.ok ? '۵۰۰ سکهٔ کمک‌هزینهٔ آزمایشی دریافت شد.' : result.reason);
   }
 
   resetLayout(): void {
     this.session.reset();
+    this.onAudioCue('reset');
     this.pendingMoveId = null;
     this.paintTerrain();
     this.paintRooms();
@@ -287,6 +294,9 @@ export class GameScene extends Phaser.Scene {
     const { x, y } = cell;
     let result: PlacementResult = { ok: false, reason: 'دستور نامعتبر است.' };
     let successMessage = '';
+    const cue: AudioCue = {
+      build: 'build', dig: 'dig', move: 'move', remove: 'remove', upgrade: 'upgrade'
+    }[this.mode] as AudioCue;
     if (this.mode === 'build') {
       const cost = this.session.buildCost(this.selectedRoom);
       result = this.session.build(this.selectedRoom, x, y);
@@ -299,16 +309,19 @@ export class GameScene extends Phaser.Scene {
       const room = this.layout.getRoomAt(x, y);
       if (!this.pendingMoveId) {
         if (!room || room.type === 'command') {
+          this.onAudioCue('error');
           this.notify('برای جابه‌جایی ابتدا یک اتاق معمولی انتخاب کنید.');
           return;
         }
         this.pendingMoveId = room.id;
+        this.onAudioCue('select');
         this.paintPreview();
         this.notify('اتاق انتخاب شد؛ روی محل جدید بزنید.');
         return;
       }
       if (room?.id === this.pendingMoveId) {
         this.pendingMoveId = null;
+        this.onAudioCue('select');
         this.paintPreview();
         this.notify('انتخاب جابه‌جایی لغو شد.');
         return;
@@ -319,6 +332,7 @@ export class GameScene extends Phaser.Scene {
     } else {
       const room = this.layout.getRoomAt(x, y);
       if (!room) {
+        this.onAudioCue('error');
         this.notify('در این موقعیت اتاقی وجود ندارد.');
         return;
       }
@@ -337,6 +351,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.hovered = cell;
     this.paintPreview();
+    this.onAudioCue(result.ok ? cue : 'error');
     this.notify(result.ok ? successMessage : result.reason);
   }
 

@@ -1,11 +1,9 @@
-/** Local UI preferences, separate from the world/economy save. */
+/** Menu-only preferences. Audio uses the shared AudioManager settings. */
 export interface MenuSettings {
-  masterVolume: number;
   reducedMotion: boolean;
 }
 
 export const DEFAULT_MENU_SETTINGS: Readonly<MenuSettings> = {
-  masterVolume: 80,
   reducedMotion: false
 };
 
@@ -21,11 +19,7 @@ export function normalizeMenuSettings(raw: unknown): MenuSettings {
     return { ...DEFAULT_MENU_SETTINGS };
   }
   const value = raw as Record<string, unknown>;
-  const volume = typeof value.masterVolume === 'number' && Number.isFinite(value.masterVolume)
-    ? Math.round(Math.min(100, Math.max(0, value.masterVolume)))
-    : DEFAULT_MENU_SETTINGS.masterVolume;
   return {
-    masterVolume: volume,
     reducedMotion: typeof value.reducedMotion === 'boolean'
       ? value.reducedMotion : DEFAULT_MENU_SETTINGS.reducedMotion
   };

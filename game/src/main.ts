@@ -1,8 +1,10 @@
 import './style.css';
 import { setupGameMenu } from './app/gameMenu';
+import './audio.css';
 import { createGame } from './app/createGame';
 import { GameScene, type ToolMode } from './app/GameScene';
 import { ZOOM } from './app/viewport';
+import { AudioManager } from './modules/audio/AudioManager';
 import { mountHud } from './app/ui/hud';
 import { WORLD } from './modules/world/grid';
 import type { BuildableRoomType } from './modules/building/catalog';
@@ -10,6 +12,7 @@ import { loadLocalBase, saveLocalBase } from './platform/localSave';
 import { BUILD_COSTS, DIG_COST, DEMO_BONUS_COINS, getFloorCost } from './modules/economy/pricing';
 import type { TransactionKind } from './modules/economy/wallet';
 
+const audio = new AudioManager();
 const status = document.querySelector<HTMLElement>('#status');
 const unlockButton = document.querySelector<HTMLButtonElement>('#unlock-floor');
 const renderHud = mountHud(document);
@@ -26,6 +29,15 @@ const kindTitles: Record<TransactionKind, string> = {
   upgrade: 'ارتقای اتاق',
   'demo-bonus': 'کمک‌هزینهٔ آزمایشی'
 };
+const audioMute = document.querySelector<HTMLButtonElement>('#audio-mute');
+const musicEnabled = document.querySelector<HTMLInputElement>('#music-enabled');
+const effectsEnabled = document.querySelector<HTMLInputElement>('#effects-enabled');
+const musicVolume = document.querySelector<HTMLInputElement>('#music-volume');
+const effectsVolume = document.querySelector<HTMLInputElement>('#effects-volume');
+const musicVolumeValue = document.querySelector<HTMLOutputElement>('#music-volume-value');
+const effectsVolumeValue = document.querySelector<HTMLOutputElement>('#effects-volume-value');
+const audioPreview = document.querySelector<HTMLButtonElement>('#audio-preview');
+const audioHint = document.querySelector<HTMLElement>('#audio-hint');
 const zoomIn = document.querySelector<HTMLButtonElement>('#zoom-in');
 const zoomOut = document.querySelector<HTMLButtonElement>('#zoom-out');
 const zoomReset = document.querySelector<HTMLButtonElement>('#zoom-reset');
@@ -83,10 +95,65 @@ const scene = new GameScene((snapshot, message) => {
   if (zoomIn) zoomIn.disabled = zoom >= ZOOM.max - 0.001;
   if (zoomOut) zoomOut.disabled = zoom <= ZOOM.min + 0.001;
   if (zoomReset) zoomReset.disabled = Math.abs(zoom - ZOOM.initial) < 0.001;
-});
+}, (cue) => audio.play(cue), () => audio.activate());
 
 createGame(scene);
-setupGameMenu(scene, savedGame !== null);
+setupGameMenu(scene, savedGame !== null, audio, renderAudioControls);
+function renderAudioControls(): void {
+  const settings = audio.getSettings();
+  if (audioMute) {
+    audioMute.setAttribute('aria-pressed', String(settings.muted));
+    audioMute.textContent = settings.muted ? 'فعال‌کردن صدا' : 'قطع همهٔ صداها';
+  }
+  if (musicEnabled) musicEnabled.checked = settings.musicEnabled;
+  if (effectsEnabled) effectsEnabled.checked = settings.effectsEnabled;
+  if (musicVolume) {
+    musicVolume.value = String(Math.round(settings.musicVolume * 100));
+    musicVolume.disabled = !settings.musicEnabled;
+  }
+  if (effectsVolume) {
+    effectsVolume.value = String(Math.round(settings.effectsVolume * 100));
+    effectsVolume.disabled = !settings.effectsEnabled;
+  }
+  if (musicVolumeValue) musicVolumeValue.textContent = Math.round(settings.musicVolume * 100) + '%';
+  if (effectsVolumeValue) effectsVolumeValue.textContent = Math.round(settings.effectsVolume * 100) + '%';
+  if (audioPreview) audioPreview.disabled = !audio.supported || settings.muted || !settings.effectsEnabled;
+  if (audioHint) {
+    audioHint.textContent = audio.supported
+      ? 'پخش موسیقی پس از اولین لمس یا کلیک شروع می‌شود. تنظیمات روی همین دستگاه ذخیره می‌شوند.'
+      : 'این مرورگر از Web Audio پشتیبانی نمی‌کند؛ بازی بدون صدا قابل استفاده است.';
+  }
+}
+
+audioMute?.addEventListener('click', () => {
+  audio.setSettings({ muted: !audio.getSettings().muted });
+  audio.activate();
+  renderAudioControls();
+});
+musicEnabled?.addEventListener('change', () => {
+  audio.setSettings({ musicEnabled: musicEnabled.checked });
+  audio.activate();
+  renderAudioControls();
+});
+effectsEnabled?.addEventListener('change', () => {
+  audio.setSettings({ effectsEnabled: effectsEnabled.checked });
+  audio.activate();
+  renderAudioControls();
+});
+musicVolume?.addEventListener('input', () => {
+  audio.setSettings({ musicVolume: Number(musicVolume.value) / 100 });
+  audio.activate();
+  renderAudioControls();
+});
+effectsVolume?.addEventListener('input', () => {
+  audio.setSettings({ effectsVolume: Number(effectsVolume.value) / 100 });
+  audio.activate();
+  renderAudioControls();
+});
+audioPreview?.addEventListener('click', () => audio.play('upgrade'));
+window.addEventListener('beforeunload', () => audio.dispose());
+renderAudioControls();
+
 zoomIn?.addEventListener('click', () => scene.zoomBy(ZOOM.step));
 zoomOut?.addEventListener('click', () => scene.zoomBy(-ZOOM.step));
 zoomReset?.addEventListener('click', () => scene.resetZoom());

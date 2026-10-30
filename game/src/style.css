@@ -145,3 +145,10 @@ button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3c
 .menu-footnote{color:#9eb4bf;font-size:11px;line-height:1.9;margin:8px 0 20px}
 @media(max-width:640px){.menu-screen{padding:24px 18px}.menu-screen h2{font-size:22px}.menu-open-button{font-size:12px;padding:7px 9px}}
 @media(prefers-reduced-motion:reduce){.game-menu::backdrop{backdrop-filter:none}}
+
+.menu-audio-mute{width:100%;border:1px solid #477b76;border-radius:9px;background:#1c413d;color:#e2fff5;padding:10px 12px;margin-bottom:12px}
+.menu-audio-mute[aria-pressed="true"]{border-color:#a96b61;background:#503936;color:#ffe2da}
+.menu-field .menu-audio-toggle{margin-top:12px;margin-bottom:8px;cursor:pointer}
+.menu-audio-toggle input{width:19px;height:19px;accent-color:#7bd6b8}
+.menu-audio-note{margin:8px 0;color:#9eb5c1;font-size:11px;line-height:1.8}
+.menu-audio button:disabled,.menu-audio input:disabled{opacity:.5;cursor:not-allowed}

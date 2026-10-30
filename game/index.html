@@ -90,6 +90,24 @@
           </div>
           <button type="button" id="unlock-floor" class="floor-button">＋ بازکردن طبقهٔ +۱</button>
           <button type="button" id="demo-bonus" class="bonus-button">دریافت ۵۰۰ سکهٔ آزمایشی (یک‌بار)</button>
+          <section class="audio-panel" aria-labelledby="audio-heading">
+            <div class="audio-heading">
+              <strong id="audio-heading">صدا و موسیقی</strong>
+              <button type="button" id="audio-mute" aria-pressed="false">قطع همهٔ صداها</button>
+            </div>
+            <div class="audio-control-row">
+              <label for="music-enabled"><input id="music-enabled" type="checkbox" checked /> موسیقی محیطی</label>
+              <output id="music-volume-value" for="music-volume">۳۰٪</output>
+            </div>
+            <input id="music-volume" class="audio-volume" type="range" min="0" max="100" step="5" value="30" aria-label="حجم موسیقی" />
+            <div class="audio-control-row">
+              <label for="effects-enabled"><input id="effects-enabled" type="checkbox" checked /> افکت‌های بازی</label>
+              <output id="effects-volume-value" for="effects-volume">۶۵٪</output>
+            </div>
+            <input id="effects-volume" class="audio-volume" type="range" min="0" max="100" step="5" value="65" aria-label="حجم افکت‌های صوتی" />
+            <button type="button" id="audio-preview">آزمایش افکت صوتی</button>
+            <p id="audio-hint" role="status">موسیقی پس از اولین لمس یا کلیک شروع می‌شود.</p>
+          </section>
           <div class="side-label">آخرین تراکنش‌ها</div>
           <ul class="transaction-list" id="transaction-list" aria-label="تاریخچهٔ سکه"><li>هنوز تراکنشی ثبت نشده است.</li></ul>
           <button type="button" id="reset-layout" class="reset-button">بازنشانی تمام تغییرات آزمایشی</button>
@@ -126,15 +144,21 @@
       <section data-menu-screen="settings" class="menu-screen" hidden>
         <span class="menu-kicker">PREFERENCES</span>
         <h2 id="menu-settings-title" tabindex="-1">تنظیمات بازی</h2>
-        <div class="menu-field">
-          <label for="menu-volume">صدای کلی بازی <output id="menu-volume-value" for="menu-volume">۸۰٪</output></label>
-          <input id="menu-volume" type="range" min="0" max="100" step="5" value="80" />
+        <div class="menu-field menu-audio">
+          <button id="menu-audio-mute" type="button" class="menu-audio-mute" aria-pressed="false">قطع همهٔ صداها</button>
+          <label class="menu-audio-toggle" for="menu-music-enabled"><span>موسیقی</span><input id="menu-music-enabled" type="checkbox" /></label>
+          <label for="menu-music-volume">حجم موسیقی <output id="menu-music-volume-value" for="menu-music-volume">۳۰٪</output></label>
+          <input id="menu-music-volume" type="range" min="0" max="100" step="5" value="30" />
+          <label class="menu-audio-toggle" for="menu-effects-enabled"><span>افکت‌های صوتی</span><input id="menu-effects-enabled" type="checkbox" /></label>
+          <label for="menu-effects-volume">حجم افکت‌ها <output id="menu-effects-volume-value" for="menu-effects-volume">۶۵٪</output></label>
+          <input id="menu-effects-volume" type="range" min="0" max="100" step="5" value="65" />
+          <p class="menu-audio-note">تنظیمات صدا با کنترل‌های پنل بازی مشترک است.</p>
         </div>
         <label class="menu-check" for="menu-reduced-motion">
           <input id="menu-reduced-motion" type="checkbox" />
           <span>کاهش حرکت‌های تزئینی <small>انیمیشن آدمک آزمایشی متوقف می‌شود.</small></span>
         </label>
-        <p class="menu-footnote">تنظیمات جدا از ذخیرهٔ پناهگاه در همین مرورگر نگهداری می‌شوند.</p>
+        <p class="menu-footnote">تنظیمات صدا و کاهش حرکت جدا از پیشرفت پناهگاه ذخیره می‌شوند.</p>
         <div class="menu-actions">
           <button class="menu-primary" type="button" data-menu-action="back">بازگشت</button>
         </div>

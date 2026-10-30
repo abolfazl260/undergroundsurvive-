@@ -1,23 +1,32 @@
 import type { GameScene } from './GameScene';
+import type { AudioManager } from '../modules/audio/AudioManager';
+import type { AudioSettings } from '../modules/audio/settings';
 import { loadMenuSettings, saveMenuSettings, type MenuSettings } from './menuSettings';
 
 type MenuScreen = 'home' | 'pause' | 'settings' | 'confirm-new';
 type ReturnScreen = 'home' | 'pause';
 
-/**
- * The menu is a native modal dialog: the rest of the document is inert on
- * desktop and mobile, while the Phaser scene is separately paused.
- */
-export function setupGameMenu(scene: GameScene, savedGameExists: boolean): void {
+/** The modal makes other DOM controls inert while the Phaser scene is paused. */
+export function setupGameMenu(
+  scene: GameScene,
+  savedGameExists: boolean,
+  audio: AudioManager,
+  onAudioChange: () => void
+): void {
   const dialog = document.querySelector<HTMLDialogElement>('#game-menu-dialog');
   const menuButton = document.querySelector<HTMLButtonElement>('#menu-toggle');
   const continueButton = document.querySelector<HTMLButtonElement>('#menu-continue');
   const newButton = document.querySelector<HTMLButtonElement>('#menu-new');
-  const volume = document.querySelector<HTMLInputElement>('#menu-volume');
-  const volumeValue = document.querySelector<HTMLOutputElement>('#menu-volume-value');
   const reducedMotion = document.querySelector<HTMLInputElement>('#menu-reduced-motion');
-  if (!dialog || !menuButton || !continueButton || !newButton ||
-      !volume || !volumeValue || !reducedMotion) return;
+  const mute = document.querySelector<HTMLButtonElement>('#menu-audio-mute');
+  const musicEnabled = document.querySelector<HTMLInputElement>('#menu-music-enabled');
+  const effectsEnabled = document.querySelector<HTMLInputElement>('#menu-effects-enabled');
+  const musicVolume = document.querySelector<HTMLInputElement>('#menu-music-volume');
+  const effectsVolume = document.querySelector<HTMLInputElement>('#menu-effects-volume');
+  const musicValue = document.querySelector<HTMLOutputElement>('#menu-music-volume-value');
+  const effectsValue = document.querySelector<HTMLOutputElement>('#menu-effects-volume-value');
+  if (!dialog || !menuButton || !continueButton || !newButton || !reducedMotion || !mute ||
+      !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue) return;
 
   let playing = false;
   let hasSave = savedGameExists;
@@ -30,12 +39,37 @@ export function setupGameMenu(scene: GameScene, savedGameExists: boolean): void 
     newButton!.hidden = !hasSave;
   }
 
+  function renderAudio(): void {
+    const state = audio.getSettings();
+    mute!.setAttribute('aria-pressed', String(state.muted));
+    mute!.textContent = state.muted ? 'فعال‌کردن صدا' : 'قطع همهٔ صداها';
+    mute!.disabled = !audio.supported;
+    musicEnabled!.checked = state.musicEnabled;
+    effectsEnabled!.checked = state.effectsEnabled;
+    musicEnabled!.disabled = !audio.supported;
+    effectsEnabled!.disabled = !audio.supported;
+    musicVolume!.value = String(Math.round(state.musicVolume * 100));
+    effectsVolume!.value = String(Math.round(state.effectsVolume * 100));
+    musicVolume!.disabled = !audio.supported || !state.musicEnabled;
+    effectsVolume!.disabled = !audio.supported || !state.effectsEnabled;
+    musicValue!.textContent = Math.round(state.musicVolume * 100) + '٪';
+    effectsValue!.textContent = Math.round(state.effectsVolume * 100) + '٪';
+  }
+
+  function changeAudio(patch: Partial<AudioSettings>): void {
+    audio.setSettings(patch);
+    audio.activate(); // Called only from a direct user action, preserving autoplay policies.
+    renderAudio();
+    onAudioChange();
+  }
+
   function showScreen(next: MenuScreen): void {
     screen = next;
     dialog!.querySelectorAll<HTMLElement>('[data-menu-screen]').forEach((panel) => {
       panel.hidden = panel.dataset.menuScreen !== next;
     });
     dialog!.setAttribute('aria-labelledby', 'menu-' + next + '-title');
+    if (next === 'settings') renderAudio();
     dialog!.querySelector<HTMLElement>('#menu-' + next + '-title')?.focus();
   }
 
@@ -43,6 +77,7 @@ export function setupGameMenu(scene: GameScene, savedGameExists: boolean): void 
     playing = true;
     hasSave = true;
     renderHome();
+    audio.activate(); // The start/continue button is a user gesture.
     scene.resumeGameplay();
     dialog!.close();
     menuButton!.hidden = false;
@@ -56,14 +91,8 @@ export function setupGameMenu(scene: GameScene, savedGameExists: boolean): void 
     dialog!.showModal();
   }
 
-  function goBack(): void {
-    showScreen(returnScreen);
-  }
-
   function updateSettings(next: MenuSettings): void {
     settings = next;
-    volume!.value = String(settings.masterVolume);
-    volumeValue!.textContent = new Intl.NumberFormat('fa-IR').format(settings.masterVolume) + '٪';
     reducedMotion!.checked = settings.reducedMotion;
     scene.applyMenuSettings(settings);
     saveMenuSettings(settings);
@@ -71,16 +100,16 @@ export function setupGameMenu(scene: GameScene, savedGameExists: boolean): void 
 
   scene.applyMenuSettings(settings);
   renderHome();
-  volume.value = String(settings.masterVolume);
-  volumeValue.textContent = new Intl.NumberFormat('fa-IR').format(settings.masterVolume) + '٪';
   reducedMotion.checked = settings.reducedMotion;
   showScreen('home');
   dialog.showModal();
-
   menuButton.addEventListener('click', openPauseMenu);
-  volume.addEventListener('input', () => {
-    updateSettings({ ...settings, masterVolume: Number(volume.value) });
-  });
+
+  mute.addEventListener('click', () => changeAudio({ muted: !audio.getSettings().muted }));
+  musicEnabled.addEventListener('change', () => changeAudio({ musicEnabled: musicEnabled.checked }));
+  effectsEnabled.addEventListener('change', () => changeAudio({ effectsEnabled: effectsEnabled.checked }));
+  musicVolume.addEventListener('input', () => changeAudio({ musicVolume: Number(musicVolume.value) / 100 }));
+  effectsVolume.addEventListener('input', () => changeAudio({ effectsVolume: Number(effectsVolume.value) / 100 }));
   reducedMotion.addEventListener('change', () => {
     updateSettings({ ...settings, reducedMotion: reducedMotion.checked });
   });
@@ -107,7 +136,7 @@ export function setupGameMenu(scene: GameScene, savedGameExists: boolean): void 
         showScreen('settings');
         break;
       case 'back':
-        goBack();
+        showScreen(returnScreen);
         break;
       case 'main':
         hasSave = true;
@@ -117,11 +146,10 @@ export function setupGameMenu(scene: GameScene, savedGameExists: boolean): void 
     }
   });
 
-  // Escape resumes an active game, but never bypasses the startup menu.
   dialog.addEventListener('cancel', (event) => {
     event.preventDefault();
     if (screen === 'pause') resume();
-    else if (screen !== 'home') goBack();
+    else if (screen !== 'home') showScreen(returnScreen);
   });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && playing && !dialog.open) {
@@ -129,7 +157,6 @@ export function setupGameMenu(scene: GameScene, savedGameExists: boolean): void 
       openPauseMenu();
     }
   });
-  // Backgrounding the tab pauses the simulation and prevents unintended input.
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) openPauseMenu();
   });
