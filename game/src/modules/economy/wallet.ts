@@ -1,10 +1,11 @@
-export type TransactionKind = 'starting-balance' | 'build' | 'dig' | 'floor' | 'upgrade' | 'demo-bonus' | 'research' | 'radiation' | 'air';
+export type TransactionKind = 'starting-balance' | 'build' | 'dig' | 'floor' | 'upgrade' | 'demo-bonus' | 'research' | 'radiation' | 'air' | 'achievement-reward';
 
 export interface WalletTransaction {
   id: number;
   kind: TransactionKind;
   delta: number;
   balanceAfter: number;
+  achievementId?: string;
 }
 
 export interface WalletSnapshot {
@@ -15,7 +16,7 @@ export interface WalletSnapshot {
 }
 
 const VALID_KINDS: ReadonlySet<string> = new Set([
-  'starting-balance', 'build', 'dig', 'floor', 'upgrade', 'demo-bonus', 'research', 'radiation', 'air'
+  'starting-balance', 'build', 'dig', 'floor', 'upgrade', 'demo-bonus', 'research', 'radiation', 'air', 'achievement-reward'
 ]);
 const MAX_BALANCE = 1_000_000_000;
 
@@ -45,9 +46,23 @@ export class Wallet {
     return true;
   }
 
-  private record(kind: TransactionKind, delta: number): void {
+  /** An achievement payment is keyed by its stable ID in the one wallet ledger. */
+  creditAchievement(amount: number, achievementId: string): boolean {
+    if (!Number.isSafeInteger(amount) || amount <= 0 ||
+        this.coins + amount > MAX_BALANCE || typeof achievementId !== 'string' ||
+        !achievementId || this.hasAchievementReward(achievementId)) return false;
+    this.record('achievement-reward', amount, achievementId);
+    return true;
+  }
+
+  hasAchievementReward(achievementId: string): boolean {
+    return this.entries.some((entry) => entry.kind === 'achievement-reward' && entry.achievementId === achievementId);
+  }
+
+  private record(kind: TransactionKind, delta: number, achievementId?: string): void {
     this.coins += delta;
-    this.entries.push({ id: this.nextId++, kind, delta, balanceAfter: this.coins });
+    this.entries.push({ id: this.nextId++, kind, delta, balanceAfter: this.coins,
+      ...(achievementId ? { achievementId } : {}) });
   }
 
   snapshot(): WalletSnapshot {
@@ -75,13 +90,20 @@ export class Wallet {
         !Number.isSafeInteger(data.nextTransactionId) ||
         data.nextTransactionId !== data.transactions.length + 1) return null;
     let balance = 0;
+    const rewardIds = new Set<string>();
     for (let i = 0; i < data.transactions.length; i++) {
       const entry = data.transactions[i];
       if (!entry || entry.id !== i + 1 || !VALID_KINDS.has(entry.kind) ||
           !Number.isSafeInteger(entry.delta) || entry.delta === 0) return null;
       if (i === 0 && (entry.kind !== 'starting-balance' || entry.delta <= 0)) return null;
       if (i > 0 && entry.kind === 'starting-balance') return null;
-      if ((entry.kind === 'starting-balance' || entry.kind === 'demo-bonus') !== (entry.delta > 0)) return null;
+      if ((entry.kind === 'starting-balance' || entry.kind === 'demo-bonus' ||
+           entry.kind === 'achievement-reward') !== (entry.delta > 0)) return null;
+      if (entry.kind === 'achievement-reward') {
+        if (typeof entry.achievementId !== 'string' || !entry.achievementId ||
+            rewardIds.has(entry.achievementId)) return null;
+        rewardIds.add(entry.achievementId);
+      } else if (entry.achievementId !== undefined) return null;
       balance += entry.delta;
       if (!Number.isSafeInteger(balance) || balance < 0 || balance > MAX_BALANCE ||
           entry.balanceAfter !== balance) return null;

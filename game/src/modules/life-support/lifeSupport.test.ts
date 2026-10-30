@@ -125,7 +125,7 @@ describe('life-support graph and deterministic distribution', () => {
     const legacy= {...fresh,schemaVersion:13,lifeSupport:undefined,lifeSupportView:undefined};
     const restored=GameSession.restore(legacy);
     expect(restored).not.toBeNull();
-    expect(restored!.snapshot().schemaVersion).toBe(14);
+    expect(restored!.snapshot().schemaVersion).toBe(16);
     expect(restored!.snapshot().base).toEqual(fresh.base);
     expect(restored!.snapshot().resources).toEqual(fresh.resources);
     expect(restored!.snapshot().lifeSupport.graceTicks).toBe(36);

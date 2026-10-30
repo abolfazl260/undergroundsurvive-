@@ -1,6 +1,7 @@
 import { contaminationState } from '../modules/radiation/radiation';
 import { paintElevatorCars, paintElevatorShaft } from './elevatorArt';
 import { ELEVATOR_DEFINITION } from '../modules/world/elevators';
+import { canWire, POWER_BALANCE, type PowerAllocation } from '../modules/power/network';
 import Phaser from 'phaser';
 import type { MenuSettings } from './menuSettings';
 import { getLocale, localizeGameMessage } from '../i18n';
@@ -13,7 +14,7 @@ import { findRoomPath } from '../modules/characters/pathfinding';
 import type { ResidentTraffic } from '../modules/characters/traffic';
 import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
-import { ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, roomArtCandidates } from './roomArt';
+import { ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, LEVEL_TWO_ADDITIONAL_ART_ASSET, LEVEL_TWO_COMMAND_ART_ASSET, roomArtCandidates } from './roomArt';
 import { SURVIVOR_ART, survivorGeometry, survivorFrame, hitSurvivor } from './survivorArt';
 import { AssetManager } from './assets/assetManager';
 import { TWO_CELL_CONSTRUCTION_ART_ASSET, TwoCellConstructionAnimation } from './twoCellConstruction';
@@ -28,7 +29,7 @@ const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
   laboratory: 'آزمایشگاه', kitchen:'آشپزخانه', waterTreatment: 'تصفیه آب', ventilation: 'تهویه', medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
 };
 
-export type ToolMode = 'elevator' | 'build' | 'dig' | 'move' | 'remove' | 'upgrade' | 'navigate';
+export type ToolMode = 'elevator' | 'build' | 'dig' | 'move' | 'remove' | 'upgrade' | 'navigate' | 'cable' | 'riser' | 'cutCable';
 
 export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
@@ -53,7 +54,7 @@ export class GameScene extends Phaser.Scene {
     height: number;
   }>();
   private readonly assets = new AssetManager(
-    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, TWO_CELL_CONSTRUCTION_ART_ASSET, DIGGING_ART_ASSET], import.meta.env.BASE_URL,
+    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, LEVEL_TWO_ADDITIONAL_ART_ASSET, LEVEL_TWO_COMMAND_ART_ASSET, TWO_CELL_CONSTRUCTION_ART_ASSET, DIGGING_ART_ASSET], import.meta.env.BASE_URL,
     Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
   );
   private get layout(): BuildingLayout { return this.session.layout; }
@@ -67,6 +68,8 @@ export class GameScene extends Phaser.Scene {
   private roomBadges: Phaser.GameObjects.Container[] = [];
   private airBadges: {id: string; label: Phaser.GameObjects.Text}[] = [];
   private preview?: Phaser.GameObjects.Graphics;
+  private powerOverlay=false;
+  private powerLayer?: Phaser.GameObjects.Graphics;
   private radiationOverlay=false;
   private radiationSelection:GridPosition={x:12,y:-1};
   private radiationLayer?:Phaser.GameObjects.Graphics;
@@ -155,11 +158,13 @@ export class GameScene extends Phaser.Scene {
     this.terrainLayer = this.add.graphics().setDepth(1);
     this.elevatorCarLayer = this.add.graphics().setDepth(3.8);
     this.radiationLayer=this.add.graphics().setDepth(5);
+    this.powerLayer=this.add.graphics().setDepth(5.5);
     this.roomLayer = this.add.container(0, 0).setDepth(3);
     this.diggingLayer = this.add.container(0, 0).setDepth(2.9);
     this.preview = this.add.graphics().setDepth(6);
     this.paintTerrain();
     this.paintRooms();
+    this.paintPower();
     this.addResident();
     this.sceneReady = true;
     this.applyMenuSettings(this.menuSettings);
@@ -249,6 +254,7 @@ export class GameScene extends Phaser.Scene {
     if (completed > 0) {
       this.updateAirBadges();
       this.paintRadiation();
+      this.paintPower();
       if (this.layout.rooms.some(r=>r.type==='kitchen')) this.paintRooms();
       const result = this.session.resources.snapshot();
       this.notify(researchBefore && !this.session.research.snapshot().activeResearchId ? 'پژوهش تکمیل شد.' : result.lastShortages.length
@@ -415,6 +421,8 @@ export class GameScene extends Phaser.Scene {
 
   setTool(tool: ToolMode): void {
     this.radiationOverlay=false;this.paintRadiation();
+    if (tool === 'cable' || tool === 'riser' || tool === 'cutCable') this.powerOverlay=true;
+    this.paintPower();
     this.mode = tool;
     this.pendingMoveId = null;
     this.selectedUpgradeId = null;
@@ -422,6 +430,9 @@ export class GameScene extends Phaser.Scene {
     this.syncResidents();
     this.paintPreview();
     const messages: Record<ToolMode, string> = {
+      cable: 'روی خانهٔ باز برای نصب کابل افقی بزنید. هزینه ۱۵ سکه.',
+      riser: 'روی دو خانهٔ عمودی مجاور، رابط عمودی نصب کنید؛ هر رابط ۳۵ سکه.',
+      cutCable: 'برای حذف کابل روی خانهٔ دارای کابل بزنید.',
       elevator: 'آسانسور را در خانهٔ مجاور شفت امتداد دهید.',
       build: 'جایگاه‌های سبز کنار آسانسور یا اتاق‌های متصل را برای ساخت انتخاب کنید.',
       dig: 'برای حفاری روی زمین بستهٔ زیرزمینی مجاور فضای باز بزنید.',
@@ -463,6 +474,54 @@ export class GameScene extends Phaser.Scene {
     const id=this.session.commandStatus().activeRoomId;
     const result=id?this.session.upgradeRoom(id,crypto.randomUUID()):{ok:false as const,reason:'اتاق فرماندهی فعال لازم است.'};
     if(result.ok)this.paintRooms();this.notify(result.ok?'فرماندهی ارتقا یافت.':result.reason);
+  }
+  togglePowerOverlay():void {this.powerOverlay=!this.powerOverlay;this.paintPower();}
+  powerView(): { enabled:boolean; allocation:PowerAllocation } {
+    return {enabled:this.powerOverlay,allocation:this.session.powerStatus()};
+  }
+  activatePowerNetwork():void {
+    if(this.gameplayPaused)return;
+    const result=this.session.activatePowerNetwork();
+    this.paintPower();
+    this.notify(result.ok?'شبکه برق فیزیکی فعال شد.':result.reason);
+  }
+  prioritizePower(id:string, priority:0|1|2):void {
+    if(this.gameplayPaused)return;
+    const result=this.session.prioritizeRoom(id,priority);
+    this.paintPower();
+    this.notify(result.ok?'اولویت مصرف برق تغییر کرد.':result.reason);
+  }
+  private paintPower():void {
+    const g=this.powerLayer;if(!g)return;g.clear();
+    if(!this.powerOverlay)return;
+    const cables=this.session.power.cables;
+    const wired=new Map(cables.map(c=>[c.x+':'+c.y,c]));
+    for(const cable of cables) {
+      const at=toPixels(cable.x,cable.y);
+      const cx=at.left+WORLD.cellSize/2,cy=at.top+WORLD.cellSize/2;
+      g.lineStyle(3,0xffca63,0.90);
+      const right=wired.get((cable.x+1)+':'+cable.y);
+      if(right)g.lineBetween(cx,cy,cx+WORLD.cellSize,cy);
+      const above=wired.get(cable.x+':'+(cable.y+1));
+      if(above&&cable.riser&&above.riser) {
+        const p=toPixels(above.x,above.y);
+        g.lineBetween(cx,cy,p.left+WORLD.cellSize/2,p.top+WORLD.cellSize/2);
+      }
+      g.fillStyle(cable.riser?0xffbd4a:0x6fe8db,0.96);
+      g.fillRoundedRect(cx-5,cy-5,10,10,2);
+      if(cable.riser) {g.lineStyle(1.5,0x17252c).lineBetween(cx-3,cy+1,cx,cy-3);
+        g.lineBetween(cx,cy-3,cx+3,cy+1);}
+    }
+    const statuses=new Map(this.session.powerStatus().rooms.map(r=>[r.roomId,r]));
+    for(const room of this.layout.rooms) {
+      const state=statuses.get(room.id);
+      if(!state||state.status==='online'||state.status==='legacy')continue;
+      const at=toPixels(room.x,room.y);
+      const cx=at.left+room.width*WORLD.cellSize-13,cy=at.top+12;
+      g.fillStyle(0x9e2635,0.9).fillCircle(cx,cy,10);
+      g.lineStyle(2,0xffffff,1).lineBetween(cx-4,cy-4,cx+4,cy+4);
+      g.lineBetween(cx-4,cy+4,cx+4,cy-4);
+    }
   }
   toggleRadiation():void {this.radiationOverlay=!this.radiationOverlay;this.paintRadiation();}
   radiationView() {return {enabled:this.radiationOverlay,cell:{...this.radiationSelection}};}
@@ -588,9 +647,18 @@ export class GameScene extends Phaser.Scene {
     if(this.radiationOverlay) {
       this.radiationSelection={x,y};this.paintRadiation();this.notify('منطقهٔ تشعشع انتخاب شد.');return;
     }
+    if(this.mode==='cable'||this.mode==='riser'||this.mode==='cutCable') {
+      const result=this.mode==='cutCable'?this.session.removeCable(x,y):
+        this.session.installCable(x,y,this.mode==='riser');
+      if(result.ok)this.paintPower();
+      this.hovered=cell;this.paintPreview();
+      this.onAudioCue(result.ok?'build':'error');
+      this.notify(result.ok?(this.mode==='cutCable'?'کابل حذف شد.':'کابل نصب شد.'):result.reason);
+      return;
+    }
     if (this.mode === 'elevator') {
       const result=this.session.buildElevator(x,y);
-      if(result.ok) { this.paintTerrain(); this.refreshResidentPath(); }
+      if(result.ok) { this.paintTerrain(); this.paintPower(); this.refreshResidentPath(); }
       this.hovered = cell;
       this.paintPreview();
       this.notify(result.ok ? 'آسانسور ساخته و طبقه آزاد شد.' : result.reason); return;
@@ -694,6 +762,7 @@ export class GameScene extends Phaser.Scene {
       }
       this.paintTerrain();
       this.paintRooms();
+      this.paintPower();
       if (this.mode === 'dig') this.startDigging(x, y);
       this.refreshResidentPath();
     }
@@ -1150,7 +1219,14 @@ export class GameScene extends Phaser.Scene {
     const room = this.layout.getRoomAt(x, y);
     let width = 1, height = 1, startX = x, startY = y, valid = false;
     let rejection: string | null = null;
-    if (this.mode === 'elevator') {
+    if(this.mode==='cable'||this.mode==='riser'||this.mode==='cutCable') {
+      const reason=this.mode==='cutCable'
+        ? (this.session.power.cables.some(c=>c.x===x&&c.y===y)?null:'در این خانه کابل وجود ندارد.')
+        : canWire(this.session.power,this.layout.terrain,x,y,this.mode==='riser');
+      const cost=this.mode==='riser'?POWER_BALANCE.riserCost:POWER_BALANCE.cableCost;
+      valid=!reason&&(this.mode==='cutCable'||this.session.canAfford(cost));
+      if(!valid)rejection=reason??'سکهٔ کافی برای کابل ندارید.';
+    } else if (this.mode === 'elevator') {
       const result=this.layout.canBuildElevator(x,y);
       valid=result.ok && this.session.canAfford(ELEVATOR_DEFINITION.cost);
       if(!valid) {

@@ -16,6 +16,7 @@ import './fullscreen.css';
 import './gameHud.css';
 import './gameMenu.css';
 import './achievements.css';
+import './bunkerUi.css';
 import { createIcon } from './ui/icons';
 import { enhanceIcons, setButtonLabel, setPressed } from './ui/components';
 import { createGame } from './app/createGame';
@@ -32,6 +33,7 @@ import type { UpgradeDetails } from './modules/economy/session';
 import type { TransactionKind } from './modules/economy/wallet';
 import type { GameSnapshot } from './modules/economy/session';
 import { mountResourcePanel } from './app/ui/resourcePanel';
+import { mountPowerPanel } from './app/ui/powerPanel';
 import { formatNumber, loadLocale, localizeGameMessage, mountStaticTranslations, setLocale, subscribeLocaleChange, t } from './i18n';
 
 setLocale(loadLocale());
@@ -43,7 +45,15 @@ const audio = new AudioManager();
 const status = document.querySelector<HTMLElement>('#status');
 const renderHud = mountHud(document);
 const resourcePanel = mountResourcePanel(document);
-const renderAchievements = mountAchievements(document);
+const renderPower = mountPowerPanel(document,
+  () => scene.activatePowerNetwork(),
+  (id,priority) => scene.prioritizePower(id,priority));
+const powerOverlayButton = document.querySelector<HTMLButtonElement>('#power-overlay-toggle');
+const savedGame = loadLocalBase();
+const announceMigrationRewards = savedGame !== null &&
+  !(typeof savedGame === 'object' && 'schemaVersion' in savedGame &&
+    typeof savedGame.schemaVersion === 'number' && savedGame.schemaVersion >= 14);
+const renderAchievements = mountAchievements(document, announceMigrationRewards);
 const bonusButton = document.querySelector<HTMLButtonElement>('#demo-bonus');
 const historyNode = document.querySelector<HTMLElement>('#transaction-list');
 const digButton = document.querySelector<HTMLButtonElement>('[data-tool="dig"]');
@@ -57,7 +67,8 @@ const kindTitles: Record<TransactionKind, string> = {
   research: 'پژوهش',
   radiation: 'کاهش تشعشع',
   air: 'تعمیر تهویه',
-  'demo-bonus': 'کمک‌هزینهٔ آزمایشی'
+  'demo-bonus': 'کمک‌هزینهٔ آزمایشی',
+  'achievement-reward': 'پاداش دستاورد'
 };
 const audioMute = document.querySelector<HTMLButtonElement>('#audio-mute');
 const musicEnabled = document.querySelector<HTMLInputElement>('#music-enabled');
@@ -131,8 +142,6 @@ renderDigLabel();
 
 let activeRoom: BuildableRoomType = 'habitat';
 let activeTool: ToolMode = 'build';
-
-const savedGame = loadLocalBase();
 let lastSnapshot: GameSnapshot | null = null;
 let lastSaved = false;
 let lastMessage = '';
@@ -143,6 +152,9 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   renderHud(snapshot, saved);
   renderAchievements(snapshot);
   resourcePanel.render(snapshot);
+  const powerView = scene.powerView();
+  renderPower(snapshot,powerView.allocation);
+  if(powerOverlayButton)powerOverlayButton.setAttribute('aria-pressed',String(powerView.enabled));
   renderWater(snapshot);
   renderAir(snapshot);
   renderAirHud(snapshot);
@@ -267,6 +279,12 @@ function updateSelectedButtons(): void {
     const active = button.dataset.tool === activeTool;
     setPressed(button, active);
   });
+  const selected = document.querySelector<HTMLElement>('#selected-room-summary');
+  if (selected) {
+    const title = Array.from(roomButtons).find((button) => button.dataset.room === activeRoom)
+      ?.querySelector<HTMLElement>('strong')?.textContent ?? t('انتخاب اتاق');
+    selected.textContent = title + ' · ' + formatCoins(BUILD_COSTS[activeRoom]) + ' ' + t('سکه');
+  }
   renderUpgradePanel();
 }
 
@@ -278,8 +296,14 @@ roomButtons.forEach((button) => {
     activeTool = 'build';
     scene.selectRoom(type);
     updateSelectedButtons();
-    gameDock.showSheet(null);
+    // Picking an illustrated card updates the preview. The explicit action below
+    // closes the gallery and makes room placement available on the world.
   });
+});
+
+document.querySelector<HTMLButtonElement>('#confirm-room-placement')?.addEventListener('click', () => {
+  scene.selectRoom(activeRoom);
+  gameDock.showSheet(null);
 });
 
 toolButtons.forEach((button) => {
@@ -301,11 +325,18 @@ toolButtons.forEach((button) => {
   });
 });
 
+powerOverlayButton?.addEventListener('click', () => {
+  scene.togglePowerOverlay();
+  const view = scene.powerView();
+  powerOverlayButton.setAttribute('aria-pressed',String(view.enabled));
+});
 confirmUpgrade?.addEventListener('click', () => scene.upgradeSelected());
 bonusButton?.addEventListener('click', () => scene.claimDemoBonus());
 document.querySelector<HTMLButtonElement>('#reset-layout')?.addEventListener('click', () => {
   scene.resetLayout();
 });
+
+updateSelectedButtons();
 
 const storyButton = document.querySelector<HTMLButtonElement>('#story-open');
 if (storyButton) mountStoryViewer(storyButton);
@@ -320,7 +351,7 @@ subscribeLocaleChange(() => {
     if (cost) cost.setAttribute('aria-label', t('هزینه: {value} سکه', { value: formatCoins(BUILD_COSTS[type]) }));
   });
   renderDigLabel();
-  renderUpgradePanel();
+  updateSelectedButtons();
   renderAudioControls();
   scene.refreshLanguage();
 });

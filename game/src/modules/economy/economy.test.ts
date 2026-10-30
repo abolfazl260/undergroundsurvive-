@@ -26,7 +26,7 @@ describe('local wallet and transactional commands', () => {
     expect(game.build('habitat', 7, 1).ok).toBe(false);
     expect(game.snapshot()).toEqual(before);
     expect(game.build('habitat', 8, -1).ok).toBe(true);
-    expect(game.wallet.balance).toBe(STARTING_COINS - 120);
+    expect(game.wallet.balance).toBe(STARTING_COINS - 120 + 40);
     const after = game.snapshot();
     expect(game.build('habitat', 8, -1).ok).toBe(false);
     expect(game.snapshot()).toEqual(after);
@@ -39,9 +39,9 @@ describe('local wallet and transactional commands', () => {
     expect(game.dig(5, 0).ok).toBe(false);
     expect(game.wallet.balance).toBe(before);
     expect(game.dig(5, -2).ok).toBe(true);
-    expect(game.wallet.balance).toBe(before - DIG_COST);
+    expect(game.wallet.balance).toBe(before - DIG_COST + 25);
     expect(game.dig(5, -2).ok).toBe(false);
-    expect(game.wallet.balance).toBe(before - DIG_COST);
+    expect(game.wallet.balance).toBe(before - DIG_COST + 25);
   });
 
   it('blocks the legacy upward floor command without charging or changing saved state', () => {
@@ -57,7 +57,7 @@ describe('local wallet and transactional commands', () => {
     const game = GameSession.create();
     expect(game.upgradeAt(5, -1).ok).toBe(true);
     expect(game.upgradeAt(5, -1).ok).toBe(true);
-    expect(game.wallet.balance).toBe(250);
+    expect(game.wallet.balance).toBe(250 + 30);
     const before = game.snapshot();
     expect(game.build('generator', 8, 0).ok).toBe(false);
     expect(game.upgradeAt(5, -1).ok).toBe(false);

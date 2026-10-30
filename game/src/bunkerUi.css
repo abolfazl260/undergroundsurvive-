@@ -1,0 +1,240 @@
+/* Unified bunker control surface: the world stays unobstructed, every interactive
+   gameplay action is reached from the bottom dock. Shared across desktop/mobile. */
+:root {
+  --dock-height: 64px;
+  --control-glass: rgba(5, 21, 32, .94);
+  --control-border: rgba(81, 184, 171, .52);
+}
+.topbar {
+  height:calc(64px + var(--game-safe-top));
+  padding:calc(8px + var(--game-safe-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+  background:linear-gradient(180deg,rgba(3,13,24,.89),rgba(3,13,24,.54) 78%,transparent);
+  gap:clamp(6px,1vw,12px);
+}
+.topbar .brand {flex:0 1 clamp(145px,23vw,340px); gap:9px;}
+.topbar .brand-name {font-size:clamp(11px,1.35vw,18px);}
+.topbar #open-more,.topbar #menu-toggle {flex:0 0 44px; min-width:44px; height:44px; color:#e3fff5;}
+.topbar #open-more {font-size:0;}
+.topbar #open-more::before {
+  content:'⚙'; font-size:28px; display:grid; place-items:center;
+}
+.topbar .hud-bar {flex:1 1 250px; justify-content:center; gap:clamp(5px,.75vw,11px);}
+.topbar .hud-tile {min-height:44px; height:44px; min-width:85px; padding:6px 9px;}
+.topbar .hud-tile-coins {background:rgba(53,35,17,.75);border-color:#b58b45;}
+.topbar .resource-panel {flex:0 1 auto; background:rgba(7,27,39,.7);}
+.header-resources {
+  display:flex;flex:0 1 auto;gap:6px;align-items:center;justify-content:center;
+  direction:rtl;min-width:0;
+}
+.header-resource {
+  min-width:65px;display:inline-flex;gap:6px;align-items:center;justify-content:center;
+  padding:9px 8px;border-radius:10px;border:1px solid rgba(91,165,179,.34);
+  background:rgba(10,38,51,.63);
+}
+.header-resource-mark {font-size:19px;color:#77ebd5;line-height:1;}
+.header-resource:nth-child(2) .header-resource-mark {color:#f3bd65;}
+.header-resource:nth-child(3) .header-resource-mark {color:#9be0ff;}
+.header-resource:nth-child(4) .header-resource-mark {color:#c4d9e0;}
+.header-resource strong {color:#e8f8fa;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
+@media(max-width:1180px) {.header-resources {display:none;}}
+
+.topbar .resource-panel-header {min-height:42px;}
+.topbar .resource-panel[data-expanded="true"] {z-index:55;}
+.topbar #resource-details-toggle {color:#bcfff0;}
+/* There is no vertical button rail: story, achievements, zoom and fullscreen
+   are reparented into contextual sheets by mountGameDock(). */
+.story-navigation {position:static;inset:auto;width:auto;margin:0;}
+.zoom-controls,.screen-fullscreen {position:static;inset:auto;}
+#action-dock {
+  position:absolute; z-index:40; inset:auto 0 0 0; min-height:calc(var(--dock-height) + var(--game-safe-bottom));
+  padding:7px max(12px,env(safe-area-inset-right)) calc(7px + var(--game-safe-bottom)) max(12px,env(safe-area-inset-left));
+  display:flex;justify-content:center;align-items:center;gap:9px;
+  background:linear-gradient(0deg,rgba(4,18,29,.93),rgba(7,27,38,.72));
+  border-top:1px solid rgba(91,193,177,.42);box-shadow:0 -8px 28px rgba(0,0,0,.28);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+}
+#action-dock > button {
+  min-height:49px;display:inline-flex;justify-content:center;align-items:center;
+  gap:10px;padding:8px 24px;border-radius:12px;
+  color:#e7fff8;font-weight:800;font-size:14px;
+  touch-action:manipulation;cursor:pointer;
+  border:1px solid rgba(99,184,186,.54);
+  background:linear-gradient(180deg,#183849,#0a2738);
+  transition:background .16s ease, box-shadow .16s ease;
+}
+#action-dock > button .ui-icon {width:22px;height:22px;}
+#action-dock .dock-primary {
+  min-width:min(45vw,235px); background:linear-gradient(180deg,#23be9d,#0f877c);
+  border-color:#91ffe1;color:#051c22;box-shadow:0 0 17px #16d9b44f;
+}
+#action-dock > button[aria-expanded="true"] {border-color:#93ffe2;box-shadow:0 0 16px #19e9ba69;}
+#action-dock > button:focus-visible,.room-categories button:focus-visible,
+.build-confirm:focus-visible,#game-sheet .room-button:focus-visible {
+  outline:2px solid #b7fff1;outline-offset:2px;
+}
+#game-sheet {
+  position:absolute; z-index:43; inset:auto auto calc(var(--hud-dock-occupied, 64px) + 2px) 50%;
+  transform:translateX(-50%);
+  width:min(1600px,calc(100vw - 24px)); max-width:none;
+  max-height:min(55dvh,540px);padding:14px clamp(12px,2vw,23px);
+  border:1px solid rgba(84,200,184,.55); border-radius:18px 18px 10px 10px;
+  color:#e9fff7; background:linear-gradient(125deg,rgba(5,23,34,.98),rgba(11,39,50,.97));
+  box-shadow:0 -18px 44px rgba(0,0,0,.55);backdrop-filter:blur(17px);
+  overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; direction:rtl;
+}
+#game-sheet[hidden] {display:none!important;}
+#sheet-scrim {background:rgba(1,7,13,.25); backdrop-filter:blur(1px);}
+#game-sheet .sheet-handle {height:3px;margin-bottom:6px;}
+#game-sheet .sheet-titlebar {margin:0 0 10px;gap:12px;}
+#game-sheet .sheet-titlebar strong {font-size:clamp(15px,1.6vw,21px);}
+#game-sheet #close-game-sheet {width:38px;height:38px;min-width:38px;border-radius:10px;background:#102f3f;}
+#game-sheet[data-sheet="rooms"] > :not(.sheet-handle):not(.sheet-titlebar):not(.room-categories):not(.room-list):not(.build-footer),
+#game-sheet[data-sheet="tools"] > :not(.sheet-handle):not(.sheet-titlebar):not(.dock-tools-container) {
+  display:none!important;
+}
+#game-sheet[data-sheet="more"] > :is(.room-categories,.room-list,.build-footer,.dock-tools-container) {display:none!important;}
+.room-categories {
+  display:flex;gap:8px;align-items:center;overflow-x:auto;overscroll-behavior-x:contain;
+  padding:4px 2px 12px;scrollbar-width:thin;
+}
+.room-categories button {
+  flex:0 0 auto;min-height:43px;padding:9px clamp(13px,1.65vw,22px);
+  border:1px solid #315e68;border-radius:11px;
+  background:linear-gradient(180deg,#132f3f,#0b2432);color:#d4e8e7;
+  font-size:12px;font-weight:700;line-height:1.4;font-family:inherit;white-space:nowrap;cursor:pointer;
+}
+.room-categories button[aria-pressed="true"] {
+  background:linear-gradient(180deg,#128979,#0b584e);color:#effffb;
+  border-color:#7af1d5;box-shadow:0 0 14px #13d5ac44;
+}
+#game-sheet .room-list {
+  display:flex!important;align-items:stretch;gap:12px;
+  overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory;
+  padding:4px 2px 13px; margin:0;
+  scrollbar-color:#3b918a transparent;scrollbar-width:thin;
+}
+#game-sheet .room-button {
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto;
+  grid-template-rows:auto auto;align-content:start;text-align:start;
+  gap:7px 7px;flex:0 0 clamp(180px,22vw,276px)!important;
+  min-height:0!important;width:auto!important;max-width:none!important;
+  padding:7px 7px 10px!important;border-radius:13px;
+  background:linear-gradient(180deg,#163443,#0b202d);border:1px solid #346273;
+  scroll-snap-align:start;box-shadow:inset 0 1px 0 #ffffff0e;
+  overflow:hidden;
+}
+#game-sheet .room-button[hidden] {display:none!important;}
+#game-sheet .room-button[aria-pressed="true"] {
+  border-color:#74fbd7!important;
+  background:linear-gradient(180deg,#194b4a,#0b3039);
+  box-shadow:0 0 0 1px rgba(74,238,198,.4),0 0 18px rgba(37,216,167,.25);
+}
+#game-sheet .room-button .room-preview {
+  grid-column:1/-1;grid-row:1;width:100%;height:auto;aspect-ratio:160/53;
+  display:block;border-radius:9px;object-fit:cover;
+  background:radial-gradient(ellipse at center,#45604f,#1c3644 66%,#0b212c);
+}
+#game-sheet .room-button.room-preview-fallback .room-preview {
+  background:linear-gradient(115deg,#25404c,#48604f 42%,#1a3542 80%),repeating-linear-gradient(90deg,transparent 0 14px,#55808a 15px 16px);
+}
+#game-sheet .room-button .room-icon,#game-sheet .room-button .room-arrow {display:none!important;}
+#game-sheet .room-button > span:not(.room-icon):not(.room-arrow):not(.room-cost) {
+  grid-row:2;grid-column:1;min-width:0;display:flex;flex-direction:column;gap:2px;
+}
+#game-sheet .room-button strong {font-size:clamp(11px,1.1vw,14px);font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#game-sheet .room-button small {font-size:10px;color:#a9c5cb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#game-sheet .room-button .room-cost {
+  grid-column:2;grid-row:2;margin:0;padding:3px 4px;min-width:0;
+  display:inline-flex;flex-wrap:nowrap;align-items:center;gap:4px;align-self:center;
+  color:#f9d58c;font-size:11px;white-space:nowrap;
+}
+#game-sheet .room-button .room-cost .ui-icon {width:15px;height:15px;}
+.build-footer {
+  display:flex;align-items:center;justify-content:space-between;gap:15px;
+  border-top:1px solid #376675;padding:11px 0 0;
+}
+.build-selected-info {display:flex;flex-direction:column;gap:3px;min-width:0;}
+.build-selected-info strong {font-size:12px;color:#9ecbc6;}
+.build-selected-info span {font-size:clamp(12px,1.3vw,16px);font-weight:800;color:#f2f8f3;}
+.build-confirm {
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  min-width:min(29vw,190px);min-height:54px;padding:10px 18px;
+  border:1px solid #94ffe0;border-radius:13px;
+  color:#04262b;font-weight:900;font-size:16px;cursor:pointer;touch-action:manipulation;
+  background:linear-gradient(180deg,#70f9c9,#13cba5);
+  box-shadow:0 0 24px #0be5b854;
+}
+.build-confirm .ui-icon {width:24px;height:24px;}
+#game-sheet .dock-tools-container {display:none;direction:rtl;}
+#game-sheet[data-sheet="tools"] .dock-tools-container {display:flex;flex-direction:column;gap:12px;}
+#game-sheet .dock-tools-container .tools-grid {
+  display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;
+  width:100%;margin:0;padding:0;
+}
+#game-sheet .dock-tools-container .tool-button {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:68px;padding:8px 4px;min-width:0;gap:5px;border-radius:10px;
+  background:#113343;border:1px solid #3f7782;color:#f5fffd;
+}
+#game-sheet .dock-tools-container .tool-button.active {background:#12695f;border-color:#75f7d5;}
+#game-sheet .dock-tools-container .tool-button .ui-control-icon svg {width:25px;height:25px;}
+#game-sheet .dock-tools-container .tool-button .ui-control-label {font-size:11px;white-space:normal;}
+#game-sheet .dock-tools-container .zoom-controls {
+  display:flex;flex-direction:row;align-items:center;justify-content:center;
+  width:max-content;max-width:100%;margin:0; padding:4px;gap:7px;
+  background:#0b2a3a;border:1px solid #31616d;border-radius:10px;
+}
+#game-sheet .dock-tools-container .zoom-controls button {width:43px;height:43px;min-width:43px;min-height:43px;}
+#game-sheet .dock-tools-container #zoom-level {width:50px;}
+#game-sheet .dock-tools-container .screen-fullscreen {
+  display:inline-flex;align-items:center;justify-content:center;
+  width:50px;height:44px;margin:0;border:1px solid #3b8b85;border-radius:10px;
+  background:#124f4d;cursor:pointer;
+}
+#game-sheet[data-sheet="more"] .story-navigation {
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+  width:100%;margin:0 0 14px;
+}
+#game-sheet[data-sheet="more"] .story-navigation > button {
+  width:100%;min-height:55px;flex-direction:row;font-size:12px;gap:9px;
+}
+#game-sheet[data-sheet="more"] .story-navigation .achievements-open output {font-size:11px;}
+#game-sheet[data-sheet="more"] .advanced-controls {display:block;}
+#game-sheet[data-sheet="more"] :is(#command-panel,#water-panel,#air-panel,#research-panel,#radiation-panel,#survivor-panel) {display:block;}
+/* Selection tooltips continue to appear above the dock and never under it. */
+.upgrade-panel {bottom:calc(var(--hud-dock-occupied,64px) + 10px);z-index:42;}
+.play-area:has(.upgrade-panel:not([hidden])) .zoom-controls {position:static;}
+@media(max-width:760px) {
+  .topbar {height:calc(55px + var(--game-safe-top));padding-inline:6px;gap:4px;}
+  .topbar .brand {flex:0 0 30px;min-width:30px;}
+  .topbar .brand-name {display:none;}
+  .topbar #menu-toggle,.topbar #open-more {min-width:38px;flex-basis:38px;width:38px;height:41px;min-height:41px;}
+  .topbar .hud-bar {gap:4px;flex:1 1 auto;}
+  .topbar .hud-tile {min-width:0;flex:1 1 60px;max-width:116px;padding:3px 5px;}
+  .topbar .hud-icon {display:none;}
+  .topbar .hud-label {font-size:8px;}
+  .topbar .hud-tile-content strong {font-size:12px;}
+  .topbar .resource-panel-header {gap:3px;}
+  .topbar .cycle-label {font-size:9px;}
+  #game-sheet {width:calc(100vw - 12px);max-height:min(57dvh,440px);padding:10px;}
+  .room-categories {gap:6px;padding-bottom:8px;}
+  .room-categories button {min-height:38px;padding:8px 11px;font-size:11px;}
+  #game-sheet .room-button {flex-basis:190px!important;}
+  .build-confirm {min-height:47px;min-width:122px;padding:7px 12px;font-size:13px;}
+  #game-sheet .dock-tools-container .tools-grid {grid-template-columns:repeat(4,minmax(0,1fr));}
+}
+@media(max-width:400px) {
+  .topbar .hud-tile {max-width:89px;}
+  .topbar .hud-icon {display:none;}
+  #action-dock > button {padding-inline:14px;font-size:12px;gap:7px;}
+  #game-sheet .room-button {flex-basis:168px!important;}
+  #game-sheet .room-button small {display:none;}
+}
+@media(max-height:510px) {
+  #game-sheet {max-height:calc(100dvh - var(--hud-top-occupied,65px) - var(--hud-dock-occupied,64px) - 16px);}
+  #game-sheet .room-button {flex-basis:190px!important;}
+  #game-sheet .room-button .room-preview {max-height:75px;object-fit:cover;}
+}
+@media(prefers-reduced-motion:reduce) {
+  #action-dock > button {transition:none;}
+}

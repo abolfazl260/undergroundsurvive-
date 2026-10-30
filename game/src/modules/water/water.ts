@@ -52,10 +52,11 @@ export class WaterProductionProcessor {
         !power.spend(WATER_CONFIG.collectPower)) return false;
     this.state.raw += amount; this.state.reserve -= amount; this.state.operations.push(operationId); return true;
   }
-  advance(deltaMs: number, rooms: readonly Room[], power: WaterPower): void {
+  advance(deltaMs: number, rooms: readonly Room[], power: WaterPower, poweredRooms?: ReadonlySet<string>): void {
     if (!Number.isFinite(deltaMs) || deltaMs <= 0) return;
     this.sync(rooms);
     for (const cycle of this.state.cycles) {
+      if (poweredRooms && !poweredRooms.has(cycle.id)) continue;
       if (this.status(cycle, rooms, power.available()) !== 'producing') continue;
       const recipe = this.recipe(cycle.level);
       cycle.elapsedMs += deltaMs;

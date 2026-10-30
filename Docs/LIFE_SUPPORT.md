@@ -16,7 +16,7 @@ The network models built-in side-facing pipe/duct fittings between adjacent room
 - A consumer can use a resource only when its graph component has an applicable distribution facility (water treatment or storage for water; ventilation or storage for oxygen). Cutting a valve isolates that consumer. Each adjacent fitting transmits up to eight water units and eight oxygen units per five-second tick per minimum adjacent room level; separate flow ledgers are consumed deterministically, and a failed multi-resource delivery reserves neither. Existing storages are the tank roles for both resources; no new art or construction types were added.
 - A 36-tick migration/emergency grace period permits existing v13 (and fresh) saves to gain production before survivor needs begin. Shortages generate typed `life-support-shortage` and `survivor-exposure` records but do **not** change resident health or kill residents.
 - HUD shows water/oxygen stocks, capacity, and rates; water panel shows connection valves and actionable status. All status text is descriptive rather than using color alone.
-- The snapshot migrates game schema v13 → v14 and preserves all pre-existing resources, rooms, and coins. Corrupt life-support snapshots are rejected. Paused games do not tick.
+- The snapshot migrates game schema v13/v15 → v16 and preserves all pre-existing resources, rooms, and coins. Corrupt life-support snapshots are rejected. Paused games do not tick.
 
 ## Operational boundaries
 
