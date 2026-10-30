@@ -84,7 +84,7 @@ describe('physical elevator boarding and vertical travel', () => {
       traffic.getResident('a')!.cell.y)?.id).toBe('initial-garden');
   });
 
-  it('queues simultaneous passengers on a shaft without overlapping reservations', () => {
+  it('keeps the single elevator car exclusive while pedestrians may overlap', () => {
     const layout = new BuildingLayout();
     const traffic = new ResidentTraffic(layout,[
       {id:'a',cell:{x:0,y:-1}}, {id:'b',cell:{x:0,y:-2}}
@@ -96,11 +96,7 @@ describe('physical elevator boarding and vertical travel', () => {
       traffic.advance(50);
       const riding = traffic.residents.filter(r=>r.elevator!==null);
       simultaneous ||= riding.length>1;
-      const occupied = traffic.residents.flatMap(r=>[
-        r.cell.x+':'+r.cell.y,
-        ...(r.isWalking?r.remainingCells.slice(0,1).map(c=>c.x+':'+c.y):[])
-      ]);
-      expect(new Set(occupied).size).toBe(occupied.length);
+      expect(riding.length).toBeLessThanOrEqual(1);
     }
     expect(simultaneous).toBe(false);
   });

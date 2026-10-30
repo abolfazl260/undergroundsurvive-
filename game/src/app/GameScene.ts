@@ -9,7 +9,7 @@ import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/gri
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
 import { BuildingLayout } from '../modules/building/layout';
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../modules/building/constructionPolicy';
-import { findRoomPath, walkPoint } from '../modules/characters/pathfinding';
+import { findRoomPath } from '../modules/characters/pathfinding';
 import type { ResidentTraffic } from '../modules/characters/traffic';
 import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
@@ -75,7 +75,6 @@ export class GameScene extends Phaser.Scene {
     lastX: number;
     ring: Phaser.GameObjects.Ellipse;
   }>();
-  private residentPathLayer?: Phaser.GameObjects.Graphics;
   private traffic?: ResidentTraffic;
   private selectedResidentId = 'resident-1';
   private readonly residentWaitMs = new Map<string, number>();
@@ -146,7 +145,6 @@ export class GameScene extends Phaser.Scene {
     this.elevatorCarLayer = this.add.graphics().setDepth(3.8);
     this.radiationLayer=this.add.graphics().setDepth(5);
     this.roomLayer = this.add.container(0, 0).setDepth(3);
-    this.residentPathLayer = this.add.graphics().setDepth(3.5);
     this.preview = this.add.graphics().setDepth(6);
     this.paintTerrain();
     this.paintRooms();
@@ -210,8 +208,8 @@ export class GameScene extends Phaser.Scene {
       if (this.sceneReady) this.paintRooms();
     }
     this.session.survivors.setReducedMotion(settings.reducedMotion);
-    // Reduced motion resolves one reserved edge per update rather than
-    // teleporting residents through other bodies or solid terrain.
+    // Reduced motion resolves one traversable step per update without
+    // skipping terrain boundaries or elevator ride phases.
     this.syncResidents();
   }
 
@@ -243,7 +241,6 @@ export class GameScene extends Phaser.Scene {
     const arrivals: string[] = [];
     this.syncResidents();
     this.paintElevatorMotion();
-    this.paintResidentPath();
     for (const resident of this.traffic.residents) {
       if (resident.isMoving || this.session.survivors.assignment(resident.id)) continue;
       if (arrivals.includes(resident.id)) this.residentWaitMs.set(resident.id, 1800);
@@ -582,8 +579,7 @@ export class GameScene extends Phaser.Scene {
       if (selected) {
         this.selectedResidentId = selected.id;
         this.syncResidents();
-        this.paintResidentPath();
-        this.onAudioCue('select');
+            this.onAudioCue('select');
         this.notify('آدمک ' + selected.id.replace('resident-', '') + ' انتخاب شد؛ اتاق مقصد را لمس کنید.');
         return;
       }
@@ -927,7 +923,6 @@ export class GameScene extends Phaser.Scene {
     });
     this.syncResidents();
     this.paintElevatorMotion();
-    this.paintResidentPath();
   }
 
   private resetResident(): void {
@@ -962,26 +957,10 @@ export class GameScene extends Phaser.Scene {
       this.traffic?.elevatorCars ?? [], this.layout.terrain.elevators);
   }
 
-  private paintResidentPath(): void {
-    const g = this.residentPathLayer;
-    if (!g) return;
-    g.clear();
-    const resident = this.traffic?.getResident(this.selectedResidentId);
-    if (!resident?.isMoving || !resident.remainingCells.length) return;
-    const points = [resident.position, ...resident.remainingCells.map(walkPoint)];
-    g.lineStyle(2, 0x9aeed7, 0.54);
-    for (let i = 1; i < points.length; i++) {
-      g.lineBetween(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
-      g.fillStyle(0xc1f9eb, 0.72);
-      g.fillCircle(points[i].x, points[i].y, 2.5);
-    }
-  }
-
   private beginResidentWalk(residentId: string, roomId: string, manual: boolean): boolean {
     if (this.session.survivors.assignment(residentId) || !this.traffic?.goToRoom(residentId, roomId)) return false;
     this.residentWaitMs.set(residentId, manual ? 9000 : 1800);
     this.syncResidents();
-    this.paintResidentPath();
     return true;
   }
 
@@ -1007,7 +986,6 @@ export class GameScene extends Phaser.Scene {
     const cancelled = this.traffic.refresh();
     for (const id of cancelled) this.residentWaitMs.set(id, 1600);
     this.syncResidents();
-    this.paintResidentPath();
   }
 
   private paintPreview(): void {
