@@ -188,3 +188,7 @@ Underground Survive یک بازی **دوبعدی ساخت و توسعهٔ پنا
 - وضعیت‌های قابل استفاده: `Planned`، `In progress`، `Done`، `Blocked`. وضعیت‌ها فقط با تأیید کار واقعی تغییر کنند.
 - جزئیات با برچسب **پیشنهاد طراحی** تا زمان تأیید نهایی، تصمیم قطعی محصول نیستند.
 - هر تغییر اولویت ابتدا در [README اصلی](../README.md) و سپس در این سند هماهنگ شود.
+
+F-04 / P1: connected elevators gate every new underground floor; digging cannot
+unlock vertical levels. Starter and legacy snapshots use connected shafts.
+Construction remains underground-only (#28). See [elevator design](https://github.com/abolfazl260/undergroundsurvive-/blob/main/Docs/ELEVATORS.md).

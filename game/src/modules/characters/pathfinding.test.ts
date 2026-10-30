@@ -19,7 +19,7 @@ describe('room pathfinding', () => {
   it('cannot pass through solid ground or use stacked ordinary rooms as ladders', () => {
     const current = new BuildingLayout().snapshot();
     const layout = new BuildingLayout({
-      ...current, terrain: { ...current.terrain, highestFloor: 1 }
+      ...current, terrain: { ...current.terrain, highestFloor: 1, elevators: [...current.terrain.elevators!, {x:0,y:1}] }
     }, LEGACY_SURFACE_POLICY);
     expect(canWalkBetween(layout, { x: 5, y: -1 }, { x: 5, y: -2 })).toBe(false);
     expect(layout.place('habitat', 2, 0).ok).toBe(true);

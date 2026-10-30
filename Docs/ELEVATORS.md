@@ -1,0 +1,29 @@
+# F-04: connected elevator access
+
+Floors are derived from continuous same-column segments rooted at y=0.
+The starter has a one-cell shaft at x=0 from 0 through -2. Room footprints
+cannot overlap shafts. `canBuildElevator`/`buildElevator` coordinate collision,
+construction policy and immutable terrain extension; `GameSession` commits the
+150-coin fee and candidate layout together. Ordinary digging cannot open floors.
+Only the shaft cell is excavated by an extension; horizontal development remains
+separate. Direct floor-unlock APIs always reject. Shaft removal/movement is
+explicitly disabled until a safe reconnect policy exists.
+
+The current #28 underground-only policy takes precedence over the historical
+above-ground portion of #2: new extension is below zero only. Pure world access
+supports positive floors for historical saves and a future explicit policy.
+World bounds and geometry are unchanged. The elevator is a separate catalog
+structure, not an upgradeable room. UI has touch selection, valid/invalid ghost,
+reason label and grid-aligned shaft graphics.
+
+Base snapshot schema 2 includes elevator segments. Restore rejects gaps,
+duplicates, collisions, mismatched floor metadata, inaccessible excavations and
+missing shaft cells. Schema 1 migration finds a free column across all previously
+used floors and preserves rooms. If no column exists, restore returns a controlled
+failure. Browser persistence retains an un-restorable original in
+`underground-survive:recovery` and the scene displays a recovery warning; it is not
+silently destroyed. Online authorization/operation IDs must be server-owned.
+
+Unit/integration regressions exercise atomicity, costs, bypass prevention,
+one-floor extension, boundaries, migration and tampered snapshots. Browser visual
+verification remains unavailable (see WATER.md).

@@ -203,3 +203,5 @@ html[dir="ltr"] .topbar .resource-panel[data-expanded="true"] .resource-details 
 @media(prefers-reduced-motion:reduce) {
   .topbar #resource-details-toggle { transition:none; }
 }
+/* Seven primary tools, including vertical development, fit narrow touch screens. */
+#action-dock .tools-grid { grid-template-columns:repeat(7,minmax(0,1fr)); }

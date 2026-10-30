@@ -7,7 +7,7 @@ import { toCell, toPixels } from '../world/grid';
 function oldSurfaceLayout(): BuildingLayout {
   const current = new BuildingLayout().snapshot();
   const old = new BuildingLayout({
-    ...current, terrain: { ...current.terrain, highestFloor: 1 }
+    ...current, terrain: { ...current.terrain, highestFloor: 1, elevators: [...current.terrain.elevators!, {x:0,y:1}] }
   }, LEGACY_SURFACE_POLICY);
   expect(old.place('habitat', 2, 0).ok).toBe(true);
   expect(old.place('habitat', 2, 1).ok).toBe(true);
@@ -52,6 +52,7 @@ describe('underground-only construction', () => {
     expect(layout.dig(5, -3).ok).toBe(false);
     expect(layout.dig(5, -2).ok).toBe(true);
     expect(layout.dig(6, -2).ok).toBe(true);
+    expect(layout.buildElevator(0,-3).ok).toBe(true);
     expect(layout.dig(5, -3).ok).toBe(true);
     expect(layout.dig(6, -3).ok).toBe(true);
     expect(layout.place('medbay', 5, -3).ok).toBe(true);
@@ -126,7 +127,7 @@ describe('underground-only construction', () => {
     layout.place('medbay', 8, -1);
     const saved = layout.snapshot();
     expect(BuildingLayout.restore(saved)?.snapshot()).toEqual(saved);
-    expect(BuildingLayout.restore({ ...saved, schemaVersion: 2 })).toBeNull();
+    expect(BuildingLayout.restore({ ...saved, schemaVersion: 99 })).toBeNull();
     expect(BuildingLayout.restore({ ...saved, rooms: [...saved.rooms, saved.rooms[0]] })).toBeNull();
     layout.reset();
     expect(layout.terrain.highestFloor).toBe(0);

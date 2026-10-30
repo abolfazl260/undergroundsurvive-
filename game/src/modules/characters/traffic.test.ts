@@ -100,7 +100,7 @@ describe('multi-resident physical navigation', () => {
   it('rejects sky cells, solid ground, duplicate spawns, and walks only on built upper floors', () => {
     const current = new BuildingLayout().snapshot();
     const layout = new BuildingLayout({
-      ...current, terrain: { ...current.terrain, highestFloor: 1 }
+      ...current, terrain: { ...current.terrain, highestFloor: 1, elevators: [...current.terrain.elevators!, {x:0,y:1}] }
     }, LEGACY_SURFACE_POLICY);
     expect(layout.place('habitat', 2, 0).ok).toBe(true);
     expect(layout.place('habitat', 2, 1).ok).toBe(true);

@@ -95,3 +95,7 @@ Sprite Sheet جدید از فایل‌های اصلی با ابعاد ۲۱۷۲×
 راهنمای Capacitor، ساخت Android و iOS و محدودیت‌های انتشار: [MOBILE_CAPACITOR.md](MOBILE_CAPACITOR.md).
 
 **اولویت موبایل در این فاز:** فقط Android ساخته و در CI آزمایش می‌شود؛ iOS به‌صورت پشتیبانی زیرساختی آینده باقی می‌ماند و فعلاً ساخت یا تست ندارد.
+
+F-04 / P1: connected elevators gate every new underground floor; digging cannot
+unlock vertical levels. Starter and legacy snapshots use connected shafts.
+Construction remains underground-only (#28). See [elevator design](https://github.com/abolfazl260/undergroundsurvive-/blob/main/Docs/ELEVATORS.md).

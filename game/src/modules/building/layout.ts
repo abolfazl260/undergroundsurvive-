@@ -12,20 +12,21 @@ const STARTER_ROOMS: Room[] = [
   { id: 'initial-garden', type: 'hydroponics', x: 11, y: -1, width: 2, height: 1, level: 1 }
 ];
 export interface BaseSnapshot {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   terrain: TerrainSnapshot;
   rooms: Room[];
   nextRoomId: number;
 }
 export class BuildingLayout {
-  terrain: TerrainMap;
+  private terrainState: TerrainMap;
+  get terrain(): TerrainMap { return this.terrainState; }
   private data: Room[];
   private sequence: number;
   private readonly policy: ConstructionPolicy;
 
   constructor(snapshot?: BaseSnapshot, policy: ConstructionPolicy = UNDERGROUND_ONLY_POLICY) {
     this.policy = policy;
-    this.terrain = snapshot ? new TerrainMap(snapshot.terrain) : new TerrainMap();
+    this.terrainState = snapshot ? new TerrainMap(snapshot.terrain) : new TerrainMap();
     this.data = (snapshot?.rooms ?? STARTER_ROOMS).map((room) => ({ ...room }));
     this.sequence = snapshot?.nextRoomId ?? 0;
   }
@@ -97,23 +98,48 @@ export class BuildingLayout {
     if (!canConstructAtLevel(y, this.policy)) return { ok: false, reason: UNDERGROUND_ONLY_REASON };
     return this.terrain.dig(x, y);
   }
+  canBuildElevator(x:number,y:number): TerrainResult {
+    // Surface connector is seeded/migrated; no new surface or sky construction.
+    if (!canConstructAtLevel(y,this.policy)) return {ok:false,reason:UNDERGROUND_ONLY_REASON};
+    if(this.getRoomAt(x,y)) return {ok:false,reason:'این محل با اتاق دیگری تداخل دارد.'};
+    return this.terrain.canExtendElevator(x,y);
+  }
+  buildElevator(x:number,y:number): TerrainResult {
+    const result=this.canBuildElevator(x,y); if(!result.ok)return result;
+    this.terrainState=this.terrain.withElevator(x,y)!; return {ok:true};
+  }
+  removeElevator(): TerrainResult { return {ok:false,reason:'حذف یا انتقال شفت متصل مجاز نیست.'}; }
   unlockFloor(): TerrainResult { return this.terrain.unlockNextFloor(); }
   snapshot(): BaseSnapshot {
     return {
-      schemaVersion: 1, terrain: this.terrain.snapshot(),
+      schemaVersion: 2, terrain: this.terrain.snapshot(),
       rooms: this.data.map((room) => ({ ...room })), nextRoomId: this.sequence
     };
   }
   reset(): void {
-    this.terrain = new TerrainMap();
+    this.terrainState = new TerrainMap();
     this.data = STARTER_ROOMS.map((room) => ({ ...room }));
     this.sequence = 0;
   }
   static restore(value: unknown, policy: ConstructionPolicy = UNDERGROUND_ONLY_POLICY): BuildingLayout | null {
     if (!value || typeof value !== 'object') return null;
     const data = value as Partial<BaseSnapshot>;
-    const terrain = TerrainMap.restore(data.terrain);
-    if (data.schemaVersion !== 1 || !terrain || !Array.isArray(data.rooms) ||
+    // Legacy saves receive a collision-free connected shaft without deleting rooms.
+    let terrainData = data.terrain;
+    if (data.schemaVersion === 1 && terrainData && Array.isArray(data.rooms) && Array.isArray(terrainData.excavated)) {
+      const low = Math.min(0,...terrainData.excavated.map(p=>p?.y),...data.rooms.map(r=>r?.y));
+      const high = terrainData.highestFloor;
+      if(!Number.isInteger(high) || high<0 || high>2 || data.rooms.length>160 || terrainData.excavated.length>56) return null;
+      const x = Array.from({length:14},(_,i)=>i).find(x=>!data.rooms!.some(r=>r && x>=r.x&&x<r.x+r.width&&r.y<=high&&r.y+r.height>low));
+      if (x===undefined || !Number.isInteger(low) || low < -4) return null;
+      const elevators = Array.from({length:high-low+1},(_,i)=>({x,y:low+i}));
+      const excavated = [...terrainData.excavated];
+      for(const p of elevators) if(p.y<0&&!excavated.some(c=>c.x===p.x&&c.y===p.y)) excavated.push(p);
+      terrainData = {...terrainData,excavated,elevators};
+    }
+    if(data.schemaVersion===2 && !Array.isArray(terrainData?.elevators)) return null;
+    const terrain = TerrainMap.restore(terrainData);
+    if ((data.schemaVersion !== 1 && data.schemaVersion !== 2) || !terrain || !Array.isArray(data.rooms) ||
         data.rooms.length > 160 || !Number.isInteger(data.nextRoomId) ||
         (data.nextRoomId ?? -1) < 0 || (data.nextRoomId ?? Infinity) > 1_000_000) return null;
     const rooms: Room[] = [], ids = new Set<string>();
@@ -137,7 +163,7 @@ export class BuildingLayout {
     if (!rooms.some((r) => r.id === 'initial-command' && r.type === 'command') ||
         !hasStructuralSupport(rooms, terrain)) return null;
     return new BuildingLayout({
-      schemaVersion: 1, terrain: terrain.snapshot(),
+      schemaVersion: 2, terrain: terrain.snapshot(),
       rooms, nextRoomId: data.nextRoomId!
     }, policy);
   }

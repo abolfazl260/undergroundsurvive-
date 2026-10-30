@@ -32,9 +32,10 @@ describe('HUD snapshot projection', () => {
   it('reports excavated underground depth rather than disabled sky floors', () => {
     const session = GameSession.create();
     expect(session.dig(5, -2).ok).toBe(true);
+    expect(session.buildElevator(0,-3).ok).toBe(true);
     expect(session.dig(5, -3).ok).toBe(true);
     const view = toHudView(session.snapshot(), true);
-    expect(view.balance).toBe(format(1500 - 70));
+    expect(view.balance).toBe(format(1500 - 70 - 150));
     expect(view.lastChange).toBe('−' + format(35));
     expect(view.changeKind).toBe('spent');
     expect(view.floors).toBe(format(3) + ' / ' + format(-WORLD.minY));

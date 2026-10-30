@@ -30,6 +30,7 @@ export function validatePlacement(
         return { ok: false, reason: UNDERGROUND_ONLY_REASON };
       if (!terrain.isOpen(cx, cy))
         return { ok: false, reason: cy < 0 ? 'ابتدا زمین را حفاری کنید.' : 'ابتدا طبقهٔ جدید را باز کنید.' };
+      if (terrain.isElevator(cx,cy)) return {ok:false,reason:'این محل با آسانسور تداخل دارد.'};
       if (occupied(rooms, cx, cy))
         return { ok: false, reason: 'این محل با اتاق دیگری تداخل دارد.' };
       if (cy > 0 && !occupied(rooms, cx, cy - 1))
