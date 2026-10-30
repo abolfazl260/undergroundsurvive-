@@ -1,14 +1,16 @@
 import Phaser from 'phaser';
 import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/grid';
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
-import { BuildingLayout, type BaseSnapshot } from '../modules/building/layout';
+import { BuildingLayout } from '../modules/building/layout';
+import { GameSession, type GameSnapshot } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ATLAS_KEY, ROOM_ATLAS_URL, ROOM_ATLAS_FRAME_WIDTH, ROOM_ATLAS_FRAME_HEIGHT, ROOM_FRAME_BY_TYPE } from './roomArt';
 
 export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade';
 
 export class GameScene extends Phaser.Scene {
-  private readonly layout: BuildingLayout;
+  private readonly session: GameSession;
+  private get layout(): BuildingLayout { return this.session.layout; }
   private selectedRoom: BuildableRoomType = 'habitat';
   private mode: ToolMode = 'build';
   private pendingMoveId: string | null = null;
@@ -17,9 +19,9 @@ export class GameScene extends Phaser.Scene {
   private preview?: Phaser.GameObjects.Graphics;
   private hovered: GridPosition | null = null;
 
-  constructor(private readonly report: (snapshot: BaseSnapshot, message: string) => void, saved: unknown) {
+  constructor(private readonly report: (snapshot: GameSnapshot, message: string) => void, saved: unknown) {
     super({ key: 'UndergroundScene' });
-    this.layout = BuildingLayout.restore(saved) ?? new BuildingLayout();
+    this.session = GameSession.fromSave(saved);
   }
 
   preload(): void {
@@ -68,20 +70,27 @@ export class GameScene extends Phaser.Scene {
       dig: 'برای حفاری روی زمین بستهٔ زیرزمینی مجاور فضای باز بزنید.',
       move: 'ابتدا اتاق را انتخاب کنید و سپس مکان جدید آن را لمس کنید.',
       remove: 'برای تخریب روی اتاق کلیک کنید. اتاق فرمان محفوظ است.',
-      upgrade: 'روی یک اتاق بزنید تا سطح آزمایشی آن افزایش یابد.'
+      upgrade: 'روی یک اتاق بزنید؛ هزینهٔ ارتقا براساس نوع و سطح اتاق محاسبه می‌شود.'
     };
     this.notify(messages[tool]);
   }
 
   unlockFloor(): void {
-    const result = this.layout.unlockFloor();
+    const cost = this.session.floorCost();
+    const result = this.session.unlockFloor();
     if (result.ok) this.paintTerrain();
     this.paintPreview();
-    this.notify(result.ok ? 'طبقهٔ جدید آزاد شد؛ برای ساخت باید تکیه‌گاه داشته باشد.' : result.reason);
+    this.notify(result.ok ? 'طبقهٔ جدید با پرداخت ' + cost + ' سکه آزاد شد؛ برای ساخت تکیه‌گاه لازم است.' : result.reason);
+  }
+
+  claimDemoBonus(): void {
+    const result = this.session.claimDemoBonus();
+    this.paintPreview();
+    this.notify(result.ok ? '۵۰۰ سکهٔ کمک‌هزینهٔ آزمایشی دریافت شد.' : result.reason);
   }
 
   resetLayout(): void {
-    this.layout.reset();
+    this.session.reset();
     this.pendingMoveId = null;
     this.paintTerrain();
     this.paintRooms();
@@ -94,11 +103,13 @@ export class GameScene extends Phaser.Scene {
     let result: PlacementResult = { ok: false, reason: 'دستور نامعتبر است.' };
     let successMessage = '';
     if (this.mode === 'build') {
-      result = this.layout.place(this.selectedRoom, x, y);
-      successMessage = 'اتاق جدید ساخته شد.';
+      const cost = this.session.buildCost(this.selectedRoom);
+      result = this.session.build(this.selectedRoom, x, y);
+      successMessage = 'اتاق ساخته شد. هزینه: ' + cost + ' سکه.';
     } else if (this.mode === 'dig') {
-      result = this.layout.dig(x, y);
-      successMessage = 'زمین حفاری شد؛ اکنون می‌توانید در آن اتاق بسازید.';
+      const cost = this.session.digCost();
+      result = this.session.dig(x, y);
+      successMessage = 'حفاری با هزینهٔ ' + cost + ' سکه انجام شد.';
     } else if (this.mode === 'move') {
       const room = this.layout.getRoomAt(x, y);
       if (!this.pendingMoveId) {
@@ -130,8 +141,9 @@ export class GameScene extends Phaser.Scene {
         result = this.layout.remove(room.id);
         successMessage = 'اتاق تخریب شد.';
       } else {
-        result = this.layout.upgrade(room.id);
-        successMessage = 'سطح اتاق ارتقا یافت.';
+        const cost = this.session.upgradeCostAt(x, y);
+        result = this.session.upgradeAt(x, y);
+        successMessage = 'اتاق ارتقا یافت. هزینه: ' + cost + ' سکه.';
       }
     }
     if (result.ok) {
@@ -144,7 +156,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private notify(message: string): void {
-    this.report(this.layout.snapshot(), message);
+    this.report(this.session.snapshot(), message);
   }
 
   private drawBackdrop(): void {
@@ -260,9 +272,10 @@ export class GameScene extends Phaser.Scene {
     if (this.mode === 'build') {
       const d = ROOM_DEFINITIONS[this.selectedRoom];
       width = d.width; height = d.height;
-      valid = this.layout.canPlace(this.selectedRoom, x, y).ok;
+      valid = this.layout.canPlace(this.selectedRoom, x, y).ok &&
+        this.session.canAfford(this.session.buildCost(this.selectedRoom));
     } else if (this.mode === 'dig') {
-      valid = this.layout.terrain.canDig(x, y).ok;
+      valid = this.layout.terrain.canDig(x, y).ok && this.session.canAfford(this.session.digCost());
     } else if (this.mode === 'move' && this.pendingMoveId) {
       const selected = this.layout.rooms.find((r) => r.id === this.pendingMoveId);
       if (!selected) return;
@@ -271,7 +284,9 @@ export class GameScene extends Phaser.Scene {
     } else if (room) {
       startX = room.x; startY = room.y;
       width = room.width; height = room.height;
-      valid = this.mode === 'upgrade' ? room.level < 3 :
+      valid = this.mode === 'upgrade' ?
+        this.session.upgradeCostAt(x, y) !== null &&
+        this.session.canAfford(this.session.upgradeCostAt(x, y)!) :
         this.mode === 'remove' ? room.type !== 'command' : room.type !== 'command';
     } else return;
     const { left, top } = toPixels(startX, startY);
