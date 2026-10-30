@@ -6,6 +6,7 @@ import './audio.css';
 import './ui/ui.css';
 import './fullscreen.css';
 import './gameHud.css';
+import './achievements.css';
 import { createIcon } from './ui/icons';
 import { enhanceIcons, setButtonLabel, setPressed } from './ui/components';
 import { createGame } from './app/createGame';
