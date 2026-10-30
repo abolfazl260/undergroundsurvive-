@@ -5,7 +5,6 @@ export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
   "شبکه توزیع برق": "Power distribution network",
   "شبکه‌ها": "Networks",
-  "تولید": "Supply",
   "تقاضا": "Demand",
   "کمبود": "Shortage",
   "مصرف": "Consumption",
