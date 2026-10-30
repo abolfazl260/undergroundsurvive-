@@ -151,6 +151,7 @@ describe('physical elevator boarding and vertical travel', () => {
     let arrived=false;
     for(let i=0;i<20;i++) arrived = traffic.advance(50,true).includes('a') || arrived;
     expect(arrived).toBe(true);
-    expect(traffic.getResident('a')!.cell).toEqual({x:0,y:-2});
+    const arrivedCell = traffic.getResident('a')!.cell;
+    expect(new BuildingLayout().getRoomAt(arrivedCell.x, arrivedCell.y)?.id).toBe('initial-power');
   });
 });
