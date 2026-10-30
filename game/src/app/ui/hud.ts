@@ -43,8 +43,6 @@ export function mountHud(root: ParentNode): (snapshot: GameSnapshot, saved: bool
   const balance = required('#coin-balance');
   const change = required('#hud-coin-change');
   const rooms = required('#hud-rooms');
-  const floors = required('#hud-floors');
-  const excavated = required('#hud-excavated');
   const saveStatus = required('#hud-save-status');
 
   return (snapshot, saved) => {
@@ -56,8 +54,6 @@ export function mountHud(root: ParentNode): (snapshot: GameSnapshot, saved: bool
       ? t('هنوز تغییری ثبت نشده است')
       : t('آخرین تغییر موجودی: {value} سکه', { value: view.lastChange }));
     rooms.textContent = view.rooms;
-    floors.textContent = view.floors;
-    excavated.textContent = view.excavated;
     saveStatus.textContent = view.saveLabel;
     saveStatus.dataset.state = view.saveState;
   };

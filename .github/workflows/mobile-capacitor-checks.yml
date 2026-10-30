@@ -1,15 +1,13 @@
 name: Capacitor Android checks
 
 on:
-  push:
-    paths:
-      - "game/**"
-      - ".github/workflows/mobile-capacitor-checks.yml"
-  pull_request:
-    paths:
-      - "game/**"
-      - ".github/workflows/mobile-capacitor-checks.yml"
   workflow_dispatch:
+    inputs:
+      build_apk:
+        description: "Build and upload an Android debug APK as well as running checks"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -47,6 +45,7 @@ jobs:
   android-debug:
     name: Android debug APK
     needs: web-bundle
+    if: ${{ inputs.build_apk == true }}
     runs-on: ubuntu-latest
     defaults:
       run:
