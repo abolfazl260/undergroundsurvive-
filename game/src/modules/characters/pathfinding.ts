@@ -26,16 +26,16 @@ export function isWalkableCell(layout: BuildingLayout, cell: GridPosition): bool
 
 /**
  * Horizontal walking requires two real walkable cells. Vertical crossings use
- * excavated shafts or the command room's built-in access; no floating stairs.
+ * two connected elevator segments, not excavations or command-room stairs.
  */
 export function canWalkBetween(layout: BuildingLayout, from: GridPosition, to: GridPosition): boolean {
   if (!isInsideWorld(from.x, from.y) || !isInsideWorld(to.x, to.y) ||
       Math.abs(from.x - to.x) + Math.abs(from.y - to.y) !== 1 ||
       !isWalkableCell(layout, from) || !isWalkableCell(layout, to)) return false;
   if (from.y === to.y) return true;
-  const a = layout.getRoomAt(from.x, from.y);
-  const b = layout.getRoomAt(to.x, to.y);
-  return (!a && !b) || a?.type === 'command' || b?.type === 'command';
+  return from.x === to.x &&
+    layout.terrain.isElevator(from.x, from.y) &&
+    layout.terrain.isElevator(to.x, to.y);
 }
 
 /** Breadth-first search finds the shortest traversable path to any cell of a room. */
