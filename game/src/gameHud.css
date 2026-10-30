@@ -220,3 +220,20 @@ html[dir="ltr"] .topbar .resource-panel[data-expanded="true"] .resource-details 
 :is(#command-panel,#water-panel,#research-panel,#radiation-panel) button:disabled { opacity:.55; cursor:default; }
 #research-panel section > div { padding-block:8px; border-top:1px solid #355664; }
 #game-sheet[data-sheet="rooms"] :is(#command-panel,#water-panel,#research-panel,#radiation-panel) { display:none; }
+
+/* Selected-room controls live above the measured HUD, including safe-area padding. */
+.upgrade-panel {
+  z-index:41;
+  bottom:calc(var(--hud-dock-occupied, calc(var(--dock-height) + var(--game-safe-bottom))) + 12px);
+  max-height:min(44dvh, calc(100dvh - var(--hud-dock-occupied, 90px) - var(--hud-top-occupied, 70px) - 32px));
+  overflow:auto; overscroll-behavior:contain; scrollbar-gutter:stable;
+  width:min(770px,calc(100% - 112px));
+}
+.upgrade-panel strong,.upgrade-panel p { overflow-wrap:anywhere; min-width:0; }
+@media(max-width:480px) {
+  .upgrade-panel { grid-template-columns:minmax(0,1fr); align-items:start; }
+  .upgrade-panel #confirm-upgrade { grid-column:1; grid-row:auto; width:100%; }
+}
+.play-area:has(.upgrade-panel:not([hidden])) .zoom-controls {
+  top:calc(var(--hud-top-occupied, 70px) + 12px);
+}

@@ -11,3 +11,5 @@ coverage/
 # Generated native shells (recreated using mobile:prepare scripts; do not store binaries/secrets)
 game/android/
 game/ios/
+
+game/ui-evidence/

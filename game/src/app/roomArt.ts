@@ -42,3 +42,15 @@ export const GARDEN_MEDBAY_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
   hydroponics: 0,
   medbay: 1
 };
+
+/** Dedicated research and water-treatment interiors, in that order. */
+export const LAB_WATER_ART_ASSET: TextureAsset = {
+  key: 'lab-water-art', kind: 'spritesheet', frameWidth: 160, frameHeight: 53,
+  filter: 'linear', variants: [
+    { scale: 1, path: 'assets/rooms/lab-water-atlas.webp' },
+    { scale: 6.4, path: 'assets/rooms/lab-water-atlas-hd.webp', frameWidth: 1024, frameHeight: 341 }
+  ]
+};
+export const LAB_WATER_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
+  laboratory: 0, waterTreatment: 1
+};
