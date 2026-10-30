@@ -64,7 +64,7 @@ describe('local wallet and transactional commands', () => {
     expect(game.snapshot()).toEqual(before);
     expect(game.build('generator', 8, -1).ok).toBe(true);
     const after = game.snapshot();
-    expect(game.build('mine', 10, -1).ok).toBe(false);
+    expect(game.build('mine', 2, -1).ok).toBe(false);
     expect(game.snapshot()).toEqual(after);
   });
 
