@@ -25,13 +25,15 @@ npm install
 npm run dev
 ~~~
 
-سپس http://localhost:5173 را باز کنید. راهنما: [game/README.md](game/README.md). این نسخه فقط نمونهٔ آزمایشی محلی است؛ هنوز روی دامنهٔ عمومی منتشر نشده و اتصال Supabase یا ذخیرهٔ آنلاین ندارد.
+سپس http://localhost:5173 را باز کنید. [نسخهٔ آنلاین تحت وب](https://abolfazl260.github.io/undergroundsurvive-/) نیز از GitHub Pages منتشر شده است. راهنما: [game/README.md](game/README.md). **ذخیره‌سازی فعلاً فقط روی مرورگر (localStorage) است** و اتصال Supabase یا ذخیرهٔ آنلاین حساب کاربری وجود ندارد.
 
 ## انتشار آنلاین نسخهٔ آزمایشی
 
-فایل Workflow استقرار روی GitHub Pages در `.github/workflows/deploy-web.yml` اضافه شده است. **فعال‌کردن GitHub Pages هنوز به اقدام مالک مخزن نیاز دارد**؛ ساخت و تست خودکار موفق بوده‌اند اما سایت عمومی هنوز منتشر نشده است.
+- **[اجرای بازی در مرورگر](https://abolfazl260.github.io/undergroundsurvive-/)**
+- [نتیجهٔ انتشار موفق GitHub Actions](https://github.com/abolfazl260/undergroundsurvive-/actions/runs/41075521346)
+- تغییرات کد `game/` با Workflow `deploy-web.yml` تست، بیلد و روی GitHub Pages مستقر می‌شوند.
 
-برای فعال‌سازی، در GitHub مسیر **Settings → Pages → Build and deployment → Source: GitHub Actions** را انتخاب کنید. سپس Workflow با نام **Deploy web prototype to GitHub Pages** را از بخش Actions دوباره اجرا کنید. پس از موفقیت استقرار، آدرس نهایی در خروجی همان Workflow نمایش داده می‌شود.
+> نسخهٔ فعلی صرفاً دموی ساخت‌وساز است؛ حفظ پیشرفت فقط در همان مرورگر انجام می‌شود و اقتصاد یا ذخیره‌سازی آنلاین هنوز متصل نشده‌اند.
 
 ## مستندات
 
