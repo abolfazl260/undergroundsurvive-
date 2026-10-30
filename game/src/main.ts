@@ -17,6 +17,7 @@ import { BUILD_COSTS, DIG_COST, DEMO_BONUS_COINS, STARTING_COINS, getFloorCost }
 import { MAX_ROOM_LEVEL } from './modules/building/upgrades';
 import type { UpgradeDetails } from './modules/economy/session';
 import type { TransactionKind } from './modules/economy/wallet';
+import { mountResourcePanel } from './app/ui/resourcePanel';
 
 enhanceIcons();
 
@@ -24,6 +25,7 @@ const audio = new AudioManager();
 const status = document.querySelector<HTMLElement>('#status');
 const unlockButton = document.querySelector<HTMLButtonElement>('#unlock-floor');
 const renderHud = mountHud(document);
+const resourcePanel = mountResourcePanel(document);
 const bonusButton = document.querySelector<HTMLButtonElement>('#demo-bonus');
 const historyNode = document.querySelector<HTMLElement>('#transaction-list');
 const digButton = document.querySelector<HTMLButtonElement>('[data-tool="dig"]');
@@ -113,6 +115,7 @@ const scene = new GameScene((snapshot, message) => {
   latestBalance = snapshot.wallet.balance;
   renderUpgradePanel();
   renderHud(snapshot, saved);
+  resourcePanel.render(snapshot);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
     setButtonLabel(bonusButton, snapshot.demoBonusClaimed
@@ -149,7 +152,7 @@ const scene = new GameScene((snapshot, message) => {
 }, (cue) => audio.play(cue), () => audio.activate(), (details) => {
   upgradeSelection = details;
   renderUpgradePanel();
-});
+}, (seconds) => resourcePanel.renderCountdown(seconds));
 
 createGame(scene);
 setupGameMenu(scene, savedGame !== null, audio, renderAudioControls);

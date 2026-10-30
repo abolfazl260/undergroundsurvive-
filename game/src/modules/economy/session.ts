@@ -1,5 +1,6 @@
 import { BuildingLayout, type BaseSnapshot } from '../building/layout';
 import { Wallet, type WalletSnapshot } from './wallet';
+import { ResourceEngine, type ResourceSnapshot } from './resources';
 import {
   STARTING_COINS, DEMO_BONUS_COINS, DIG_COST,
   getBuildCost, getFloorCost, getUpgradeCost
@@ -9,9 +10,10 @@ import { getRoomPerformance, MAX_ROOM_LEVEL, type RoomPerformance } from '../bui
 import type { PlacementResult } from '../building/placement';
 
 export interface GameSnapshot {
-  schemaVersion: 2;
+  schemaVersion: 3;
   base: BaseSnapshot;
   wallet: WalletSnapshot;
+  resources: ResourceSnapshot;
   demoBonusClaimed: boolean;
 }
 
@@ -30,11 +32,14 @@ export class GameSession {
   private world: BuildingLayout;
   private purse: Wallet;
   private bonusClaimed = false;
+  private resourceState: ResourceEngine;
 
-  private constructor(layout: BuildingLayout, wallet: Wallet, claimed = false) {
+  private constructor(layout: BuildingLayout, wallet: Wallet, claimed = false,
+                      resources = ResourceEngine.create()) {
     this.world = layout;
     this.purse = wallet;
     this.bonusClaimed = claimed;
+    this.resourceState = resources;
   }
 
   static create(): GameSession {
@@ -43,15 +48,18 @@ export class GameSession {
 
   static restore(raw: unknown): GameSession | null {
     if (!raw || typeof raw !== 'object') return null;
-    const value = raw as Partial<GameSnapshot>;
-    if (value.schemaVersion !== 2 || typeof value.demoBonusClaimed !== 'boolean') return null;
+    const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
+    if ((value.schemaVersion !== 2 && value.schemaVersion !== 3) ||
+        typeof value.demoBonusClaimed !== 'boolean') return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
-    if (!world || !wallet) return null;
+    const resources = value.schemaVersion === 3 ? ResourceEngine.restore(value.resources) : ResourceEngine.create();
+    if (!world || !wallet || !resources) return null;
+    resources.reconcileCapacity(world.rooms);
     const bonusCount = wallet.transactions.filter((t) => t.kind === 'demo-bonus').length;
     if ((value.demoBonusClaimed && bonusCount !== 1) ||
         (!value.demoBonusClaimed && bonusCount !== 0)) return null;
-    return new GameSession(world, wallet, value.demoBonusClaimed);
+    return new GameSession(world, wallet, value.demoBonusClaimed, resources);
   }
 
   // Existing v1 browser saves contain only a layout; migrate without losing rooms.
@@ -62,7 +70,13 @@ export class GameSession {
 
   get layout(): BuildingLayout { return this.world; }
   get wallet(): Wallet { return this.purse; }
+  get resources(): ResourceEngine { return this.resourceState; }
   get demoBonusClaimed(): boolean { return this.bonusClaimed; }
+
+  /** Simulation advances only when the Phaser scene is active (not paused/offline). */
+  advanceTime(deltaMs: number): number {
+    return this.resourceState.advance(deltaMs, this.world.rooms);
+  }
 
   buildCost(type: BuildableRoomType): number { return getBuildCost(type); }
   digCost(): number { return DIG_COST; }
@@ -137,13 +151,16 @@ export class GameSession {
     this.world = new BuildingLayout();
     this.purse = Wallet.create(STARTING_COINS);
     this.bonusClaimed = false;
+    this.resourceState = ResourceEngine.create();
   }
 
   snapshot(): GameSnapshot {
+    this.resourceState.reconcileCapacity(this.world.rooms);
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       base: this.world.snapshot(),
       wallet: this.purse.snapshot(),
+      resources: this.resourceState.snapshot(),
       demoBonusClaimed: this.bonusClaimed
     };
   }
