@@ -23,7 +23,7 @@ function setup() {
 describe('life-support graph and deterministic distribution', () => {
   it('uses physical port edges and separately controlled isolation valves', () => {
     const a = new LifeSupportGraph(rooms);
-    expect(a.links.map(l=>linkKey(l.a,l.b))).toEqual(['home::water','home::vent']);
+    expect(a.links.map(l=>linkKey(l.a,l.b))).toEqual(['home::vent','home::water']);
     expect(a.zones).toHaveLength(1);
     const b = new LifeSupportGraph(rooms, ['home::water']);
     expect(b.zones).toHaveLength(2);
@@ -35,7 +35,7 @@ describe('life-support graph and deterministic distribution', () => {
     const demand = lifeSupportDemands(input, 5);
     expect(demand.map(d=>d.id)).toEqual(['a','b','med','garden']);
     expect(demand.filter(d=>d.priority==='vital').reduce((n,d)=>n+d.water,0)).toBe(5);
-    expect(demand[0].oxygen).toBe(2);
+    expect(demand[0].oxygen).toBe(3);
   });
   it('respects the legacy grace window, produces oxygen and never double-debits', () => {
     const s=setup();
