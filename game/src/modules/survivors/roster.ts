@@ -6,7 +6,7 @@ import type { BuildingLayout } from '../building/layout';
 import type { Room } from '../building/placement';
 
 export const GUARD_CONFIG = {schemaVersion:1,typeId:'guardPost',capacity:[1,2,3],health:[100,150,200],defenseBonus:[1,1.15,1.3],power:1} as const;
-export type ActivityKind = 'guard'|'scientist';
+export type ActivityKind = 'guard'|'scientist'|'cook';
 export interface Survivor { id:string; name:string }
 export interface GuardAssignment {
   id:string; survivorId:string; roomId:string; kind:ActivityKind;
@@ -20,7 +20,7 @@ export interface SurvivorSnapshot {
 export type AssignmentBlock = 'survivor'|'room'|'busy'|'capacity'|'path'|'duplicate';
 const footprint=(r:Room)=>`${r.x}:${r.y}:${r.width}:${r.height}`;
 export function activityCapacity(room:Room,kind:ActivityKind):number {
-  return kind==='guard'&&room.type==='guardPost'?GUARD_CONFIG.capacity[room.level-1]:kind==='scientist'&&room.type==='laboratory'?LABORATORY_CONFIG.scientistCapacity[room.level-1]:0;
+  return kind==='guard'&&room.type==='guardPost'?GUARD_CONFIG.capacity[room.level-1]:kind==='scientist'&&room.type==='laboratory'?LABORATORY_CONFIG.scientistCapacity[room.level-1]:kind==='cook'&&room.type==='kitchen'?room.level:0;
 }
 export class SurvivorRoster {
   readonly traffic:ResidentTraffic;
@@ -87,7 +87,7 @@ export class SurvivorRoster {
     if(s.schemaVersion!==1||!Array.isArray(s.survivors)||s.survivors.length>100||new Set(s.survivors.map(p=>p?.id)).size!==s.survivors.length||
       !s.survivors.every(p=>p&&typeof p.id==='string'&&p.id&&typeof p.name==='string')||
       !Array.isArray(s.assignments)||s.assignments.length>s.survivors.length||new Set(s.assignments.map(a=>a?.survivorId)).size!==s.assignments.length||
-      !s.assignments.every(a=>a&&typeof a.id==='string'&&a.id&&typeof a.survivorId==='string'&&typeof a.roomId==='string'&&['guard','scientist'].includes(a.kind)&&['active','enRoute','suspended'].includes(a.state)&&typeof a.roomPosition==='string')||
+      !s.assignments.every(a=>a&&typeof a.id==='string'&&a.id&&typeof a.survivorId==='string'&&typeof a.roomId==='string'&&['guard','scientist','cook'].includes(a.kind)&&['active','enRoute','suspended'].includes(a.state)&&typeof a.roomPosition==='string')||
       new Set(s.assignments.map(a=>a.id)).size!==s.assignments.length||
       !Array.isArray(s.operations)||s.operations.length>5000||new Set(s.operations).size!==s.operations.length||!s.operations.every(id=>typeof id==='string'&&id)||
       !Array.isArray(s.events)||s.events.length>200||!s.events.every(e=>e&&e.schemaVersion===1&&Number.isSafeInteger(e.id)&&e.id>0&&['assigned','released','arrived'].includes(e.kind)&&typeof e.survivorId==='string'&&typeof e.roomId==='string')||
