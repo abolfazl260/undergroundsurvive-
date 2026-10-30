@@ -76,6 +76,11 @@ export class ResourceEngine {
     };
   }
 
+  spendPower(amount: number): boolean {
+    if (!Number.isSafeInteger(amount) || amount < 0 || this.stock.power < amount) return false;
+    this.stock.power -= amount; return true;
+  }
+
   /** Removing storage reduces capacity without leaving impossible balances. */
   reconcileCapacity(rooms: readonly Room[]): void {
     const capacity = getResourceCapacity(rooms);
@@ -116,7 +121,7 @@ export class ResourceEngine {
     };
     // Priority is fixed rather than dependent on insertion/snapshot room order.
     const priority = ['generator', 'command', 'habitat', 'hydroponics',
-      'mine', 'workshop', 'medbay', 'storage'] as const;
+      'mine', 'workshop', 'medbay', 'storage', 'waterTreatment'] as const;
     const ordered = [...rooms].sort((a, b) =>
       priority.indexOf(a.type) - priority.indexOf(b.type) || a.id.localeCompare(b.id));
     for (const room of ordered) {

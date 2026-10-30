@@ -1,3 +1,4 @@
+import { mountWaterPanel } from './app/ui/waterPanel';
 import './style.css';
 import { mountGameDock } from './app/gameDock';
 import { mountStoryViewer } from './modules/narrative/viewer';
@@ -132,6 +133,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   renderHud(snapshot, saved);
   renderAchievements(snapshot);
   resourcePanel.render(snapshot);
+  renderWater(snapshot);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
     setButtonLabel(bonusButton, snapshot.demoBonusClaimed
@@ -153,6 +155,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   }
   if (status) status.textContent = localizeGameMessage(saved ? message : message + ' (ذخیرهٔ محلی در دسترس نیست)');
 }
+const renderWater = mountWaterPanel(document.querySelector<HTMLElement>('#water-panel')!, () => scene.collectWater(), id => scene.toggleWater(id));
 const scene = new GameScene((snapshot, message) => {
   const saved = saveLocalBase(snapshot);
   lastSnapshot = snapshot;

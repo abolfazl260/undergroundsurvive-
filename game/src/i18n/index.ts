@@ -3,6 +3,10 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
+  "آب خام برداشت شد.": "Raw water collected.",
+  "برداشت ممکن نیست؛ برق، فضای مخزن و ذخیرهٔ چاه را بررسی کنید.": "Cannot pump: check power, tank space and aquifer reserve.",
+  "تصفیه آب": "Water treatment",
+  "آب تمیز در هر چرخه": "Clean water per cycle",
   "دستاوردها": "Achievements",
   "دسته‌بندی دستاوردها": "Achievement categories",
   "پیشرفت کل دستاوردها": "Overall achievement progress",
