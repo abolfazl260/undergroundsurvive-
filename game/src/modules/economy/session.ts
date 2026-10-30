@@ -1,3 +1,4 @@
+import { ResearchScheduler, type ResearchSnapshot } from '../research/research';
 import { ELEVATOR_DEFINITION } from '../world/elevators';
 import { WaterProductionProcessor, type WaterSnapshot } from '../water/water';
 import { BuildingLayout, type BaseSnapshot } from '../building/layout';
@@ -14,7 +15,8 @@ import { AchievementTracker, type AchievementSnapshot } from '../achievements/ac
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 5;
+  schemaVersion: 6;
+  research: ResearchSnapshot;
   water: WaterSnapshot;
   base: BaseSnapshot;
   wallet: WalletSnapshot;
@@ -36,6 +38,12 @@ export interface UpgradeDetails {
 type SpendKind = 'build' | 'dig' | 'floor' | 'upgrade';
 
 export class GameSession {
+  private researchState = new ResearchScheduler();
+  get research():ResearchScheduler {return this.researchState;}
+  researchFacility() { return {level:Math.max(0,...this.world.rooms.filter(r=>r.type==='laboratory').map(r=>r.level)),powered:this.resources.snapshot().stock.power>0}; }
+  startResearch(id:string,operationId:string):boolean {
+    return this.researchState.start(id,operationId,this.researchFacility(),this.wallet.balance,n=>this.purse.spend(n,'research'));
+  }
   private waterState = new WaterProductionProcessor();
   get water(): WaterProductionProcessor { return this.waterState; }
   private powerAdapter() { return { available: () => this.resources.snapshot().stock.power, spend: (n: number) => this.resources.spendPower(n) }; }
@@ -63,13 +71,13 @@ export class GameSession {
   static restore(raw: unknown): GameSession | null {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
-    if ((value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4 && value.schemaVersion !== 5) ||
+    if ((value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4 && value.schemaVersion !== 5 && value.schemaVersion !== 6) ||
         typeof value.demoBonusClaimed !== 'boolean') return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
-    const resources = (value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5)
+    const resources = (value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6)
       ? ResourceEngine.restore(value.resources) : ResourceEngine.create();
-    const achievements = (value.schemaVersion === 4 || value.schemaVersion === 5)
+    const achievements = (value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6)
       ? AchievementTracker.restore(value.achievements) : new AchievementTracker();
     if (!world || !wallet || !resources || !achievements) return null;
     resources.reconcileCapacity(world.rooms);
@@ -77,11 +85,17 @@ export class GameSession {
     if ((value.demoBonusClaimed && bonusCount !== 1) ||
         (!value.demoBonusClaimed && bonusCount !== 0)) return null;
     const session = new GameSession(world, wallet, value.demoBonusClaimed, resources, achievements);
-    if (value.schemaVersion === 5) {
+    if (value.schemaVersion === 5 || value.schemaVersion === 6) {
       const water = WaterProductionProcessor.restore(value.water);
       if (!water) return null;
       session.waterState = water;
     }
+    if(value.schemaVersion===6) {
+      const research=ResearchScheduler.restore(value.research);if(!research)return null;
+      if(research.snapshot().nowMs!==resources.tickCount*5000)return null;
+      session.researchState=research;
+    } else session.researchState=ResearchScheduler.restore({...session.researchState.snapshot(),nowMs:resources.tickCount*5000})!;
+    if(!session.researchState)return null;
     session.waterState.sync(world.rooms);
     return session;
   }
@@ -103,9 +117,12 @@ export class GameSession {
     let remaining = Math.min(deltaMs, 60_000), ticks = 0;
     while (remaining > 0) {
       const step = Math.min(remaining, this.resources.remainingMs);
-      const completed = this.resourceState.advance(step, this.world.rooms);
+      const completed = this.resourceState.advance(step, this.world.rooms,this.researchState.modifiers());
       ticks += completed;
-      if (completed) this.waterState.advance(5000, this.world.rooms, this.powerAdapter());
+      if (completed) {
+        this.waterState.advance(5000, this.world.rooms, this.powerAdapter());
+        this.researchState.advanceTo(this.resources.tickCount*5000,this.researchFacility());
+      }
       remaining -= step;
     }
     return ticks;
@@ -188,6 +205,7 @@ export class GameSession {
   }
 
   reset(): void {
+    this.researchState = new ResearchScheduler();
     this.waterState = new WaterProductionProcessor();
     this.world = new BuildingLayout();
     this.purse = Wallet.create(STARTING_COINS);
@@ -204,7 +222,8 @@ export class GameSession {
     const resources = this.resourceState.snapshot();
     this.achievementState.evaluate({ base, wallet, resources });
     return {
-      schemaVersion: 5,
+      schemaVersion: 6,
+      research: this.researchState.snapshot(),
       water: this.waterState.snapshot(),
       base, wallet, resources,
       demoBonusClaimed: this.bonusClaimed,

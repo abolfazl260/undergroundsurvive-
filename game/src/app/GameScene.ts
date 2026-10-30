@@ -19,7 +19,7 @@ import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomA
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
   command: 'فرمان', habitat: 'مسکونی', generator: 'برق', hydroponics: 'گلخانه',
-  waterTreatment: 'تصفیه آب', medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
+  laboratory: 'آزمایشگاه', waterTreatment: 'تصفیه آب', medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
 };
 
 export type ToolMode = 'elevator' | 'build' | 'dig' | 'move' | 'remove' | 'upgrade' | 'navigate';
@@ -171,6 +171,7 @@ export class GameScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     if (this.gameplayPaused) return;
+    const researchBefore=this.session.research.snapshot().activeResearchId;
     const completed = this.session.advanceTime(delta);
     const seconds = Math.ceil(this.session.resources.remainingMs / 1000);
     if (seconds !== this.lastCycleCountdown) {
@@ -179,7 +180,7 @@ export class GameScene extends Phaser.Scene {
     }
     if (completed > 0) {
       const result = this.session.resources.snapshot();
-      this.notify(result.lastShortages.length
+      this.notify(researchBefore && !this.session.research.snapshot().activeResearchId ? 'پژوهش تکمیل شد.' : result.lastShortages.length
         ? 'چرخهٔ منابع انجام شد؛ برخی اتاق‌ها به‌علت کمبود منابع متوقف شدند.'
         : 'چرخهٔ تولید و مصرف منابع انجام شد.');
     }
@@ -372,6 +373,11 @@ export class GameScene extends Phaser.Scene {
     this.notify(result.ok ? 'طبقهٔ جدید با پرداخت ' + cost + ' سکه آزاد شد؛ برای ساخت تکیه‌گاه لازم است.' : result.reason);
   }
 
+  startResearch(id:string):void {
+    if(this.gameplayPaused)return;
+    const ok=this.session.startResearch(id,crypto.randomUUID());
+    this.notify(ok ? 'پژوهش آغاز شد.' : 'پژوهش قابل شروع نیست؛ پیش‌نیازها را بررسی کنید.');
+  }
   collectWater(): void {
     if (this.gameplayPaused) return;
     const ok = this.session.collectWater(crypto.randomUUID());

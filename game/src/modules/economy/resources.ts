@@ -1,3 +1,4 @@
+import { RESEARCH_CONFIG, type TechnologyModifiers } from '../research/research';
 import type { Room } from '../building/placement';
 import { getRoomPerformance } from '../building/upgrades';
 
@@ -88,21 +89,22 @@ export class ResourceEngine {
   }
 
   /** Returns the number of complete simulation ticks. Call only while playing. */
-  advance(deltaMs: number, rooms: readonly Room[]): number {
+  advance(deltaMs: number, rooms: readonly Room[], modifiers: TechnologyModifiers = {powerProduction:1,foodProduction:1}): number {
+    if (![modifiers.powerProduction,modifiers.foodProduction].every(n=>Number.isFinite(n)&&n>=1&&n<=27))return 0;
     if (!Number.isFinite(deltaMs) || deltaMs <= 0) return 0;
     // Large suspended-tab or device-sleep deltas must not cause offline farming.
     this.elapsedMs += Math.min(deltaMs, 60_000);
     let processed = 0;
     while (this.elapsedMs >= RESOURCE_TICK_MS) {
       this.elapsedMs -= RESOURCE_TICK_MS;
-      this.runTick(rooms);
+      this.runTick(rooms,modifiers);
       this.ticks++;
       processed++;
     }
     return processed;
   }
 
-  private runTick(rooms: readonly Room[]): void {
+  private runTick(rooms: readonly Room[], modifiers: TechnologyModifiers): void {
     this.reconcileCapacity(rooms);
     const capacity = getResourceCapacity(rooms);
     const missing = new Set<ResourceType>();
@@ -121,22 +123,23 @@ export class ResourceEngine {
     };
     // Priority is fixed rather than dependent on insertion/snapshot room order.
     const priority = ['generator', 'command', 'habitat', 'hydroponics',
-      'mine', 'workshop', 'medbay', 'storage', 'waterTreatment'] as const;
+      'mine', 'workshop', 'medbay', 'storage', 'waterTreatment', 'laboratory'] as const;
     const ordered = [...rooms].sort((a, b) =>
       priority.indexOf(a.type) - priority.indexOf(b.type) || a.id.localeCompare(b.id));
     for (const room of ordered) {
       const value = getRoomPerformance(room.type, room.level).value;
       switch (room.type) {
-        case 'generator': recipe({}, { type: 'power', amount: value }); break;
+        case 'generator': recipe({}, { type: 'power', amount: Math.floor(value * modifiers.powerProduction) }); break;
         case 'command': recipe({ power: value }); break;
         case 'habitat': recipe({ power: Math.ceil(value / 2), food: value }); break;
         case 'hydroponics': recipe({ power: Math.ceil(value / 2) },
-          { type: 'food', amount: value }); break;
+          { type: 'food', amount: Math.floor(value * modifiers.foodProduction) }); break;
         case 'mine': recipe({ power: Math.ceil(value / 2) },
           { type: 'ore', amount: value }); break;
         case 'workshop': recipe({ power: Math.ceil(value / 2), ore: Math.ceil(value / 2) },
           { type: 'supplies', amount: value }); break;
         case 'medbay': recipe({ power: value, supplies: 1 }); break;
+        case 'laboratory': recipe({power:RESEARCH_CONFIG.labPower}); break;
         case 'storage': break;
       }
     }

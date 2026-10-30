@@ -1,3 +1,4 @@
+import { mountResearchPanel } from './app/ui/researchPanel';
 import { mountWaterPanel } from './app/ui/waterPanel';
 import './style.css';
 import { mountGameDock } from './app/gameDock';
@@ -47,6 +48,7 @@ const kindTitles: Record<TransactionKind, string> = {
   dig: 'حفاری',
   floor: 'بازکردن طبقه',
   upgrade: 'ارتقای اتاق',
+  research: 'پژوهش',
   'demo-bonus': 'کمک‌هزینهٔ آزمایشی'
 };
 const audioMute = document.querySelector<HTMLButtonElement>('#audio-mute');
@@ -134,6 +136,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   renderAchievements(snapshot);
   resourcePanel.render(snapshot);
   renderWater(snapshot);
+  renderResearch(snapshot);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
     setButtonLabel(bonusButton, snapshot.demoBonusClaimed
@@ -155,6 +158,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   }
   if (status) status.textContent = localizeGameMessage(saved ? message : message + ' (ذخیرهٔ محلی در دسترس نیست)');
 }
+const renderResearch = mountResearchPanel(document.querySelector<HTMLElement>('#research-panel')!,id=>scene.startResearch(id));
 const renderWater = mountWaterPanel(document.querySelector<HTMLElement>('#water-panel')!, () => scene.collectWater(), id => scene.toggleWater(id));
 const scene = new GameScene((snapshot, message) => {
   const saved = saveLocalBase(snapshot);
