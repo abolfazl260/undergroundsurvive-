@@ -3,6 +3,7 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
+  'قوانین و دسترسی‌ها': 'Rules, privacy & permissions',
   'تفریح':'Recreation',
   'بازیابی روحیه':'Morale recovery',
   'در ثانیه':'per second',
