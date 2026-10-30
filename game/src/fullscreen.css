@@ -137,7 +137,16 @@ html[dir="ltr"] .resource-panel-header span { text-align:end; }
   border:1px solid #96f2d4; pointer-events:none; }
 .topbar > #hud-save-status[data-state="failed"] { background:#f38b88; border-color:#ffb3a2; }
 @media(max-height:500px) {
-  .story-navigation { display:none; }
+  /* Keep the prologue reachable in landscape instead of removing its only entry. */
+  .story-navigation {
+    display:flex;
+    z-index:25;
+    top:calc(9px + var(--game-safe-top));
+    left:auto;
+    right:calc(58px + env(safe-area-inset-right, 0px));
+    max-width:124px;
+  }
+  .story-open { min-height:34px; padding:5px 7px; font-size:10px; }
   .hud-bar { top:calc(60px + var(--game-safe-top)); }
   .resource-panel { top:calc(110px + var(--game-safe-top)); }
   .resource-panel:not([data-expanded="true"]) .resource-grid { display:none; }

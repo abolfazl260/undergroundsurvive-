@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 2,
+  "id": "prologue-90-days",
+  "locale": "en-US",
+  "title": "Prologue: Ninety Days Underground",
+  "enabled": true,
+  "scenes": [
+    {
+      "id": "anomaly",
+      "type": "image",
+      "src": "media/images/prologue-city.svg",
+      "title": "Day Zero: The Sky Changed",
+      "text": "First, the sky changed color. A gray haze settled over the city, and one monitoring station after another sounded the alarm. No one knew what had poisoned the air. The cause was still unknown."
+    },
+    {
+      "id": "broadcast",
+      "type": "image",
+      "src": "media/images/prologue-broadcast.svg",
+      "title": "The Last Television Broadcast",
+      "text": "Every state television channel interrupted its programs with the same message: “A nationwide emergency has been declared. Avoid outdoor exposure and proceed immediately to the nearest underground shelter.” The warning kept repeating. No answers followed."
+    },
+    {
+      "id": "evacuation",
+      "type": "image",
+      "src": "media/images/prologue-evac.svg",
+      "title": "Before the Doors Closed",
+      "text": "Within minutes, the roads seized up. People rushed toward the shelters by any means available. Those who reached an entrance in time made it inside. There was not room for everyone, and some families were separated at the gates."
+    },
+    {
+      "id": "seal",
+      "type": "image",
+      "src": "media/images/prologue-seal.svg",
+      "title": "The Quarantine Protocol",
+      "text": "When contamination readings crossed the critical threshold, the shelters' safety systems activated automatically. Steel doors sealed shut, outside ventilation was isolated, and warning lamps stayed red. No one inside could override the main entrance."
+    },
+    {
+      "id": "day-ninety",
+      "type": "image",
+      "src": "media/images/prologue-day90.svg",
+      "title": "Day Ninety: Still Unsafe",
+      "text": "Three months have passed since quarantine began. External monitors still report critical contamination, and the automatic locks have not released. Reliable contact with the surface is gone. What happened—and whether anyone can return—remains a mystery."
+    },
+    {
+      "id": "survivors",
+      "type": "image",
+      "src": "media/images/prologue-survival.svg",
+      "title": "The Shelter Is Home Now",
+      "text": "Everyone here made it through the doors in time, bringing different fears, skills, and hopes. Food and water are finite, power must be maintained, and every room can change the shelter's fate. Until the doors open again, survival depends on the choices we make underground."
+    }
+  ]
+}
