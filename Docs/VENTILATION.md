@@ -41,10 +41,10 @@ through that adapter. Events can call `damage(id, amount, operationId)`.
 
 The system uses the same monotonic resource tick clock. Paused scenes do not
 advance it; no wall-clock catch-up or offline farming occurs. The session
-snapshot schema is **v11**, holding the entire atmosphere state including
-equipment health/enabled status and deduplication ledger. Saves v2–v10 migrate
+snapshot schema is **v12**, holding the entire atmosphere state including
+equipment health/enabled status and deduplication ledger. Saves v2–v11 migrate
 at their saved tick count with quality 100 and no retroactive power consumption.
-Saves v11 validate fields and require the air timestamp to equal the resource
+Saves v12 validate fields and require the air timestamp to equal the resource
 clock. Moving/re-upgrading a vent preserves health and enabled state; demolition
 discards its state.
 
