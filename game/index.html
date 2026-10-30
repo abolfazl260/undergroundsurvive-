@@ -176,25 +176,66 @@
     </dialog>
     <div id="achievement-toast" class="achievement-toast" role="status" aria-live="polite" hidden></div>
     <dialog id="game-menu-dialog" class="game-menu" aria-labelledby="menu-home-title">
-      <section data-menu-screen="home" class="menu-screen">
-        <span class="menu-kicker">UNDERGROUND SURVIVE</span>
-        <h2 id="menu-home-title" tabindex="-1">پناهگاه زیرزمینی</h2>
-        <p class="menu-description">پناهگاه خود را روی زمین و زیر زمین توسعه دهید. پیشرفت بازی در همین مرورگر ذخیره می‌شود.</p>
-        <div class="menu-actions">
-          <button class="menu-primary" id="menu-continue" type="button" data-menu-action="continue">شروع بازی</button>
-          <button type="button" id="menu-new" data-menu-action="new" hidden>بازی جدید</button>
-          <button type="button" data-menu-action="settings">تنظیمات</button>
+      <section data-menu-screen="home" class="menu-screen menu-screen--home">
+        <header class="menu-hero">
+          <div class="menu-hero-top"><span class="menu-kicker">UNDERGROUND SURVIVE</span></div>
+          <h2 id="menu-home-title" tabindex="-1">پناهگاه زیرزمینی</h2>
+          <p class="menu-description">پناهگاه خود را روی زمین و زیر زمین توسعه دهید. پیشرفت بازی در همین مرورگر ذخیره می‌شود.</p>
+        </header>
+        <div class="menu-content">
+          <div class="menu-actions menu-choice-list">
+            <button class="menu-choice menu-primary" id="menu-continue" type="button" data-menu-action="continue">
+              <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
+              <span class="menu-choice-copy"><strong data-menu-continue-label>شروع بازی</strong><small>ورود به پناهگاه</small></span>
+              <span class="menu-choice-icon" data-ui-icon="play" aria-hidden="true"></span>
+            </button>
+            <button class="menu-choice" type="button" id="menu-new" data-menu-action="new" hidden>
+              <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
+              <span class="menu-choice-copy"><strong>بازی جدید</strong><small>ساخت یک پناهگاه تازه</small></span>
+              <span class="menu-choice-icon" data-ui-icon="reset" aria-hidden="true"></span>
+            </button>
+            <button class="menu-choice" type="button" data-menu-action="settings">
+              <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
+              <span class="menu-choice-copy"><strong>تنظیمات</strong><small>صدا، زبان و حرکت</small></span>
+              <span class="menu-choice-icon" data-ui-icon="settings" aria-hidden="true"></span>
+            </button>
+          </div>
+          <p class="menu-save-note"><span data-ui-icon="save" aria-hidden="true"></span><span>ذخیرهٔ محلی روی این دستگاه</span></p>
         </div>
       </section>
-      <section data-menu-screen="pause" class="menu-screen" hidden>
-        <span class="menu-kicker">GAME PAUSED</span>
-        <h2 id="menu-pause-title" tabindex="-1">بازی متوقف شده است</h2>
-        <p class="menu-description">زمان و حرکت‌های صحنه متوقف شده‌اند. پیشرفت شما به‌صورت محلی ذخیره می‌شود.</p>
-        <div class="menu-actions">
-          <button type="button" class="menu-primary" data-menu-action="resume">ادامهٔ بازی</button>
-          <button type="button" data-menu-action="settings">تنظیمات</button>
-          <button type="button" data-menu-action="new">بازی جدید</button>
-          <button type="button" data-menu-action="main">منوی اصلی</button>
+      <section data-menu-screen="pause" class="menu-screen menu-screen--pause" hidden>
+        <header class="menu-hero">
+          <div class="menu-hero-top">
+            <span class="menu-kicker">GAME PAUSED</span>
+            <button class="menu-close" type="button" data-menu-action="resume" aria-label="بستن منوی توقف و ادامهٔ بازی" title="ادامهٔ بازی"><span data-ui-icon="x" aria-hidden="true"></span></button>
+          </div>
+          <h2 id="menu-pause-title" tabindex="-1" aria-label="بازی متوقف شده است">بازی <span class="menu-title-accent">متوقف</span> شده است</h2>
+          <p class="menu-description">زمان و حرکت‌های صحنه متوقف شده‌اند. پیشرفت شما به‌صورت محلی ذخیره می‌شود.</p>
+        </header>
+        <div class="menu-content">
+          <div class="menu-actions menu-choice-list">
+            <button class="menu-choice menu-primary" type="button" data-menu-action="resume">
+              <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
+              <span class="menu-choice-copy"><strong>ادامهٔ بازی</strong><small>بازگشت به پناهگاه</small></span>
+              <span class="menu-choice-icon" data-ui-icon="play" aria-hidden="true"></span>
+            </button>
+            <button class="menu-choice" type="button" data-menu-action="settings">
+              <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
+              <span class="menu-choice-copy"><strong>تنظیمات</strong><small>صدا، زبان و حرکت</small></span>
+              <span class="menu-choice-icon" data-ui-icon="settings" aria-hidden="true"></span>
+            </button>
+            <button class="menu-choice" type="button" data-menu-action="new">
+              <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
+              <span class="menu-choice-copy"><strong>بازی جدید</strong><small>ساخت یک پناهگاه تازه</small></span>
+              <span class="menu-choice-icon" data-ui-icon="reset" aria-hidden="true"></span>
+            </button>
+            <button class="menu-choice" type="button" data-menu-action="main">
+              <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
+              <span class="menu-choice-copy"><strong>منوی اصلی</strong><small>بازگشت به صفحهٔ شروع</small></span>
+              <span class="menu-choice-icon" data-ui-icon="log-out" aria-hidden="true"></span>
+            </button>
+          </div>
+          <p class="menu-save-note"><span data-ui-icon="save" aria-hidden="true"></span><span>ذخیرهٔ محلی روی این دستگاه</span></p>
         </div>
       </section>
       <section data-menu-screen="settings" class="menu-screen" hidden>
