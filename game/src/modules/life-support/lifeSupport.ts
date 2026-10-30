@@ -7,6 +7,7 @@ export const LIFE_SUPPORT_CONFIG = {
   oxygenStoragePerLevel: 25, oxygenPerVentLevel: 3,
   waterPerResident: 1, oxygenPerResident: 1,
   medbayWater: 1, medbayOxygen: 1, gardenWater: 1,
+  flowPerLevel: 8,
   legacyGraceTicks: 36, initialOxygen: 18, maxRooms: 160
 } as const;
 export type LifeResource = 'water' | 'oxygen';
@@ -18,7 +19,7 @@ export interface LifeSupportEvent {
   readonly roomId: string;
   readonly tick: number;
 }
-export interface LifeSupportLink { readonly a: string; readonly b: string; readonly open: boolean }
+export interface LifeSupportLink { readonly a: string; readonly b: string; readonly open: boolean; readonly capacity: number }
 export interface LifeSupportZone { readonly ids: string[]; readonly hasWater: boolean; readonly hasOxygen: boolean }
 export interface LifeSupportRoomStatus { readonly id: string; readonly status: LifeCondition; readonly missing: LifeResource[] }
 export interface LifeSupportSnapshot {
@@ -68,7 +69,8 @@ export class LifeSupportGraph {
       const a = sorted[i], b = sorted[j];
       const sideways = a.y < b.y + b.height && b.y < a.y + a.height &&
         (a.x + a.width === b.x || b.x + b.width === a.x);
-      if (sideways) links.push({ a: a.id, b: b.id, open: !closed.has(linkKey(a.id, b.id)) });
+      if (sideways) links.push({ a: a.id, b: b.id, open: !closed.has(linkKey(a.id, b.id)),
+        capacity: LIFE_SUPPORT_CONFIG.flowPerLevel * Math.min(a.level, b.level) });
     }
     this.links = links;
     const neighbours = new Map(sorted.map(room => [room.id, [] as string[]]));
@@ -98,6 +100,34 @@ export class LifeSupportGraph {
     }
   }
 }
+/** Deterministic BFS against residual per-tick flow. Does not reserve links until
+ * both resource paths and inventories have passed validation. */
+export function findLifeSupportRoute(
+  graph: LifeSupportGraph, sources: readonly string[], destination: string, amount: number,
+  residual: ReadonlyMap<string, number>
+): string[] | null {
+  if (!Number.isSafeInteger(amount) || amount < 0) return null;
+  if (amount === 0) return [];
+  const sourceSet = new Set(sources);
+  if (sourceSet.has(destination)) return [];
+  const pending = [destination], paths = new Map<string, string[]>([[destination, []]]);
+  while (pending.length) {
+    const at = pending.shift()!;
+    const edges = graph.links.filter(e => e.open && (e.a === at || e.b === at))
+      .sort((a, b) => linkKey(a.a, a.b).localeCompare(linkKey(b.a, b.b)));
+    for (const edge of edges) {
+      const key = linkKey(edge.a, edge.b);
+      if ((residual.get(key) ?? edge.capacity) < amount) continue;
+      const next = edge.a === at ? edge.b : edge.a;
+      if (paths.has(next)) continue;
+      const route = [...paths.get(at)!, key];
+      if (sourceSet.has(next)) return route;
+      paths.set(next, route); pending.push(next);
+    }
+  }
+  return null;
+}
+
 interface Demand { id: string; priority: LifePriority; water: number; oxygen: number }
 const priority: Record<LifePriority, number> = { vital: 0, medical: 1, secondary: 2 };
 export function lifeSupportDemands(rooms: readonly Room[], population: number): Demand[] {
@@ -206,17 +236,23 @@ export class LifeSupportService {
     }
     const demands = lifeSupportDemands(rooms, occupancy.population());
     const missingByRoom = new Map<string, LifeResource[]>();
-    const zoneFor = new Map(graph.zones.flatMap(z => z.ids.map(id => [id, z] as const)));
+    const waterSources = rooms.filter(r => r.type === 'waterTreatment' || r.type === 'storage').map(r => r.id);
+    const oxygenSources = rooms.filter(r => r.type === 'ventilation' || r.type === 'storage').map(r => r.id);
+    // Water pipe and oxygen duct have distinct bandwidth ledgers.
+    const waterFlow = new Map(graph.links.map(l => [linkKey(l.a,l.b), l.capacity] as const));
+    const oxygenFlow = new Map(graph.links.map(l => [linkKey(l.a,l.b), l.capacity] as const));
     for (const demand of demands) {
-      const zone = zoneFor.get(demand.id);
-      if (!zone) continue;
       const bad: LifeResource[] = [];
-      if (demand.water && (!zone.hasWater || water.available() < demand.water)) bad.push('water');
-      if (demand.oxygen && (!zone.hasOxygen || this.state.oxygen < demand.oxygen)) bad.push('oxygen');
+      const waterRoute = findLifeSupportRoute(graph,waterSources,demand.id,demand.water,waterFlow);
+      const oxygenRoute = findLifeSupportRoute(graph,oxygenSources,demand.id,demand.oxygen,oxygenFlow);
+      if (demand.water && (waterRoute === null || water.available() < demand.water)) bad.push('water');
+      if (demand.oxygen && (oxygenRoute === null || this.state.oxygen < demand.oxygen)) bad.push('oxygen');
       if (bad.length === 0) {
         // Water adapter is checked before both debits. It must be synchronous and non-racy.
         if (demand.water && !water.spend(demand.water)) bad.push('water');
         if (!bad.length) {
+          for (const key of waterRoute!) waterFlow.set(key, waterFlow.get(key)! - demand.water);
+          for (const key of oxygenRoute!) oxygenFlow.set(key, oxygenFlow.get(key)! - demand.oxygen);
           this.state.oxygen -= demand.oxygen;
           this.state.lastWaterUsed += demand.water;
           this.state.lastOxygenUsed += demand.oxygen;
