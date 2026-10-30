@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "id": "demo-shelter",
+  "locale": "en-US",
+  "title": "Demo: The shelter begins",
+  "enabled": true,
+  "scenes": [
+    {
+      "id": "surface",
+      "type": "image",
+      "src": "media/images/demo-surface.svg",
+      "title": "The surface",
+      "text": "This is a sample scenario for testing the story viewer. The game's official story has not been written yet."
+    },
+    {
+      "id": "underground",
+      "type": "image",
+      "src": "media/images/demo-underground.svg",
+      "title": "Underground",
+      "text": "Each scene can be edited in a GitHub JSON file or replaced with an MP4/WebM video."
+    }
+  ]
+}

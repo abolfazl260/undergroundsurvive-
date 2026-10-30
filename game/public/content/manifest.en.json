@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "locale": "en-US",
+  "chapters": [
+    {
+      "id": "demo-shelter",
+      "src": "story/demo-shelter.en.json"
+    }
+  ]
+}
