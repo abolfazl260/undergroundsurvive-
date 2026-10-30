@@ -153,28 +153,6 @@
 }
 .achievement-item.is-unlocked .achievement-item-status { color:#f4cd7d; }
 .achievement-state-icon { display:inline-block; font-size:18px; font-weight:900; line-height:1; }
-.achievement-art {
-  position:relative; display:block; align-self:stretch; min-height:92px;
-  border-radius:9px; border:1px solid #607787;
-  background-color:#142737; background-image:linear-gradient(#030b1040,#09121b50),url('/assets/rooms/room-atlas-hd.webp');
-  background-size:100% 100%,600% 100%; background-position:center,0% 50%;
-  background-repeat:no-repeat; overflow:hidden;
-  box-shadow:inset 0 0 20px #0008;
-}
-.achievement-art::after {
-  content:""; position:absolute; inset:0; pointer-events:none;
-  background:linear-gradient(90deg,#040c1699,transparent 38%,#efb45c14);
-}
-.achievement-art[data-art="command"] { background-position:center,20% 50%; }
-.achievement-art[data-art="workshop"] { background-position:center,40% 50%; }
-.achievement-art[data-art="storage"] { background-position:center,60% 50%; }
-.achievement-art[data-art="generator"] { background-position:center,80% 50%; }
-.achievement-art[data-art="mine"] { background-position:center,100% 50%; }
-.achievement-art[data-art="garden"] {
-  background-image:linear-gradient(#020a0d38,#06131650),url('/assets/rooms/garden-medbay-atlas-hd.webp');
-  background-size:100% 100%,200% 100%;
-  background-position:center,0% 50%;
-}
 .achievement-toast {
   position:fixed; z-index:1100; top:calc(15px + env(safe-area-inset-top));
   left:50%; transform:translateX(-50%); width:min(92vw,420px);
@@ -234,53 +212,38 @@ html[dir="ltr"] .achievements-filters button { text-align:left; }
   .achievements-dialog::backdrop { backdrop-filter:none; }
 }
 
-
-/* Dedicated milestone illustrations: one full-color panoramic scene per card.
-   Images live in a single WebP storyboard and are never desaturated for locked badges. */
+/* Independent WebP illustrations: vivid whether locked or unlocked.
+   Original aspect ratio is preserved on mobile and desktop, without image cropping. */
 .achievement-item,
 .achievement-item.is-unlocked {
-  grid-template-columns:46px minmax(175px, .85fr) minmax(0, 1.7fr);
+  grid-template-columns:46px minmax(175px,.85fr) minmax(0,1.7fr);
   grid-template-areas:"medal detail artwork";
   min-height:170px;
-  padding:8px;
   gap:12px;
+  padding:8px;
 }
 .achievement-medal { grid-area:medal; }
 .achievement-detail { grid-area:detail; }
-.achievement-art,
-.achievement-item.is-unlocked .achievement-art,
-.achievement-item:not(.is-unlocked) .achievement-art {
+.achievement-art {
   grid-area:artwork;
   display:block;
   width:100%;
   height:auto;
+  min-width:0;
+  max-width:100%;
   aspect-ratio:3 / 1;
-  min-height:0;
   align-self:center;
-  border-radius:10px;
+  object-fit:contain;
+  object-position:center;
+  background:#0b1d29;
   border:1px solid rgba(125,165,188,.7);
-  background-color:#0a1d28;
-  background-image:url('/assets/achievements/milestone-scenes-hd.webp');
-  background-repeat:no-repeat;
-  background-size:100% 1100%;
-  background-position:50% 0%;
+  border-radius:10px;
   box-shadow:0 4px 18px rgba(0,0,0,.32);
   filter:none;
   opacity:1;
   mix-blend-mode:normal;
 }
-.achievement-art::after { display:none; }
-.achievement-art[data-scene="0"]  { background-position:50%   0%; }
-.achievement-art[data-scene="1"]  { background-position:50%  10%; }
-.achievement-art[data-scene="2"]  { background-position:50%  20%; }
-.achievement-art[data-scene="3"]  { background-position:50%  30%; }
-.achievement-art[data-scene="4"]  { background-position:50%  40%; }
-.achievement-art[data-scene="5"]  { background-position:50%  50%; }
-.achievement-art[data-scene="6"]  { background-position:50%  60%; }
-.achievement-art[data-scene="7"]  { background-position:50%  70%; }
-.achievement-art[data-scene="8"]  { background-position:50%  80%; }
-.achievement-art[data-scene="9"]  { background-position:50%  90%; }
-.achievement-art[data-scene="10"] { background-position:50% 100%; }
+.achievement-item:not(.is-unlocked) .achievement-art { filter:none; opacity:1; }
 @media(max-width:720px) {
   .achievement-item,
   .achievement-item.is-unlocked {
@@ -300,5 +263,4 @@ html[dir="ltr"] .achievements-filters button { text-align:left; }
     grid-template-areas:"medal detail" "artwork artwork";
     gap:7px;
   }
-  .achievement-art { width:100%; aspect-ratio:3 / 1; }
 }

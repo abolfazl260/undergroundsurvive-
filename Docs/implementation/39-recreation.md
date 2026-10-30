@@ -20,7 +20,7 @@ Room destinations now reserve distinct interior cells, with deeper cells preferr
 so the first arrival does not block the next at the doorway. Existing movement and
 collision reservations remain authoritative; relocation retargets navigation safely.
 
-Save schema 11 / roster schema 2 preserve simulation clock, stats, visit progress,
+Save schema 12 / roster schema 2 preserve simulation clock, stats, visit progress,
 current movement and operation IDs. Old saves migrate without simulating offline time.
 Clock mismatches, invalid morale and malformed visit durations are rejected. Reload
 replays no rewards; modifiers and recovery remain derived from current room config.

@@ -3,7 +3,7 @@ import type { GameSnapshot } from '../../modules/economy/session';
 import { formatNumber, subscribeLocaleChange, t } from '../../i18n';
 
 const titles: Record<ResourceType, string> = {
-  power: 'برق', food: 'غذا', ore: 'سنگ معدن', supplies: 'تجهیزات'
+  power: 'برق', food: 'مواد خام', meal: 'جیره', ore: 'سنگ معدن', supplies: 'تجهیزات'
 };
 
 /** Updates DOM directly from the game snapshot; it owns no simulation state. */
@@ -19,6 +19,7 @@ export function mountResourcePanel(root: ParentNode): {
   const counts = {
     power: required('resource-power'),
     food: required('resource-food'),
+    meal: required('resource-meal'),
     ore: required('resource-ore'),
     supplies: required('resource-supplies')
   };

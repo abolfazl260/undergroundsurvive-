@@ -11,6 +11,7 @@ export const BUILD_COSTS: Record<BuildableRoomType, number> = {
   command: 300,
   laboratory: 200,
   waterTreatment: 180,
+  kitchen: 160,
   habitat: 120,
   generator: 220,
   hydroponics: 150,

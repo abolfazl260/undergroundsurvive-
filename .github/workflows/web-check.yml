@@ -28,6 +28,8 @@ jobs:
           npm install --no-save --no-package-lock --no-audit --no-fund "@rollup/rollup-linux-x64-gnu@$(node -p "require('./node_modules/rollup/package.json').version")"
       - name: Unit tests
         run: npm test
+      - name: Validate independent achievement images
+        run: node scripts/check-achievement-webp.mjs
       - name: Typecheck and build
         run: npm run build
 

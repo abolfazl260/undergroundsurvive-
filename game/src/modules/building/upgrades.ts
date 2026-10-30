@@ -22,6 +22,7 @@ const ROOM_EFFECTS: Record<RoomType, RoomEffectDefinition> = {
   workshop: { label: 'ظرفیت کارگاه', unit: 'واحد', base: 5, perLevel: 3 },
   storage: { label: 'ظرفیت ذخیره', unit: 'واحد', base: 50, perLevel: 25 },
   laboratory: { label: 'سطح پژوهش', unit: 'واحد', base: 1, perLevel: 1 },
+  kitchen: { label: 'جیره در هر پخت', unit: 'واحد', base: 4, perLevel: 2 },
   waterTreatment: { label: 'آب تمیز در هر چرخه', unit: 'واحد', base: 2, perLevel: 2 },
   mine: { label: 'توان اسمی استخراج', unit: 'واحد', base: 5, perLevel: 3 }
 };

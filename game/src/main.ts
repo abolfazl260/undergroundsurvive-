@@ -3,6 +3,8 @@ import { mountCommandPanel } from './app/ui/commandPanel';
 import { mountRadiationPanel } from './app/ui/radiationPanel';
 import { mountResearchPanel } from './app/ui/researchPanel';
 import { mountWaterPanel } from './app/ui/waterPanel';
+import { mountKitchenPanel } from './app/ui/kitchenPanel';
+import './kitchen.css';
 import './style.css';
 import { mountGameDock } from './app/gameDock';
 import { mountStoryViewer } from './modules/narrative/viewer';
@@ -140,6 +142,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   renderAchievements(snapshot);
   resourcePanel.render(snapshot);
   renderWater(snapshot);
+  renderKitchen(snapshot);
   renderResearch(snapshot);
   renderRadiation(snapshot);
   renderCommand(snapshot);
@@ -170,6 +173,8 @@ const renderRadiation = mountRadiationPanel(document.querySelector<HTMLElement>(
 const renderSurvivors=mountSurvivorPanel(document.querySelector<HTMLElement>('#survivor-panel')!,(id,room)=>scene.assignSurvivor(id,room),id=>scene.releaseSurvivor(id));
 const renderResearch = mountResearchPanel(document.querySelector<HTMLElement>('#research-panel')!,id=>scene.startResearch(id));
 const renderWater = mountWaterPanel(document.querySelector<HTMLElement>('#water-panel')!, () => scene.collectWater(), id => scene.toggleWater(id));
+const renderKitchen = mountKitchenPanel(document.querySelector<HTMLElement>('#kitchen-panel')!,
+  (room, recipe) => scene.startCooking(room, recipe), room => scene.toggleCooking(room), room => scene.cancelCooking(room));
 const scene = new GameScene((snapshot, message) => {
   const saved = saveLocalBase(snapshot);
   lastSnapshot = snapshot;

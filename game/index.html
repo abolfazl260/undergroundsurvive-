@@ -60,7 +60,8 @@
           <span class="cycle-next">چرخهٔ بعد در <output id="resource-next-tick">۵</output> ثانیه</span>
           <div class="resource-grid">
             <div class="resource-item"><span>برق</span><strong id="resource-power">۱۲ / ۳۰</strong></div>
-            <div class="resource-item"><span>غذا</span><strong id="resource-food">۱۲ / ۳۰</strong></div>
+            <div class="resource-item"><span>مواد خام</span><strong id="resource-food">۱۲ / ۳۰</strong></div>
+            <div class="resource-item"><span>جیره</span><strong id="resource-meal">۱۲ / ۳۰</strong></div>
             <div class="resource-item"><span>سنگ معدن</span><strong id="resource-ore">۰ / ۳۰</strong></div>
             <div class="resource-item"><span>تجهیزات</span><strong id="resource-supplies">۰ / ۳۰</strong></div>
           </div>
@@ -102,6 +103,7 @@
             <button class="room-button ui-button" type="button" data-room="mine" aria-pressed="false"><span class="room-icon icon-mine" data-ui-icon="pickaxe" aria-hidden="true">⛏</span><span><strong>اتاق معدن</strong><small>Mine · ۲ خانه</small></span><span class="room-arrow" data-ui-icon="arrow-left" aria-hidden="true">←</span></button>
             <button class="room-button ui-button" type="button" data-room="hydroponics" aria-pressed="false"><span class="room-icon icon-hydroponics" data-ui-icon="sprout" aria-hidden="true">✿</span><span><strong>گلخانه</strong><small>Hydroponics · ۲ خانه</small></span><span class="room-arrow" data-ui-icon="arrow-left" aria-hidden="true">←</span></button>
             <button class="room-button ui-button" type="button" data-room="medbay" aria-pressed="false"><span class="room-icon icon-medbay" data-ui-icon="medical" aria-hidden="true">✚</span><span><strong>درمانگاه</strong><small>Medbay · ۲ خانه</small></span><span class="room-arrow" data-ui-icon="arrow-left" aria-hidden="true">←</span></button>
+            <button class="room-button ui-button" type="button" data-room="kitchen" aria-pressed="false"><span class="room-icon" data-ui-icon="package" aria-hidden="true">♨</span><span><strong>آشپزخانه</strong><small>Kitchen · 2 cells</small></span></button>
             <button class="room-button ui-button" type="button" data-room="waterTreatment" aria-pressed="false"><span class="room-icon" data-ui-icon="bolt" aria-hidden="true">◇</span><span><strong>تصفیه آب</strong><small>Water · 2 cells</small></span></button>
             <button class="room-button ui-button" type="button" data-room="recreation" aria-pressed="false"><span class="room-icon" data-ui-icon="home" aria-hidden="true"></span><span><strong>تفریح</strong><small>Recreation · 2 cells</small></span></button>
             <button class="room-button ui-button" type="button" data-room="guardPost" aria-pressed="false"><span class="room-icon" data-ui-icon="home" aria-hidden="true"></span><span><strong>نگهبانی</strong><small>Guard post · 2 cells</small></span></button>
@@ -113,6 +115,7 @@
           <section id="survivor-panel" class="module-panel" data-no-i18n></section>
           <section id="research-panel" data-no-i18n></section>
           <section id="water-panel" data-no-i18n></section>
+          <section id="kitchen-panel" class="module-panel" data-no-i18n></section>
           <div class="side-label">ابزارهای زمین و اتاق</div>
           <div class="tools-grid" role="group" aria-label="ابزارهای ویرایش">
             <button type="button" class="tool-button ui-button" data-tool="elevator" aria-pressed="false">آسانسور</button>

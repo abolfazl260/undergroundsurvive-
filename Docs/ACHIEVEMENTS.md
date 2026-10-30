@@ -35,8 +35,30 @@ Categories are presentation-only: construction (builds, digs, upgrades), explora
 
 Dialog Escape and close-button behavior, the existing unlock toast, RTL Persian/LTR English layouts, and local-save progress are preserved. The display also supports reduced-motion preferences.
 
-## Individual milestone illustrations
+## Individual full-color WebP artwork
 
-Each of the eleven achievements has a dedicated panoramic scene in `game/public/assets/achievements/milestone-scenes-hd.webp`, rendered by the presentation layer from a single lightweight sprite sheet. Frame ordering is explicitly defined by `ACHIEVEMENT_ARTWORK` in `game/src/app/achievementsUi.ts`. The scene remains in full color, including before unlocking the achievement; only the border, medal, label and progress meter communicate unlock state.
+All eleven achievements have their own **two independent WebP files** (360×120 and 540×180) in
+`game/public/assets/achievements/`, named by the stable achievement ID:
+`first-room-360.webp`, `first-room-540.webp`, `builder-360.webp`, etc.
+These are derived from the cinematic bunker illustrations created for this game.
+The original panoramic source sheet is archived outside of the public directory
+at `game/artwork-sources/milestone-scenes-hd.webp` and is **not loaded by the game**.
+The shared SVG and runtime sprite-sheet rendering are not used.
 
-Achievement cards devote more width to imagery on large screens and use a full-width 3:1 image row on mobile, with no off-screen clipping or grayscale effects. The existing achievement rules, catalog, economy, translations, and save data remain unchanged. Tests assert a distinct frame for every achievement.
+The `achievementsUi.ts` dialog uses `<img>` with `srcset`, `sizes`,
+`loading="lazy"`, `decoding="async"`, and an intrinsic 3:1 aspect ratio.
+No achievements imagery is fetched at startup; it is inserted only on dialog open.
+The list reuses existing card nodes and image elements across regular game-state updates.
+Filter changes and language changes rebuild only the affected list.
+Locked and unlocked achievements use identical **full-color** artwork; progress, border,
+medal and status communicate completion.
+
+Generated artwork totals about 180 KiB for 22 files in the current set (subject to
+future source changes). Run `python3 game/scripts/prepare-achievement-webp.py` from
+the repository root after installing Pillow when artwork changes, then commit the
+resulting individual WebPs. The original sprite source is retained only for
+reproducible authoring, not as a served asset. Run
+`node game/scripts/check-achievement-webp.mjs` to verify file presence,
+WebP validity, uniqueness and the asset-size budget. This check also runs in web CI.
+
+No achievement rule, badge ID, economy field or save-schema value changes.
