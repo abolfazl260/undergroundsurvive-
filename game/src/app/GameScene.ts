@@ -52,7 +52,8 @@ export class GameScene extends Phaser.Scene {
     private readonly onZoomChange: (zoom: number) => void = () => {},
     private readonly onAudioCue: (cue: AudioCue) => void = () => {},
     private readonly onAudioActivate: () => void = () => {},
-    private readonly onUpgradeSelection: (details: UpgradeDetails | null) => void = () => {}
+    private readonly onUpgradeSelection: (details: UpgradeDetails | null) => void = () => {},
+    private readonly onCycleProgress: (remainingSeconds: number) => void = () => {}
   ) {
     super({ key: 'UndergroundScene' });
     this.session = GameSession.fromSave(saved);
@@ -102,6 +103,7 @@ export class GameScene extends Phaser.Scene {
       if (dy !== 0) this.setZoomAt(this.cameras.main.zoom + (dy < 0 ? 0.15 : -0.15), { x: pointer.x, y: pointer.y });
     });
     this.onZoomChange(this.cameras.main.zoom);
+    this.onCycleProgress(Math.ceil(this.session.resources.remainingMs / 1000));
     this.notify('ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.');
     if (this.gameplayPaused) this.scene.pause();
   }
@@ -132,8 +134,23 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private lastCycleCountdown = -1;
+
   update(_time: number, delta: number): void {
-    if (this.gameplayPaused || !this.navigator) return;
+    if (this.gameplayPaused) return;
+    const completed = this.session.advanceTime(delta);
+    const seconds = Math.ceil(this.session.resources.remainingMs / 1000);
+    if (seconds !== this.lastCycleCountdown) {
+      this.lastCycleCountdown = seconds;
+      this.onCycleProgress(seconds);
+    }
+    if (completed > 0) {
+      const result = this.session.resources.snapshot();
+      this.notify(result.lastShortages.length
+        ? 'چرخهٔ منابع انجام شد؛ برخی اتاق‌ها به‌علت کمبود منابع متوقف شدند.'
+        : 'چرخهٔ تولید و مصرف منابع انجام شد.');
+    }
+    if (!this.navigator) return;
     const arrived = this.navigator.advance(delta);
     this.syncResident();
     if (arrived) {
@@ -317,6 +334,8 @@ export class GameScene extends Phaser.Scene {
 
   resetLayout(): void {
     this.session.reset();
+    this.lastCycleCountdown = -1;
+    this.onCycleProgress(5);
     this.onAudioCue('reset');
     this.pendingMoveId = null;
     this.selectedUpgradeId = null;
