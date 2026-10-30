@@ -86,6 +86,26 @@ describe('local wallet and transactional commands', () => {
     expect(restored.wallet.balance).toBe(2000);
   });
 
+  it('keeps paid commands and reload working after moving onto a later-created support', () => {
+    const game = GameSession.create();
+    expect(game.unlockFloor().ok).toBe(true);
+    expect(game.build('habitat', 2, 1).ok).toBe(true);
+    const upperId = game.layout.getRoomAt(2, 1)!.id;
+    expect(game.build('storage', 8, 0).ok).toBe(true);
+    expect(game.layout.move(upperId, 8, 1).ok).toBe(true);
+
+    const before = game.snapshot();
+    expect(GameSession.restore(before)?.snapshot()).toEqual(before);
+    expect(game.upgradeRoom(upperId).ok).toBe(true);
+    expect(game.wallet.balance).toBe(STARTING_COINS - 300 - 120 - 100 - 240);
+
+    const saved = game.snapshot();
+    const restored = GameSession.restore(saved);
+    expect(restored?.snapshot()).toEqual(saved);
+    expect(restored?.upgradeRoom(upperId).ok).toBe(true);
+    expect(restored?.wallet.balance).toBe(game.wallet.balance - 360);
+  });
+
   it('resets the world and balance together', () => {
     const game = GameSession.create();
     game.build('habitat', 7, 0);
