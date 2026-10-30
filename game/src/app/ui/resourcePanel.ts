@@ -48,8 +48,8 @@ export function mountResourcePanel(root: ParentNode): {
       const etaLabel = (n: number | null) => n === null ? (en ? 'stable' : 'پایدار') : (en ? `${n} ticks` : `${formatNumber(n)} چرخه`);
       lifeWarning.textContent = life.graceTicks ? (en ? `Emergency reserve: ${life.graceTicks} cycles` : `ذخیره اضطراری: ${formatNumber(life.graceTicks)} چرخه`) :
         low.length ? (en ? `${low.length} life-support shortages; inspect water and ventilation.` : `${formatNumber(low.length)} هشدار کمبود آب یا اکسیژن؛ تصفیه و تهویه را بررسی کنید.`) :
-        (en ? `Water used ${life.water.consumed}/tick · Oxygen +${life.oxygen.produced}/-${life.oxygen.consumed}/tick` :
-          `مصرف آب ${formatNumber(life.water.consumed)} · اکسیژن +${formatNumber(life.oxygen.produced)}/-${formatNumber(life.oxygen.consumed)} در چرخه`);
+        (en ? `Water +${life.water.produced}/-${life.water.consumed}/tick · Oxygen +${life.oxygen.produced}/-${life.oxygen.consumed}/tick` :
+          `آب +${formatNumber(life.water.produced)}/-${formatNumber(life.water.consumed)} · اکسیژن +${formatNumber(life.oxygen.produced)}/-${formatNumber(life.oxygen.consumed)} در چرخه`);
       if (!life.graceTicks) lifeWarning.textContent += en
         ? ` · Water remaining: ${etaLabel(life.water.etaTicks)}, oxygen: ${etaLabel(life.oxygen.etaTicks)}`
         : ` · اتمام آب: ${etaLabel(life.water.etaTicks)}، اکسیژن: ${etaLabel(life.oxygen.etaTicks)}`;
