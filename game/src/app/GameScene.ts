@@ -13,7 +13,7 @@ import { findRoomPath, walkPoint } from '../modules/characters/pathfinding';
 import type { ResidentTraffic } from '../modules/characters/traffic';
 import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
-import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE, LAB_WATER_ART_ASSET, LAB_WATER_FRAME_BY_TYPE } from './roomArt';
+import { ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, roomArtCandidates } from './roomArt';
 import { SURVIVOR_ART, survivorGeometry, survivorFrame, hitSurvivor } from './survivorArt';
 import { AssetManager } from './assets/assetManager';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
@@ -30,7 +30,7 @@ export type ToolMode = 'elevator' | 'build' | 'dig' | 'move' | 'remove' | 'upgra
 export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
   private readonly assets = new AssetManager(
-    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART, LAB_WATER_ART_ASSET], import.meta.env.BASE_URL,
+    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET], import.meta.env.BASE_URL,
     Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
   );
   private get layout(): BuildingLayout { return this.session.layout; }
@@ -689,14 +689,11 @@ export class GameScene extends Phaser.Scene {
       const { left, top } = toPixels(room.x, room.y);
       const width = room.width * WORLD.cellSize - 4;
       const height = room.height * WORLD.cellSize - 4;
-      const labWaterFrame = LAB_WATER_FRAME_BY_TYPE[room.type];
-      const specialFrame = labWaterFrame ?? GARDEN_MEDBAY_FRAME_BY_TYPE[room.type];
-      const frame = specialFrame ?? ROOM_FRAME_BY_TYPE[room.type];
-      const assetKey = labWaterFrame !== undefined ? LAB_WATER_ART_ASSET.key : specialFrame === undefined ? ROOM_ART_ASSET.key : GARDEN_MEDBAY_ART_ASSET.key;
-
-      const texture = frame === undefined ? null : this.assets.resolve(
-        assetKey, this.textures, frame
-      );
+      // Level 2 receives its own illustrated interior; missing assets safely
+      // fall back to the original Level 1 sheet (or basic room graphics).
+      const texture = roomArtCandidates(room.type, room.level)
+        .map(({ key, frame }) => this.assets.resolve(key, this.textures, frame))
+        .find((resolved) => resolved !== null) ?? null;
       if (texture) {
         const sprite = this.add.image(left + 2, top + 2, texture.key, texture.frame)
           .setOrigin(0, 0)
