@@ -27,3 +27,11 @@ silently destroyed. Online authorization/operation IDs must be server-owned.
 Unit/integration regressions exercise atomicity, costs, bypass prevention,
 one-floor extension, boundaries, migration and tampered snapshots. Browser visual
 verification remains unavailable (see WATER.md).
+
+## Surface blast door and sealed access depth
+
+The surface tile (logical y=0) is a sealed **steel blast exit**, never a visible lift landing. The lift cabin remains underground; the door is drawn on top of the moving car so the exterior stays sealed during quarantine.
+
+The shaft physically spans **two security-only levels** immediately below the surface before reaching the first editable underground row. These two levels are **not construction grid cells**: clicks, room placement, excavation and room movement cannot target them. The shaft is visually continuous through this space, and fractional cabin travel positions are mapped smoothly over the full extra height.
+
+The underlying logical room floors still begin at y=-1, and the saved grid coordinates, economics, pathfinding and elevator connectivity remain unchanged. This avoids relocating or corrupting existing game saves. The portrait viewport remains 480×600 and the extended world is 960×720; only the soil portion of the background extends below its original 960×600 artwork, preserving skyline-to-surface alignment.
