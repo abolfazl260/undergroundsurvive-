@@ -50,8 +50,8 @@ export function airModifiers(quality: number): AirModifiers {
 
 export const ROOM_AIR_EMISSIONS: AirEmissionsAdapter = {
   emissions(rooms) {
-    return rounded(rooms.length * AIR_CONFIG.perActiveRoomEmission +
-      rooms.filter(room => room.type === 'mine' || room.type === 'workshop').length * AIR_CONFIG.industrialEmission);
+    return rounded(Math.min(AIR_CONFIG.maxEmissions, rooms.length * AIR_CONFIG.perActiveRoomEmission +
+      rooms.filter(room => room.type === 'mine' || room.type === 'workshop').length * AIR_CONFIG.industrialEmission));
   },
 };
 export function ventCapacity(level: number): number { return AIR_CONFIG.capacityBase + (level - 1) * AIR_CONFIG.capacityPerLevel; }
