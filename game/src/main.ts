@@ -12,6 +12,7 @@ import { GameScene, type ToolMode } from './app/GameScene';
 import { ZOOM } from './app/viewport';
 import { AudioManager } from './modules/audio/AudioManager';
 import { mountHud } from './app/ui/hud';
+import { mountAchievements } from './app/achievementsUi';
 import { WORLD } from './modules/world/grid';
 import type { BuildableRoomType } from './modules/building/catalog';
 import { loadLocalBase, saveLocalBase } from './platform/localSave';
@@ -33,6 +34,7 @@ const status = document.querySelector<HTMLElement>('#status');
 const unlockButton = document.querySelector<HTMLButtonElement>('#unlock-floor');
 const renderHud = mountHud(document);
 const resourcePanel = mountResourcePanel(document);
+const renderAchievements = mountAchievements(document);
 const bonusButton = document.querySelector<HTMLButtonElement>('#demo-bonus');
 const historyNode = document.querySelector<HTMLElement>('#transaction-list');
 const digButton = document.querySelector<HTMLButtonElement>('[data-tool="dig"]');
@@ -126,6 +128,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   latestBalance = snapshot.wallet.balance;
   renderUpgradePanel();
   renderHud(snapshot, saved);
+  renderAchievements(snapshot);
   resourcePanel.render(snapshot);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
