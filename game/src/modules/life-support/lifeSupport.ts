@@ -3,7 +3,7 @@ import { getRoomPerformance } from '../building/upgrades';
 
 /** Balancing units per existing five-second economy tick. */
 export const LIFE_SUPPORT_CONFIG = {
-  schemaVersion: 1, tickMs: 5_000, oxygenBaseCapacity: 30,
+  schemaVersion: 2, tickMs: 5_000, oxygenBaseCapacity: 30,
   oxygenStoragePerLevel: 25, oxygenPerVentLevel: 3,
   waterPerResident: 1, oxygenPerResident: 1,
   medbayWater: 1, medbayOxygen: 1, gardenWater: 1,
@@ -23,8 +23,13 @@ export interface LifeSupportLink { readonly a: string; readonly b: string; reado
 export interface LifeSupportZone { readonly ids: string[]; readonly hasWater: boolean; readonly hasOxygen: boolean }
 export interface LifeSupportRoomStatus { readonly id: string; readonly status: LifeCondition; readonly missing: LifeResource[] }
 export interface LifeSupportSnapshot {
-  schemaVersion: 1;
+  schemaVersion: 2;
   oxygen: number;
+  /** Physical room-held lots, backed by the existing water inventory. */
+  waterLots: Record<string, number>;
+  oxygenLots: Record<string, number>;
+  legacyWater: number;
+  legacyOxygen: number;
   closedLinks: string[];
   ticks: number;
   graceTicks: number;
@@ -169,11 +174,14 @@ export function oxygenCapacity(rooms: readonly Room[]): number {
 const eta = (stock: number, used: number, produced: number) =>
   used > produced ? Math.floor(stock / (used - produced)) : null;
 
-/** Owns only oxygen; clean water remains in the pre-existing water processor.
- * No timer: exactly one call from the 5s economy adapter, after ventilation. */
+/** Owns the physical oxygen lots and water-allocation ledger. Actual clean-water
+ * debits remain in the pre-existing WaterProductionProcessor, never duplicated.
+ * No timer: one call from the five-second economy adapter after ventilation. */
 export class LifeSupportService {
   private state: LifeSupportSnapshot = {
-    schemaVersion: 1, oxygen: LIFE_SUPPORT_CONFIG.initialOxygen, closedLinks: [],
+    schemaVersion: 2, oxygen: LIFE_SUPPORT_CONFIG.initialOxygen,
+    oxygenLots: {}, waterLots: {}, legacyOxygen: LIFE_SUPPORT_CONFIG.initialOxygen,
+    legacyWater: 0, closedLinks: [],
     ticks: 0, graceTicks: LIFE_SUPPORT_CONFIG.legacyGraceTicks,
     lastProduced: 0, lastWaterUsed: 0, lastOxygenUsed: 0, events: [], roomStatuses: []
   };
@@ -181,8 +189,17 @@ export class LifeSupportService {
   static restore(raw: unknown): LifeSupportService | null {
     if (!raw || typeof raw !== 'object') return null;
     const s = raw as Partial<LifeSupportSnapshot>;
-    if (s.schemaVersion !== 1 || !validNumber(s.oxygen) || !validNumber(s.ticks) ||
+    const lotsValid = (lots: unknown): lots is Record<string,number> => {
+      if (!lots || typeof lots !== 'object' || Array.isArray(lots)) return false;
+      const pairs = Object.entries(lots);
+      return pairs.length <= LIFE_SUPPORT_CONFIG.maxRooms &&
+        pairs.every(([k,v]) => k.length > 0 && k.length < 200 && k !== '__legacy__' && validNumber(v));
+    };
+    if (s.schemaVersion !== 2 || !validNumber(s.oxygen) || !validNumber(s.ticks) ||
       !validNumber(s.graceTicks) || (s.graceTicks ?? Infinity) > LIFE_SUPPORT_CONFIG.legacyGraceTicks ||
+      !lotsValid(s.waterLots) || !lotsValid(s.oxygenLots) ||
+      !validNumber(s.legacyWater) || !validNumber(s.legacyOxygen) ||
+      (s.legacyOxygen! + Object.values(s.oxygenLots!).reduce((a,b)=>a+b,0)) !== s.oxygen ||
       !validNumber(s.lastProduced) || !validNumber(s.lastWaterUsed) || !validNumber(s.lastOxygenUsed) ||
       !Array.isArray(s.closedLinks) || s.closedLinks.length > 500 ||
       !s.closedLinks.every(k => typeof k === 'string' && k.length > 0 && k.length < 400) ||
@@ -197,12 +214,30 @@ export class LifeSupportService {
     service.state = structuredClone(s as LifeSupportSnapshot);
     return service;
   }
+  /** On demolition, detach the inventory from the removed node. Emergency stocks
+   * are preserved without allowing them to magically feed disconnected rooms. */
   sync(rooms: readonly Room[]): void {
     const graph = new LifeSupportGraph(rooms, this.state.closedLinks);
     const valid = new Set(graph.links.map(l => linkKey(l.a, l.b)));
     this.state.closedLinks = this.state.closedLinks.filter(k => valid.has(k));
-    this.state.oxygen = Math.min(this.state.oxygen, oxygenCapacity(rooms));
     const roomIds = new Set(rooms.map(r => r.id));
+    for (const [id, value] of Object.entries(this.state.waterLots)) if (!roomIds.has(id)) {
+      this.state.legacyWater += value; delete this.state.waterLots[id];
+    }
+    for (const [id, value] of Object.entries(this.state.oxygenLots)) if (!roomIds.has(id)) {
+      this.state.legacyOxygen += value; delete this.state.oxygenLots[id];
+    }
+    // Drop over-capacity oxygen in a stable order, without negative balances.
+    let overflow = Math.max(0, this.state.oxygen - oxygenCapacity(rooms));
+    const drop = Math.min(overflow, this.state.legacyOxygen);
+    this.state.legacyOxygen -= drop; overflow -= drop;
+    for (const id of Object.keys(this.state.oxygenLots).sort().reverse()) {
+      if (!overflow) break;
+      const n = Math.min(this.state.oxygenLots[id], overflow);
+      this.state.oxygenLots[id] -= n; overflow -= n;
+    }
+    this.state.oxygen = this.state.legacyOxygen +
+      Object.values(this.state.oxygenLots).reduce((n,v) => n + v, 0);
     this.state.roomStatuses = this.state.roomStatuses.filter(r => roomIds.has(r.id));
   }
   toggleLink(a: string, b: string, rooms: readonly Room[]): boolean {
@@ -214,17 +249,90 @@ export class LifeSupportService {
     this.state.closedLinks = [...closed].sort();
     return true;
   }
-  /** Atomic per-consumer water + oxygen debit; never spends one if the other is missing. */
+  /** The water processor is authoritative. Allocations only describe *where* the
+   * existing clean-water units live, never an additional inventory balance.
+   * Kitchen/other consumption is reconciled at each simulation tick. */
+  private reconcileWater(rooms: readonly Room[], water: LifeSupportWater): void {
+    const excess = Math.max(0, water.available() - water.capacity());
+    if (excess) water.spend(excess); // storage was demolished: clamp stock to legal capacity
+    const actual = water.available();
+    let recorded = this.state.legacyWater + Object.values(this.state.waterLots).reduce((n,v)=>n+v,0);
+    if (recorded > actual) {
+      let deficit = recorded - actual;
+      const reserved = Math.min(deficit, this.state.legacyWater);
+      this.state.legacyWater -= reserved; deficit -= reserved;
+      for (const id of Object.keys(this.state.waterLots).sort().reverse()) {
+        if (deficit === 0) break;
+        const debit = Math.min(deficit, this.state.waterLots[id]);
+        this.state.waterLots[id] -= debit; deficit -= debit;
+      }
+    } else if (actual > recorded) {
+      const difference = actual - recorded;
+      const producer = [...rooms].filter(r=>r.type==='waterTreatment').sort((a,b)=>a.id.localeCompare(b.id))[0];
+      const storage = [...rooms].filter(r=>r.type==='storage').sort((a,b)=>a.id.localeCompare(b.id))[0];
+      const source = producer ?? storage;
+      if (source) this.state.waterLots[source.id] = (this.state.waterLots[source.id] ?? 0) + difference;
+      else this.state.legacyWater += difference;
+    }
+    // Migrate previous save's emergency pool into the earliest real tank/producer.
+    const home = [...rooms].filter(r=>r.type==='storage'||r.type==='waterTreatment')
+      .sort((a,b)=>a.id.localeCompare(b.id))[0];
+    if (home && this.state.legacyWater) {
+      this.state.waterLots[home.id]=(this.state.waterLots[home.id]??0)+this.state.legacyWater;
+      this.state.legacyWater=0;
+    }
+    recorded = this.state.legacyWater + Object.values(this.state.waterLots).reduce((n,v)=>n+v,0);
+    if (recorded !== actual) throw new Error('Water allocation invariant violated');
+  }
+  /** No physical room can spend from a virtual emergency pool.
+   * Transfer the old virtual oxygen reserve to the earliest real tank or vent. */
+  private reconcileOxygen(rooms: readonly Room[]): void {
+    const home = [...rooms].filter(r=>r.type==='storage'||r.type==='ventilation')
+      .sort((a,b)=>a.id.localeCompare(b.id))[0];
+    if (home && this.state.legacyOxygen) {
+      this.state.oxygenLots[home.id]=(this.state.oxygenLots[home.id]??0)+this.state.legacyOxygen;
+      this.state.legacyOxygen=0;
+    }
+  }
+  /** Prepare a deterministic, rollback-safe plan. Routes have separate per-resource
+   * capacity accounting; room-held lots cannot be drawn from other islands. */
+  private allocation(graph: LifeSupportGraph, lots: Readonly<Record<string,number>>,
+                     target: string, units: number, residual: ReadonlyMap<string,number>):
+    {parts: {id:string;units:number}[]; flow: Map<string,number>} | null {
+    if (units === 0) return {parts:[],flow:new Map(residual)};
+    const flow = new Map(residual), parts: {id:string;units:number}[] = [];
+    let missing=units;
+    for (const id of Object.keys(lots).sort()) {
+      let available=lots[id];
+      while (available>0 && missing>0) {
+        const route=findLifeSupportRoute(graph,[id],target,1,flow);
+        if (route===null) break;
+        const channel = route.reduce((n,k)=>Math.min(n,flow.get(k)??0),Number.MAX_SAFE_INTEGER);
+        const taken=Math.min(available,missing,channel);
+        if (!taken) break;
+        parts.push({id,units:taken}); available-=taken; missing-=taken;
+        for (const k of route) flow.set(k,flow.get(k)!-taken);
+      }
+      if (missing===0) break;
+    }
+    return missing===0 ? {parts,flow}:null;
+  }
+  /** Atomic water + oxygen allocation, no health/character mutation. */
   tick(rooms: readonly Room[], water: LifeSupportWater, occupancy: LifeSupportOccupancy,
        power: LifeSupportPower, vents: readonly LifeSupportVent[]): void {
     this.sync(rooms);
+    this.reconcileWater(rooms,water);
+    this.reconcileOxygen(rooms);
     const graph = new LifeSupportGraph(rooms, this.state.closedLinks);
     const active = new Set(vents.filter(v => v.powered).map(v => v.id));
-    const production = rooms.filter(r => r.type === 'ventilation' && active.has(r.id) && power.powered(r.id))
-      .reduce((n, r) => n + r.level * LIFE_SUPPORT_CONFIG.oxygenPerVentLevel, 0);
-    const before = this.state.oxygen;
-    this.state.oxygen = Math.min(oxygenCapacity(rooms), before + production);
-    this.state.lastProduced = this.state.oxygen - before;
+    this.state.lastProduced = 0;
+    for (const room of [...rooms].sort((a,b)=>a.id.localeCompare(b.id))) {
+      if (room.type !== 'ventilation' || !active.has(room.id) || !power.powered(room.id)) continue;
+      const produced = Math.min(room.level * LIFE_SUPPORT_CONFIG.oxygenPerVentLevel,
+        Math.max(0,oxygenCapacity(rooms)-this.state.oxygen));
+      this.state.oxygenLots[room.id]=(this.state.oxygenLots[room.id]??0)+produced;
+      this.state.oxygen += produced; this.state.lastProduced += produced;
+    }
     this.state.lastWaterUsed = 0;
     this.state.lastOxygenUsed = 0;
     this.state.events = [];
@@ -236,52 +344,49 @@ export class LifeSupportService {
     }
     const demands = lifeSupportDemands(rooms, occupancy.population());
     const missingByRoom = new Map<string, LifeResource[]>();
-    const waterSources = rooms.filter(r => r.type === 'waterTreatment' || r.type === 'storage').map(r => r.id);
-    const oxygenSources = rooms.filter(r => r.type === 'ventilation' || r.type === 'storage').map(r => r.id);
-    // Water pipe and oxygen duct have distinct bandwidth ledgers.
-    const waterFlow = new Map(graph.links.map(l => [linkKey(l.a,l.b), l.capacity] as const));
-    const oxygenFlow = new Map(graph.links.map(l => [linkKey(l.a,l.b), l.capacity] as const));
+    let waterFlow = new Map(graph.links.map(l => [linkKey(l.a,l.b), l.capacity] as const));
+    let oxygenFlow = new Map(graph.links.map(l => [linkKey(l.a,l.b), l.capacity] as const));
     for (const demand of demands) {
       const bad: LifeResource[] = [];
-      const waterRoute = findLifeSupportRoute(graph,waterSources,demand.id,demand.water,waterFlow);
-      const oxygenRoute = findLifeSupportRoute(graph,oxygenSources,demand.id,demand.oxygen,oxygenFlow);
-      if (demand.water && (waterRoute === null || water.available() < demand.water)) bad.push('water');
-      if (demand.oxygen && (oxygenRoute === null || this.state.oxygen < demand.oxygen)) bad.push('oxygen');
-      if (bad.length === 0) {
-        // Water adapter is checked before both debits. It must be synchronous and non-racy.
+      const w = this.allocation(graph,this.state.waterLots,demand.id,demand.water,waterFlow);
+      const o = this.allocation(graph,this.state.oxygenLots,demand.id,demand.oxygen,oxygenFlow);
+      if (demand.water && (!w || water.available() < demand.water)) bad.push('water');
+      if (demand.oxygen && (!o || this.state.oxygen < demand.oxygen)) bad.push('oxygen');
+      if (!bad.length) {
         if (demand.water && !water.spend(demand.water)) bad.push('water');
         if (!bad.length) {
-          for (const key of waterRoute!) waterFlow.set(key, waterFlow.get(key)! - demand.water);
-          for (const key of oxygenRoute!) oxygenFlow.set(key, oxygenFlow.get(key)! - demand.oxygen);
-          this.state.oxygen -= demand.oxygen;
-          this.state.lastWaterUsed += demand.water;
-          this.state.lastOxygenUsed += demand.oxygen;
+          for(const part of w!.parts) this.state.waterLots[part.id]-=part.units;
+          for(const part of o!.parts) this.state.oxygenLots[part.id]-=part.units;
+          waterFlow=w!.flow;oxygenFlow=o!.flow;
+          this.state.oxygen-=demand.oxygen;
+          this.state.lastWaterUsed+=demand.water;
+          this.state.lastOxygenUsed+=demand.oxygen;
         }
       }
       if (bad.length) {
-        missingByRoom.set(demand.id, bad);
-        for (const resource of bad) {
+        missingByRoom.set(demand.id,bad);
+        for(const resource of bad) {
           this.state.events.push({type:'life-support-shortage',resource,roomId:demand.id,tick:this.state.ticks});
-          if (demand.priority === 'vital')
+          if(demand.priority==='vital')
             this.state.events.push({type:'survivor-exposure',resource,roomId:demand.id,tick:this.state.ticks});
         }
       }
     }
-    this.state.events = this.state.events.slice(0, 100);
-    this.state.roomStatuses = rooms.map(r => {
-      const missing = missingByRoom.get(r.id) ?? [];
-      return {id: r.id, status: missing.length === 2 ? 'offline' as const :
-        missing.length === 1 ? 'degraded' as const : 'online' as const, missing};
+    this.state.events=this.state.events.slice(0,100);
+    this.state.roomStatuses=rooms.map(r=>{
+      const missing=missingByRoom.get(r.id)??[];
+      return {id:r.id,status:missing.length===2?'offline' as const :
+        missing.length===1?'degraded' as const:'online' as const,missing};
     }).sort((a,b)=>a.id.localeCompare(b.id));
   }
   view(rooms: readonly Room[], water: LifeSupportWater): LifeSupportView {
-    const graph = new LifeSupportGraph(rooms, this.state.closedLinks);
+    const graph=new LifeSupportGraph(rooms,this.state.closedLinks);
     return {
-      water: {stock: water.available(),capacity:water.capacity(),consumed:this.state.lastWaterUsed,
-        etaTicks: eta(water.available(),this.state.lastWaterUsed,0)},
-      oxygen: {stock:this.state.oxygen,capacity:oxygenCapacity(rooms),produced:this.state.lastProduced,
+      water:{stock:water.available(),capacity:water.capacity(),consumed:this.state.lastWaterUsed,
+        etaTicks:eta(water.available(),this.state.lastWaterUsed,0)},
+      oxygen:{stock:this.state.oxygen,capacity:oxygenCapacity(rooms),produced:this.state.lastProduced,
         consumed:this.state.lastOxygenUsed,etaTicks:eta(this.state.oxygen,this.state.lastOxygenUsed,this.state.lastProduced)},
-      zones: graph.zones, links: graph.links, rooms: structuredClone(this.state.roomStatuses),
+      zones:graph.zones,links:graph.links,rooms:structuredClone(this.state.roomStatuses),
       graceTicks:this.state.graceTicks,events:structuredClone(this.state.events)
     };
   }
