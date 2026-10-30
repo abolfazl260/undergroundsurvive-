@@ -233,3 +233,72 @@ html[dir="ltr"] .achievements-filters button { text-align:left; }
   .achievements-filters button { transition:none; }
   .achievements-dialog::backdrop { backdrop-filter:none; }
 }
+
+
+/* Dedicated milestone illustrations: one full-color panoramic scene per card.
+   Images live in a single WebP storyboard and are never desaturated for locked badges. */
+.achievement-item,
+.achievement-item.is-unlocked {
+  grid-template-columns:46px minmax(175px, .85fr) minmax(0, 1.7fr);
+  grid-template-areas:"medal detail artwork";
+  min-height:170px;
+  padding:8px;
+  gap:12px;
+}
+.achievement-medal { grid-area:medal; }
+.achievement-detail { grid-area:detail; }
+.achievement-art,
+.achievement-item.is-unlocked .achievement-art,
+.achievement-item:not(.is-unlocked) .achievement-art {
+  grid-area:artwork;
+  display:block;
+  width:100%;
+  height:auto;
+  aspect-ratio:3 / 1;
+  min-height:0;
+  align-self:center;
+  border-radius:10px;
+  border:1px solid rgba(125,165,188,.7);
+  background-color:#0a1d28;
+  background-image:url('/assets/achievements/milestone-scenes.webp');
+  background-repeat:no-repeat;
+  background-size:100% 1100%;
+  background-position:50% 0%;
+  box-shadow:0 4px 18px rgba(0,0,0,.32);
+  filter:none;
+  opacity:1;
+  mix-blend-mode:normal;
+}
+.achievement-art::after { display:none; }
+.achievement-art[data-scene="0"]  { background-position:50%   0%; }
+.achievement-art[data-scene="1"]  { background-position:50%  10%; }
+.achievement-art[data-scene="2"]  { background-position:50%  20%; }
+.achievement-art[data-scene="3"]  { background-position:50%  30%; }
+.achievement-art[data-scene="4"]  { background-position:50%  40%; }
+.achievement-art[data-scene="5"]  { background-position:50%  50%; }
+.achievement-art[data-scene="6"]  { background-position:50%  60%; }
+.achievement-art[data-scene="7"]  { background-position:50%  70%; }
+.achievement-art[data-scene="8"]  { background-position:50%  80%; }
+.achievement-art[data-scene="9"]  { background-position:50%  90%; }
+.achievement-art[data-scene="10"] { background-position:50% 100%; }
+@media(max-width:720px) {
+  .achievement-item,
+  .achievement-item.is-unlocked {
+    grid-template-columns:38px minmax(0,1fr);
+    grid-template-areas:"medal detail" "artwork artwork";
+    gap:8px;
+    padding:9px;
+    min-height:0;
+  }
+  .achievement-detail { min-height:76px; }
+  .achievement-art { width:100%; aspect-ratio:3 / 1; }
+}
+@media(max-width:390px) {
+  .achievement-item,
+  .achievement-item.is-unlocked {
+    grid-template-columns:33px minmax(0,1fr);
+    grid-template-areas:"medal detail" "artwork artwork";
+    gap:7px;
+  }
+  .achievement-art { width:100%; aspect-ratio:3 / 1; }
+}
