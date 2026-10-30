@@ -4,6 +4,8 @@ export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
   'قوانین و دسترسی‌ها': 'Rules, privacy & permissions',
+  'قوانین ساخت و استفاده': 'Construction and usage rules',
+  'ساخت اتاق فقط در زیرزمین و در شبکهٔ متصل به آسانسور مجاز است. برای جزئیات قوانین، حریم خصوصی و دسترسی‌های دستگاه، صفحهٔ کامل را باز کنید.': 'Rooms may only be built underground within the elevator-connected network. Open the full page for game rules, privacy and device permissions.',
   'تفریح':'Recreation',
   'بازیابی روحیه':'Morale recovery',
   'در ثانیه':'per second',
