@@ -87,7 +87,7 @@ export const LEVEL_TWO_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
  * Eight newly illustrated Level 2 interiors. Each frame is two cells wide.
  * Row-major order: habitat, hydroponics, workshop, storage, mine,
  * recreation, guardPost, ventilation.
- * The 2.25x atlas comes from the original generated artwork, not an upscaled 1x.
+ * The revised 3.5x atlas uses new cutaway interiors cropped from original large artwork; no text/UI labels are inside game textures.
  */
 export const LEVEL_TWO_ADDITIONAL_ART_ASSET: TextureAsset = {
   key: 'level-two-additional-art',
@@ -96,8 +96,8 @@ export const LEVEL_TWO_ADDITIONAL_ART_ASSET: TextureAsset = {
   frameHeight: 53,
   filter: 'linear',
   variants: [
-    { scale: 1, path: 'assets/rooms/level2-additions.webp' },
-    { scale: 2.25, path: 'assets/rooms/level2-additions-hd.webp', frameWidth: 360, frameHeight: 120 }
+    { scale: 1, path: 'assets/rooms/level2-additions-v2.webp' },
+    { scale: 3.5, path: 'assets/rooms/level2-additions-v2-hd.webp', frameWidth: 560, frameHeight: 186 }
   ]
 };
 
@@ -120,8 +120,8 @@ export const LEVEL_TWO_COMMAND_ART_ASSET: TextureAsset = {
   frameHeight: 53,
   filter: 'linear',
   variants: [
-    { scale: 1, path: 'assets/rooms/level2-command.webp' },
-    { scale: 2.25, path: 'assets/rooms/level2-command-hd.webp', frameWidth: 540, frameHeight: 120 }
+    { scale: 1, path: 'assets/rooms/level2-command-v2.webp' },
+    { scale: 3.5, path: 'assets/rooms/level2-command-v2-hd.webp', frameWidth: 840, frameHeight: 186 }
   ]
 };
 

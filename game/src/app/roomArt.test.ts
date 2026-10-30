@@ -68,14 +68,30 @@ it('provides distinct Level 2 WebP artwork for every one of the fourteen room ty
   expect(LEVEL_TWO_ADDITIONAL_ART_ASSET.frameHeight).toBe(53);
   expect(LEVEL_TWO_COMMAND_ART_ASSET.frameWidth).toBe(240);
   expect(LEVEL_TWO_COMMAND_ART_ASSET.frameHeight).toBe(53);
-  expect(LEVEL_TWO_ADDITIONAL_ART_ASSET.variants.map(v => v.scale)).toEqual([1, 2.25]);
-  expect(LEVEL_TWO_COMMAND_ART_ASSET.variants.map(v => v.scale)).toEqual([1, 2.25]);
+  expect(LEVEL_TWO_ADDITIONAL_ART_ASSET.variants[1]).toEqual({
+    scale: 3.5, path: 'assets/rooms/level2-additions-v2-hd.webp', frameWidth: 560, frameHeight: 186
+  });
+  expect(LEVEL_TWO_COMMAND_ART_ASSET.variants[1]).toEqual({
+    scale: 3.5, path: 'assets/rooms/level2-command-v2-hd.webp', frameWidth: 840, frameHeight: 186
+  });
+  expect(LEVEL_TWO_ADDITIONAL_ART_ASSET.variants.map(v => v.scale)).toEqual([1, 3.5]);
+  expect(LEVEL_TWO_COMMAND_ART_ASSET.variants.map(v => v.scale)).toEqual([1, 3.5]);
   for (const asset of [LEVEL_TWO_ADDITIONAL_ART_ASSET, LEVEL_TWO_COMMAND_ART_ASSET]) {
     for (const variant of asset.variants) {
       const data = readFileSync('public/' + variant.path);
       expect(data.toString('ascii', 0, 4)).toBe('RIFF');
       expect(data.toString('ascii', 8, 12)).toBe('WEBP');
-      expect(data.length).toBeLessThan(160_000);
+      // The newer HD artwork is measured by encoded pixel dimensions, not an upscaled mobile frame.
+      expect(data.toString('ascii', 12, 16)).toBe('VP8 ');
+      const width = data.readUInt16LE(26) & 0x3fff;
+      const height = data.readUInt16LE(28) & 0x3fff;
+      const expectedWidth = variant.frameWidth ?? asset.frameWidth * variant.scale;
+      const expectedHeight = variant.frameHeight ?? asset.frameHeight * variant.scale;
+      const frameCount = asset.key === 'level-two-command-art' ? 1 : 8;
+      const columns = asset.key === 'level-two-command-art' ? 1 : 4;
+      const rows = Math.ceil(frameCount / columns);
+      expect([width, height]).toEqual([expectedWidth * columns, expectedHeight * rows]);
+      expect(data.length).toBeLessThan(220_000);
     }
   }
   const roomTypes = [
