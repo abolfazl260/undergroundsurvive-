@@ -28,6 +28,7 @@ export interface UpgradeDetails {
   readonly current: RoomPerformance;
   readonly next: RoomPerformance | null;
   readonly cost: number | null;
+  readonly blockedReason: string | null;
 }
 type SpendKind = 'build' | 'dig' | 'floor' | 'upgrade';
 
@@ -93,12 +94,14 @@ export class GameSession {
   upgradeDetails(id: string): UpgradeDetails | null {
     const room = this.world.rooms.find((r) => r.id === id);
     if (!room) return null;
-    const available = room.level < MAX_ROOM_LEVEL && this.world.canEditRoom(room);
+    const blockedReason = this.world.canEditRoom(room) ? null : LEGACY_SURFACE_READ_ONLY_REASON;
+    const available = room.level < MAX_ROOM_LEVEL && !blockedReason;
     return {
       id: room.id, label: ROOM_DEFINITIONS[room.type].label, level: room.level,
       current: getRoomPerformance(room.type, room.level),
       next: available ? getRoomPerformance(room.type, room.level + 1) : null,
-      cost: available ? getUpgradeCost(room.type, room.level) : null
+      cost: available ? getUpgradeCost(room.type, room.level) : null,
+      blockedReason
     };
   }
 
