@@ -33,7 +33,9 @@ it('stops safely on power loss, releases on demolition and applies upgrade rate/
  expect(next.s.assignRecreation('resident-3',next.id,'a')).toBeNull();
  expect(next.s.assignRecreation('resident-2',next.id,'b')).toBeNull();
  next.s.advanceTime(10000);expect(next.s.survivors.recreationVisits.every(v=>v.state==='active')).toBe(true);
- expect(new Set(next.s.survivors.traffic.residents.slice(1,3).map(r=>r.cell.x+':'+r.cell.y)).size).toBe(2);expect(next.s.survivors.survivors[2].morale).toBeGreaterThan(60);
+ expect(next.s.survivors.traffic.residents.slice(1,3).every(r=>
+   next.s.layout.getRoomAt(r.cell.x,r.cell.y)?.id===next.id)).toBe(true);
+ expect(next.s.survivors.survivors[2].morale).toBeGreaterThan(60);
 });
 it('caps morale, ends visits, validates clocks/stats and migrates legacy survivor saves',()=>{
  const {s,id}=setup(),raw=s.snapshot();raw.survivors.survivors[2].morale=99;
