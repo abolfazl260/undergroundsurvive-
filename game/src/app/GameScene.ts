@@ -9,7 +9,7 @@ import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/ca
 import { BuildingLayout } from '../modules/building/layout';
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../modules/building/constructionPolicy';
 import { findRoomPath, walkPoint } from '../modules/characters/pathfinding';
-import { ResidentTraffic } from '../modules/characters/traffic';
+import type { ResidentTraffic } from '../modules/characters/traffic';
 import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE, LAB_WATER_ART_ASSET, LAB_WATER_FRAME_BY_TYPE } from './roomArt';
@@ -20,7 +20,7 @@ import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomA
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
-  command: 'فرمان', habitat: 'مسکونی', generator: 'برق', hydroponics: 'گلخانه',
+  guardPost:'نگهبانی', command: 'فرمان', habitat: 'مسکونی', generator: 'برق', hydroponics: 'گلخانه',
   laboratory: 'آزمایشگاه', waterTreatment: 'تصفیه آب', medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
 };
 
@@ -193,11 +193,11 @@ export class GameScene extends Phaser.Scene {
         : 'چرخهٔ تولید و مصرف منابع انجام شد.');
     }
     if (!this.traffic) return;
-    const arrivals = this.traffic.advance(delta, this.menuSettings.reducedMotion);
+    const arrivals: string[] = [];
     this.syncResidents();
     this.paintResidentPath();
     for (const resident of this.traffic.residents) {
-      if (resident.isMoving) continue;
+      if (resident.isMoving || this.session.survivors.assignment(resident.id)) continue;
       if (arrivals.includes(resident.id)) this.residentWaitMs.set(resident.id, 1800);
       const remaining = (this.residentWaitMs.get(resident.id) ?? 1400) -
         Math.max(0, Math.min(delta, 1000));
@@ -382,6 +382,15 @@ export class GameScene extends Phaser.Scene {
     this.notify(result.ok ? 'طبقهٔ جدید با پرداخت ' + cost + ' سکه آزاد شد؛ برای ساخت تکیه‌گاه لازم است.' : result.reason);
   }
 
+  assignSurvivor(id:string,roomId:string):void {
+    if(this.gameplayPaused)return;
+    const reason=this.session.assignGuard(id,roomId,crypto.randomUUID());
+    this.syncResidents();this.notify(reason??'تخصیص انجام شد؛ نیرو در مسیر است.');
+  }
+  releaseSurvivor(id:string):void {
+    if(this.gameplayPaused)return;
+    this.session.survivors.release(id);this.notify('نیرو آزاد شد.');
+  }
   commandPopulation():number{return this.traffic?.residents.length??0;}
   upgradeCommandCenter():void {
     if(this.gameplayPaused)return;
@@ -697,13 +706,8 @@ export class GameScene extends Phaser.Scene {
   private addResident(): void {
     for (const figure of this.residentFigures.values()) figure.person.destroy();
     this.residentFigures.clear();
-    const starts = [
-      { id: 'resident-1', cell: { x: 5, y: -1 } },
-      { id: 'resident-2', cell: { x: 6, y: -1 } },
-      { id: 'resident-3', cell: { x: 7, y: -1 } }
-    ];
-    this.traffic = new ResidentTraffic(this.layout, starts);
-    this.selectedResidentId = starts[0].id;
+    this.traffic = this.session.survivors.traffic;
+    this.selectedResidentId = this.traffic.residents[0]?.id ?? '';
     this.residentWaitMs.clear();
     this.patrolCursors.clear();
     this.traffic.residents.forEach((resident, index) => {
@@ -763,7 +767,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private beginResidentWalk(residentId: string, roomId: string, manual: boolean): boolean {
-    if (!this.traffic?.goToRoom(residentId, roomId)) return false;
+    if (this.session.survivors.assignment(residentId) || !this.traffic?.goToRoom(residentId, roomId)) return false;
     this.residentWaitMs.set(residentId, manual ? 9000 : 1800);
     this.syncResidents();
     this.paintResidentPath();
@@ -788,6 +792,7 @@ export class GameScene extends Phaser.Scene {
 
   private refreshResidentPath(): void {
     if (!this.traffic) return;
+    this.session.survivors.setLayout(this.layout);
     const cancelled = this.traffic.refresh();
     for (const id of cancelled) this.residentWaitMs.set(id, 1600);
     this.syncResidents();

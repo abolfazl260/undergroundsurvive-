@@ -117,7 +117,7 @@ describe('AssetManager', () => {
     );
     expect(loader.spritesheet).toHaveBeenCalledTimes(2);
     expect(ROOM_ART_ASSET.variants).toHaveLength(2);
-    expect(Object.values(ROOM_FRAME_BY_TYPE).sort()).toEqual([0, 1, 2, 3, 4, 5]);
+    expect([...new Set(Object.values(ROOM_FRAME_BY_TYPE))].sort()).toEqual([0, 1, 2, 3, 4, 5]);
   });
 });
 

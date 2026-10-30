@@ -1,3 +1,4 @@
+import { mountSurvivorPanel } from './app/ui/survivorPanel';
 import { mountCommandPanel } from './app/ui/commandPanel';
 import { mountRadiationPanel } from './app/ui/radiationPanel';
 import { mountResearchPanel } from './app/ui/researchPanel';
@@ -142,6 +143,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   renderResearch(snapshot);
   renderRadiation(snapshot);
   renderCommand(snapshot);
+  renderSurvivors(snapshot);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
     setButtonLabel(bonusButton, snapshot.demoBonusClaimed
@@ -165,6 +167,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
 }
 const renderCommand = mountCommandPanel(document.querySelector<HTMLElement>('#command-panel')!,()=>scene.commandPopulation(),()=>scene.upgradeCommandCenter());
 const renderRadiation = mountRadiationPanel(document.querySelector<HTMLElement>('#radiation-panel')!,()=>{scene.toggleRadiation();if(lastSnapshot)renderRadiation(lastSnapshot);gameDock.showSheet(null);},()=>scene.radiationView(),()=>scene.cleanupRadiation(),()=>scene.filterRadiation());
+const renderSurvivors=mountSurvivorPanel(document.querySelector<HTMLElement>('#survivor-panel')!,(id,room)=>scene.assignSurvivor(id,room),id=>scene.releaseSurvivor(id));
 const renderResearch = mountResearchPanel(document.querySelector<HTMLElement>('#research-panel')!,id=>scene.startResearch(id));
 const renderWater = mountWaterPanel(document.querySelector<HTMLElement>('#water-panel')!, () => scene.collectWater(), id => scene.toggleWater(id));
 const scene = new GameScene((snapshot, message) => {

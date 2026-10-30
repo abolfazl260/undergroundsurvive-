@@ -206,20 +206,20 @@ html[dir="ltr"] .topbar .resource-panel[data-expanded="true"] .resource-details 
 /* Seven primary tools, including vertical development, fit narrow touch screens. */
 #action-dock .tools-grid { grid-template-columns:repeat(7,minmax(0,1fr)); }
 /* Management panels share the same touch targets, palette and sheet behavior. */
-:is(#command-panel,#water-panel,#research-panel,#radiation-panel) {
+:is(#command-panel,#water-panel,#research-panel,#radiation-panel,#survivor-panel) {
   margin-block:12px; padding:12px; border:1px solid #355664; border-radius:12px;
   background:#102a36; color:#e9f6f2; text-align:start; font-size:13px; line-height:1.7;
   overflow-wrap:anywhere;
 }
-:is(#command-panel,#water-panel,#research-panel,#radiation-panel) :is(h3,h4,p) { margin:6px 0; }
-:is(#command-panel,#water-panel,#research-panel,#radiation-panel) button {
+:is(#command-panel,#water-panel,#research-panel,#radiation-panel,#survivor-panel) :is(h3,h4,p) { margin:6px 0; }
+:is(#command-panel,#water-panel,#research-panel,#radiation-panel,#survivor-panel) button {
   min-height:44px; min-width:44px; max-width:100%; margin:4px 2px; padding:8px 12px;
   border:1px solid #75b9a5; border-radius:8px; background:#225947; color:#f5fff9;
   white-space:normal; touch-action:manipulation;
 }
-:is(#command-panel,#water-panel,#research-panel,#radiation-panel) button:disabled { opacity:.55; cursor:default; }
+:is(#command-panel,#water-panel,#research-panel,#radiation-panel,#survivor-panel) button:disabled { opacity:.55; cursor:default; }
 #research-panel section > div { padding-block:8px; border-top:1px solid #355664; }
-#game-sheet[data-sheet="rooms"] :is(#command-panel,#water-panel,#research-panel,#radiation-panel) { display:none; }
+#game-sheet[data-sheet="rooms"] :is(#command-panel,#water-panel,#research-panel,#radiation-panel,#survivor-panel) { display:none; }
 
 /* Selected-room controls live above the measured HUD, including safe-area padding. */
 .upgrade-panel {

@@ -3,6 +3,16 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
+  'نگهبانی':'Guard post',
+  'ظرفیت نگهبانی':'Guard capacity',
+  'تخصیص انجام شد؛ نیرو در مسیر است.':'Assigned; survivor is en route.',
+  'نیرو آزاد شد.':'Survivor released.',
+  'بازمانده وجود ندارد.':'Survivor not found.',
+  'پست معتبر نیست.':'Invalid guard post.',
+  'نیرو شغل دیگری دارد؛ ابتدا آزاد کنید.':'Survivor is busy; release first.',
+  'ظرفیت اتاق پر است.':'Room capacity is full.',
+  'مسیر قابل‌عبور نیست.':'No traversable path.',
+  'درخواست تکراری است.':'Duplicate operation.',
   "ارتقا در دسترس نیست": "Upgrade unavailable",
   "اتاق فرماندهی": "Command center",
   "فقط یک اتاق فرماندهی مجاز است.": "Only one command center is allowed.",

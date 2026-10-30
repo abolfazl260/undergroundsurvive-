@@ -11,6 +11,7 @@ interface RoomEffectDefinition {
 
 // Nominal room capacities; actual resource production is a separate feature.
 const ROOM_EFFECTS: Record<RoomType, RoomEffectDefinition> = {
+  guardPost: {label:'ظرفیت نگهبانی',unit:'نفر',base:1,perLevel:1},
   command: { label: 'ظرفیت هماهنگی', unit: 'واحد', base: 1, perLevel: 1 },
   habitat: { label: 'ظرفیت اسکان', unit: 'نفر', base: 2, perLevel: 2 },
   generator: { label: 'توان اسمی برق', unit: 'واحد', base: 10, perLevel: 5 },

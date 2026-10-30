@@ -16,6 +16,7 @@ export const ROOM_ART_ASSET: TextureAsset = {
 };
 
 export const ROOM_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
+  guardPost: 1,
   habitat: 0,
   command: 1,
   workshop: 2,

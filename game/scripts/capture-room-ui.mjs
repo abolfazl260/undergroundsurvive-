@@ -24,6 +24,22 @@ for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
     if(errors.length) throw new Error(errors.join('\n'));
   }
   await page.screenshot({path:`${output}/${mode}-${width}x${height}-panel.png`});
+  if(mode==='after' && width===390 && await page.locator('#survivor-panel').count()) {
+    // Seed an actual valid room in the existing save; exercise the public touch UI.
+    await page.evaluate(()=>{
+      const key='underground-survive:game:v2',s=JSON.parse(localStorage.getItem(key));
+      s.base.rooms.push({id:'ui-guard',type:'guardPost',x:1,y:-1,width:2,height:1,level:1});
+      localStorage.setItem(key,JSON.stringify(s));
+    });
+    await page.reload();await page.locator('#menu-continue').click();
+    await page.locator('#open-more').click();
+    await page.locator('[data-assign-room="ui-guard"]').first().click();
+    await page.waitForFunction(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).survivors.assignments.length===1);
+    await page.locator('#survivor-panel').scrollIntoViewIfNeeded();
+    await page.screenshot({path:`${output}/${mode}-guard-assigned.png`});
+    await page.locator('[data-release]').first().click();
+    await page.waitForFunction(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).survivors.assignments.length===0);
+  }
   await page.close();
 }
 await browser.close();
