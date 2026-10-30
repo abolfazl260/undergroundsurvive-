@@ -13,8 +13,7 @@ describe('room upgrade capacities', () => {
       const c = getRoomPerformance(type, 3);
       expect(a.value).toBeGreaterThan(0);
       expect(b.value).toBeGreaterThan(a.value);
-      if(type==='recreation')expect(c.value).toBe(b.value);
-      else expect(c.value).toBeGreaterThan(b.value);
+      expect(c.value).toBeGreaterThan(b.value);
       expect(a.unit).toBe(c.unit);
     }
     expect(MAX_ROOM_LEVEL).toBe(3);

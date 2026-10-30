@@ -42,6 +42,7 @@ it('caps morale, ends visits, validates clocks/stats and migrates legacy survivo
  expect(high.survivors.recreationVisits).toHaveLength(0);
  const full=high.snapshot();full.survivors.survivors[2].morale=100;
  expect(GameSession.restore(full)!.assignRecreation('resident-3',id,'full')).toBe('satisfied');
+ const clock=structuredClone(full);clock.survivors.nowMs+=50;expect(GameSession.restore(clock)).toBeNull();
  const bad=structuredClone(full);bad.survivors.survivors[2].morale=NaN;expect(GameSession.restore(bad)).toBeNull();
  const old={...raw,schemaVersion:10,survivors:{...raw.survivors,schemaVersion:1,nowMs:undefined,survivors:raw.survivors.survivors.map(({id,name})=>({id,name}))}};
  expect(GameSession.restore(old)!.survivors.survivors[2].morale).toBe(50);
