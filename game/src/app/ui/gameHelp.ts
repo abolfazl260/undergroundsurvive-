@@ -5,6 +5,7 @@ import { formatNumber, getLocale } from '../../i18n';
 
 type RoomGuide = { fa: string; en: string; purposeFa: string; purposeEn: string };
 export const ROOM_GUIDE: Readonly<Record<RoomType, RoomGuide>> = {
+  recreation:{fa:'اتاق تفریح',en:'Recreation lounge',purposeFa:'با حضور واقعی و برق، روحیهٔ بازمانده در زمان محدود بازیابی می‌شود؛ رزرو ظرفیت و هزینهٔ برق دارد.',purposeEn:'Recover morale through a timed, powered visit after physical arrival; reservations require capacity and one power unit.'},
   guardPost: { fa: 'اتاق نگهبانی', en: 'Guard post', purposeFa: 'محل استقرار نگهبانان؛ ظرفیت نگهبانی، وضعیت برق و آمادگی دفاعی از پنل آن بررسی می‌شود.', purposeEn: 'Assign guards here; inspect guard capacity, power and defensive readiness in the guard panel.' },
   command: { fa: 'اتاق فرماندهی', en: 'Command center', purposeFa: 'مدیریت پناهگاه؛ فقط یک اتاق مجاز است. سطح ۲ مجوز صنعت را باز می‌کند؛ مجوز حفظ می‌شود و استفاده از آن به فرماندهی فعال و دارای برق کافی نیاز دارد.', purposeEn: 'Shelter management; only one is allowed. Level 2 earns Industry access; permission persists but use requires an active powered command center.' },
   habitat: { fa: 'خوابگاه / اتاق مسکونی', en: 'Habitat', purposeFa: 'افزایش ظرفیت اسکان بازماندگان.', purposeEn: 'Increases survivor housing capacity.' },
@@ -15,7 +16,7 @@ export const ROOM_GUIDE: Readonly<Record<RoomType, RoomGuide>> = {
   storage: { fa: 'انبار', en: 'Storage', purposeFa: 'افزایش ظرفیت ذخیرهٔ منابع.', purposeEn: 'Increases resource storage capacity.' },
   mine: { fa: 'معدن', en: 'Mine', purposeFa: 'استخراج سنگ معدن؛ نیازمند فرماندهی فعال سطح ۲ با برق کافی.', purposeEn: 'Extracts ore; requires a powered, active level-2 command center.' },
   waterTreatment: { fa: 'تصفیهٔ آب', en: 'Water treatment', purposeFa: 'تصفیهٔ آب برای پناهگاه، با توجه به منابع و شرایط عملیاتی.', purposeEn: 'Treats shelter water subject to resources and operating conditions.' },
-  laboratory: { fa: 'آزمایشگاه', en: 'Laboratory', purposeFa: 'زیرساخت پژوهش؛ سطح آزمایشگاه و برق در شرایط فناوری‌ها اثر دارند.', purposeEn: 'Research facility; lab level and power affect technology requirements.' }
+  laboratory: { fa: 'آزمایشگاه', en: 'Laboratory', purposeFa: 'زیرساخت پژوهش؛ سطح آزمایشگاه، برق و حضور دانشمند برای شروع و ادامهٔ پژوهش لازم‌اند.', purposeEn: 'Research facility; lab level, power and physical scientist presence gate research start and continuation.' }
 };
 
 export function findHelpTopics(query: string, locale: 'fa' | 'en'): readonly HelpTopic[] {
