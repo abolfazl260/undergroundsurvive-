@@ -13,6 +13,7 @@ import type { ResidentTraffic } from '../modules/characters/traffic';
 import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE, LAB_WATER_ART_ASSET, LAB_WATER_FRAME_BY_TYPE } from './roomArt';
+import { roomShellBounds } from './roomShell';
 import { SURVIVOR_ART, survivorGeometry, survivorFrame, hitSurvivor } from './survivorArt';
 import { AssetManager } from './assets/assetManager';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
@@ -685,9 +686,9 @@ export class GameScene extends Phaser.Scene {
     this.airBadges = [];
     for (const room of this.layout.rooms) {
       const definition = ROOM_DEFINITIONS[room.type];
-      const { left, top } = toPixels(room.x, room.y);
-      const width = room.width * WORLD.cellSize - 4;
-      const height = room.height * WORLD.cellSize - 4;
+      // The entire room artwork sits inside a consistent 1px inset on each edge.
+      // Side-by-side modules retain their own walls, separated by a 2px dark seam.
+      const { left, top, width, height } = roomShellBounds(room);
       const labWaterFrame = LAB_WATER_FRAME_BY_TYPE[room.type];
       const specialFrame = labWaterFrame ?? GARDEN_MEDBAY_FRAME_BY_TYPE[room.type];
       const frame = specialFrame ?? ROOM_FRAME_BY_TYPE[room.type];
@@ -697,7 +698,7 @@ export class GameScene extends Phaser.Scene {
         assetKey, this.textures, frame
       );
       if (texture) {
-        const sprite = this.add.image(left + 2, top + 2, texture.key, texture.frame)
+        const sprite = this.add.image(left, top, texture.key, texture.frame)
           .setOrigin(0, 0)
           .setDisplaySize(width, height);
         this.roomLayer.add(sprite);
@@ -706,8 +707,8 @@ export class GameScene extends Phaser.Scene {
       const graphics = this.add.graphics();
       if (!texture) {
         // Keep legacy room types and failed asset requests playable.
-        graphics.fillStyle(definition.color).fillRoundedRect(left + 2, top + 2, width, height, 4);
-        graphics.fillStyle(definition.accent, 0.21).fillRect(left + 10, top + 9, width - 16, 8);
+        graphics.fillStyle(definition.color).fillRect(left, top, width, height);
+        graphics.fillStyle(definition.accent, 0.21).fillRect(left + 10, top + 9, width - 20, 8);
         if (room.type === 'ventilation') {
           const cx = left + width / 2, cy = top + height / 2 + 3;
           graphics.lineStyle(2, 0xbafbf2, 0.85).strokeCircle(cx, cy, 13);
@@ -717,15 +718,33 @@ export class GameScene extends Phaser.Scene {
           }
         }
       }
-      graphics.lineStyle(1.5 + (room.level - 1) * 0.6, definition.accent, 0.9)
-        .strokeRoundedRect(left + 2, top + 2, width, height, 4);
+      // A shared steel shell replaces the coloured card-like outline. The original
+      // illustrated interiors stay intact; walls and corners look identical for
+      // every room type, upgrade level, texture variant, and fallback.
+      graphics.lineStyle(1, 0x10161b, 0.95).strokeRect(left + 0.5, top + 0.5, width - 1, height - 1);
+      graphics.fillStyle(0x354047, 0.94).fillRect(left + 1, top + 1, width - 2, 3);
+      graphics.fillStyle(0x788087, 0.86).fillRect(left + 1, top + 1, width - 2, 1);
+      graphics.fillStyle(0x273238, 0.97).fillRect(left + 1, top + height - 4, width - 2, 3);
+      graphics.fillStyle(0x697178, 0.8).fillRect(left + 1, top + height - 4, width - 2, 1);
+      graphics.fillStyle(0x343f46, 0.96)
+        .fillRect(left + 1, top + 3, 2, height - 6)
+        .fillRect(left + width - 3, top + 3, 2, height - 6);
+      // Tiny shared corner plates convey a modular building without adding
+      // connector corridors or stealing floor cells from either room.
+      for (const postX of [left + 1, left + width - 6]) {
+        for (const postY of [top + 1, top + height - 6]) {
+          graphics.fillStyle(0x505d65, 0.98).fillRect(postX, postY, 5, 5);
+          graphics.fillStyle(0x9ca5a9, 0.75).fillRect(postX, postY, 5, 1);
+          graphics.fillStyle(0xd7a05f, 0.85).fillRect(postX + 2, postY + 3, 1, 1);
+        }
+      }
       this.roomLayer.add(graphics);
 
       // At high zoom, keep the nameplate at its original screen size so it
       // does not obscure the newly detailed artwork. Text textures render at
       // 3× resolution instead of stretching a tiny 9px bitmap.
-      const badgeWidth = width - 8;
-      const badge = this.add.container(left + 6, top + 3);
+      const badgeWidth = width - 10;
+      const badge = this.add.container(left + 5, top + 4);
       const plate = this.add.graphics();
       plate.fillStyle(0x09131f, 0.82).fillRoundedRect(0, 0, badgeWidth, 14, 3);
       const name = this.add.text(4, 1, getLocale() === 'fa' ? localizedRoomBadges[room.type] : definition.label, {
@@ -902,9 +921,9 @@ export class GameScene extends Phaser.Scene {
       ? this.layout.rooms.find((room) => room.id === this.selectedUpgradeId)
       : undefined;
     if (selected) {
-      const { left, top } = toPixels(selected.x, selected.y);
+      const { left, top, width, height } = roomShellBounds(selected);
       g.lineStyle(3, 0xffd886, 1);
-      g.strokeRect(left + 3, top + 3, selected.width * WORLD.cellSize - 6, selected.height * WORLD.cellSize - 6);
+      g.strokeRect(left, top, width, height);
     }
     if (!this.hovered) return;
     const { x, y } = this.hovered;
@@ -961,12 +980,11 @@ export class GameScene extends Phaser.Scene {
       this.previewReason.setText(localizeGameMessage(rejection))
         .setPosition(point.left + 10, point.top - 36).setVisible(true);
     }
-    const { left, top } = toPixels(startX, startY);
-    const w = width * WORLD.cellSize - 4, h = height * WORLD.cellSize - 4;
+    const shell = roomShellBounds({ x: startX, y: startY, width, height });
     g.fillStyle(valid ? 0x6acdad : 0xe48384, 0.25);
-    g.fillRect(left + 2, top + 2, w, h);
+    g.fillRect(shell.left, shell.top, shell.width, shell.height);
     g.lineStyle(2, valid ? 0x89e5bd : 0xff9192);
-    g.strokeRect(left + 2, top + 2, w, h);
+    g.strokeRect(shell.left, shell.top, shell.width, shell.height);
   }
 }
 
