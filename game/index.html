@@ -272,9 +272,33 @@
           <input id="menu-reduced-motion" type="checkbox" />
           <span>کاهش حرکت‌های تزئینی <small>انیمیشن آدمک آزمایشی متوقف می‌شود.</small></span>
         </label>
+        <button class="menu-help-entry" type="button" data-menu-action="help" aria-controls="game-help">
+          <span class="menu-help-entry__icon" aria-hidden="true">?</span>
+          <span class="menu-help-entry__copy"><strong>راهنمای بازی</strong><small>شروع سریع، ساخت‌وساز، منابع و سؤالات رایج</small></span>
+          <span class="menu-help-entry__arrow" aria-hidden="true">‹</span>
+        </button>
         <p class="menu-footnote">تنظیمات صدا و کاهش حرکت جدا از پیشرفت پناهگاه ذخیره می‌شوند.</p>
         <div class="menu-actions">
           <button class="menu-primary" type="button" data-menu-action="back">بازگشت</button>
+        </div>
+      </section>
+      <section data-menu-screen="help" class="menu-screen menu-screen--help" hidden>
+        <div class="game-help__header">
+          <span class="menu-kicker">SURVIVAL MANUAL</span>
+          <h2 id="menu-help-title" tabindex="-1">راهنمای بازی</h2>
+          <p id="game-help-subtitle">آموزش شروع، قواعد ساخت‌وساز، منابع و رفع مشکلات</p>
+        </div>
+        <div id="game-help" class="game-help" role="region" aria-labelledby="menu-help-title" tabindex="0">
+          <div class="game-help__search">
+            <label id="game-help-search-label" for="game-help-search">جست‌وجو در راهنما</label>
+            <input id="game-help-search" type="search" autocomplete="off" spellcheck="false" aria-describedby="game-help-count" placeholder="مثلاً: آسانسور، نیروگاه، سکه…" />
+            <span id="game-help-count" class="game-help__count" role="status" aria-live="polite"></span>
+          </div>
+          <div id="game-help-topics" class="game-help__topics"></div>
+          <p id="game-help-empty" class="game-help__empty" hidden>موضوعی با این عبارت پیدا نشد.</p>
+        </div>
+        <div class="menu-actions game-help__footer">
+          <button type="button" class="menu-primary" data-menu-action="back">بازگشت به تنظیمات</button>
         </div>
       </section>
       <section data-menu-screen="confirm-new" class="menu-screen" hidden>
