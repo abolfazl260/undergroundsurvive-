@@ -71,6 +71,7 @@ export class GameSession {
     return this.kitchenState.block(roomId, recipeId, this.cookingContext());
   }
   startCooking(roomId: string, recipeId: string, operationId: string): CookingBlock | null {
+    if(!this.powerStatus().activeRoomIds.includes(roomId))return 'power';
     return this.kitchenState.start(roomId, recipeId, operationId, this.cookingContext());
   }
   toggleCooking(roomId: string): boolean { return this.kitchenState.toggle(roomId); }
@@ -90,7 +91,11 @@ export class GameSession {
 
   private commandState=new CapabilityGate();
   get commandCenter():CapabilityGate{return this.commandState;}
-  commandStatus(){return this.commandState.status(this.world.rooms,this.resources.snapshot().stock.power);}
+  commandStatus(){
+    const allowed = new Set(this.powerStatus().activeRoomIds);
+    return this.commandState.status(this.world.rooms.filter(r=>allowed.has(r.id)),
+      this.resources.snapshot().stock.power);
+  }
   canBuild(type:BuildableRoomType,x:number,y:number):CommandResult {
     const placement=this.world.canPlace(type,x,y);if(!placement.ok)return placement;
     const capability=this.commandState.forRoom(type);
@@ -115,7 +120,9 @@ export class GameSession {
   }
   laboratories():LaboratoryFacility[] {
     this.survivors.reconcile(this.resources.snapshot().stock.power);
-    return laboratoryFacilities(this.world.rooms,this.survivors.assignments,this.resources.snapshot().stock.power);
+    const allowed = new Set(this.powerStatus().activeRoomIds);
+    return laboratoryFacilities(this.world.rooms.filter(r=>allowed.has(r.id)),
+      this.survivors.assignments,this.resources.snapshot().stock.power);
   }
   researchFacility() {return researchFacility(this.laboratories());}
   assignScientist(id:string,roomId:string,op:string) {return this.survivors.assign(id,roomId,'scientist',op);}
@@ -295,12 +302,13 @@ export class GameSession {
       const completed = this.resourceState.advance(step, this.world.rooms,this.researchState.modifiers(),this.powerStatus());
       ticks += completed;
       if (completed) {
-        this.waterState.advance(5000, this.world.rooms, this.powerAdapter());
-        this.kitchenState.advance(5000, this.cookingContext());
+        const poweredRooms = new Set(this.powerStatus().activeRoomIds);
+        this.waterState.advance(5000, this.world.rooms, this.powerAdapter(), poweredRooms);
+        this.kitchenState.advance(5000, this.cookingContext(), poweredRooms);
         this.researchState.advanceTo(this.resources.tickCount*5000,this.researchFacility());
         // Water, kitchen and research get their power before ventilation.
         this.airState.advanceTo(this.resources.tickCount * 5000, this.world.rooms,
-          this.survivors.survivors.length, ROOM_AIR_EMISSIONS.emissions(this.world.rooms), this.powerAdapter());
+          this.survivors.survivors.length, ROOM_AIR_EMISSIONS.emissions(this.world.rooms), this.powerAdapter(), poweredRooms);
         this.radiationState.advanceTo(this.resources.tickCount*5000,this.radiationState.world(this.world.terrain,this.world.rooms),this.radiationOccupants);
         if(this.resources.tickCount%24===0)this.radiationState.triggerSurge('leaking-pipe');
       }
