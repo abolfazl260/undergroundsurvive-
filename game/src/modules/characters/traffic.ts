@@ -14,7 +14,7 @@ export interface ResidentView {
   remainingCells: readonly GridPosition[];
 }
 
-interface ResidentState {
+export interface ResidentState {
   id: string;
   cell: GridPosition; // Last fully occupied cell; held until the next cell is reached.
   position: WalkPoint;
@@ -39,7 +39,7 @@ export class ResidentTraffic {
   private priority = 0;
 
   constructor(
-    private readonly layout: BuildingLayout,
+    private layout: BuildingLayout,
     spawns: readonly ResidentSpawn[],
     private readonly speed = 88
   ) {
@@ -200,6 +200,38 @@ export class ResidentTraffic {
     }
     if (count) this.priority = (this.priority + 1) % count;
     return arrivals;
+  }
+
+  snapshot(): {schemaVersion:1; agents:ResidentState[]; priority:number} {
+    return {schemaVersion:1,agents:structuredClone(this.agents),priority:this.priority};
+  }
+
+  setLayout(layout: BuildingLayout): void { this.layout = layout; this.refresh(); }
+
+  static restore(layout:BuildingLayout, raw:unknown):ResidentTraffic|null {
+    if(!raw || typeof raw!=='object') return null;
+    const s=raw as ReturnType<ResidentTraffic['snapshot']>;
+    if(s.schemaVersion!==1 || !Array.isArray(s.agents) || s.agents.length>100 ||
+      !Number.isSafeInteger(s.priority) || s.priority<0 || s.priority>=Math.max(1,s.agents.length)) return null;
+    const held=new Set<string>(), ids=new Set<string>();
+    for(const a of s.agents) {
+      if(!a || typeof a.id!=='string' || !a.id || ids.has(a.id) || !a.cell || !isWalkableCell(layout,a.cell) ||
+        !a.position || !Number.isFinite(a.position.x) || !Number.isFinite(a.position.y) ||
+        (a.destinationId!==null && typeof a.destinationId!=='string') || typeof a.waiting!=='boolean' ||
+        !Array.isArray(a.route) || a.route.length>100) return null;
+      ids.add(a.id);
+      const start=walkPoint(a.cell), end=a.next?walkPoint(a.next):start;
+      if(a.next && !canWalkBetween(layout,a.cell,a.next)) return null;
+      const dx=end.x-start.x,dy=end.y-start.y;
+      const t=Math.abs(dx)>0?(a.position.x-start.x)/dx:Math.abs(dy)>0?(a.position.y-start.y)/dy:0;
+      if(t<0||t>1 || Math.abs(a.position.x-(start.x+dx*t))>0.01 || Math.abs(a.position.y-(start.y+dy*t))>0.01) return null;
+      for(const cell of [a.cell,...(a.next?[a.next]:[])]) {if(held.has(key(cell))) return null;held.add(key(cell));}
+      let previous=a.next??a.cell;
+      for(const cell of a.route) {if(!cell || !canWalkBetween(layout,previous,cell))return null;previous=cell;}
+    }
+    const traffic=new ResidentTraffic(layout,s.agents.map(a=>({id:a.id,cell:a.cell})));
+    traffic.agents.splice(0,traffic.agents.length,...structuredClone(s.agents));traffic.priority=s.priority;
+    traffic.refresh();return traffic;
   }
 
   /** Recheck assignments after build, move, demolition, excavation or floor changes. */
