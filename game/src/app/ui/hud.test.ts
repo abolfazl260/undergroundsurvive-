@@ -35,7 +35,7 @@ describe('HUD snapshot projection', () => {
     expect(session.buildElevator(0,-3).ok).toBe(true);
     expect(session.dig(5, -3).ok).toBe(true);
     const view = toHudView(session.snapshot(), true);
-    expect(view.balance).toBe(format(1500 - 70 - 150));
+    expect(view.balance).toBe(format(1500 - 70 - 150 + 25));
     expect(view.lastChange).toBe('−' + format(35));
     expect(view.changeKind).toBe('spent');
     expect(view.floors).toBe(format(3) + ' / ' + format(-WORLD.minY));
