@@ -19,6 +19,7 @@ export class GameScene extends Phaser.Scene {
   private pendingMoveId: string | null = null;
   private terrainLayer?: Phaser.GameObjects.Graphics;
   private roomLayer?: Phaser.GameObjects.Container;
+  private roomBadges: Phaser.GameObjects.Container[] = [];
   private preview?: Phaser.GameObjects.Graphics;
   private hovered: GridPosition | null = null;
   private readonly contacts = new Map<number, Contact>();
@@ -100,7 +101,10 @@ export class GameScene extends Phaser.Scene {
     const changedZoom = camera.zoom !== view.zoom;
     camera.setZoom(view.zoom);
     camera.setScroll(view.scrollX, view.scrollY);
-    if (changedZoom) this.onZoomChange(view.zoom);
+    if (changedZoom) {
+      this.updateBadgeScale();
+      this.onZoomChange(view.zoom);
+    }
     if (this.contacts.size === 0) this.updateHover(this.input.activePointer);
     else {
       this.hovered = null;
@@ -322,7 +326,7 @@ export class GameScene extends Phaser.Scene {
       const { top } = toPixels(0, y);
       this.add.text(68, top + 22, y > 0 ? '+' + y : String(y), {
         fontSize: '13px', fontFamily: 'Arial', color: y >= 0 ? '#b5d4df' : '#b6a58f'
-      }).setOrigin(0.5).setDepth(2);
+      }).setOrigin(0.5).setDepth(2).setResolution(3);
     }
   }
 
@@ -353,6 +357,7 @@ export class GameScene extends Phaser.Scene {
   private paintRooms(): void {
     if (!this.roomLayer) return;
     this.roomLayer.removeAll(true);
+    this.roomBadges = [];
     const artworkReady = this.textures.exists(ROOM_ATLAS_KEY);
 
     for (const room of this.layout.rooms) {
@@ -377,18 +382,33 @@ export class GameScene extends Phaser.Scene {
       }
       graphics.lineStyle(1.5, definition.accent, 0.9)
         .strokeRoundedRect(left + 2, top + 2, width, height, 4);
-      graphics.fillStyle(0x09131f, 0.82)
-        .fillRoundedRect(left + 6, top + height - 17, width - 8, 14, 3);
       this.roomLayer.add(graphics);
 
-      const name = this.add.text(left + 9, top + height - 15, definition.label, {
+      // At high zoom, keep the nameplate at its original screen size so it
+      // does not obscure the newly detailed artwork. Text textures render at
+      // 3× resolution instead of stretching a tiny 9px bitmap.
+      const badgeWidth = width - 8;
+      const badge = this.add.container(left + 6, top + height - 18);
+      const plate = this.add.graphics();
+      plate.fillStyle(0x09131f, 0.82).fillRoundedRect(0, 0, badgeWidth, 14, 3);
+      const name = this.add.text(4, 1, definition.label, {
         fontSize: '9px', fontFamily: 'Arial', fontStyle: 'bold', color: '#f4f7fa'
-      });
-      const level = this.add.text(left + width - 8, top + height - 15, 'LV ' + room.level, {
+      }).setResolution(3);
+      const level = this.add.text(badgeWidth - 4, 1, 'LV ' + room.level, {
         fontSize: '9px', fontFamily: 'Arial', color: '#e0e5eb'
-      }).setOrigin(1, 0);
-      this.roomLayer.add([name, level]);
+      }).setOrigin(1, 0).setResolution(3);
+      badge.add([plate, name, level]);
+      this.roomBadges.push(badge);
+      this.roomLayer.add(badge);
     }
+    this.updateBadgeScale();
+  }
+
+  private updateBadgeScale(): void {
+    // Only counteract magnification; labels stay attached to their rooms.
+    // Below 100% the room is too narrow for a full-size badge.
+    const scale = 1 / Math.max(1, this.cameras.main.zoom);
+    for (const badge of this.roomBadges) badge.setScale(scale);
   }
 
   private addResident(): void {
