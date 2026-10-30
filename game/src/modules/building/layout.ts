@@ -1,4 +1,5 @@
 import { ROOM_DEFINITIONS, type BuildableRoomType, type RoomType } from './catalog';
+import { MAX_ROOM_LEVEL } from './upgrades';
 import { validatePlacement, hasStructuralSupport, type PlacementResult, type Room } from './placement';
 import { TerrainMap, type TerrainSnapshot, type TerrainResult } from '../world/terrain';
 import { isInsideWorld } from '../world/grid';
@@ -75,7 +76,7 @@ export class BuildingLayout {
   upgrade(id: string): PlacementResult {
     const room = this.data.find((r) => r.id === id);
     if (!room) return { ok: false, reason: 'ابتدا یک اتاق را انتخاب کنید.' };
-    if (room.level >= 3)
+    if (room.level >= MAX_ROOM_LEVEL)
       return { ok: false, reason: 'این اتاق به بالاترین سطح آزمایشی رسیده است.' };
     room.level++;
     return { ok: true };
@@ -107,7 +108,7 @@ export class BuildingLayout {
       const type = r.type as RoomType, def = ROOM_DEFINITIONS[type];
       if (!Number.isInteger(r.x) || !Number.isInteger(r.y) ||
           !isInsideWorld(r.x, r.y) || r.width !== def.width || r.height !== def.height ||
-          !Number.isInteger(r.level) || r.level < 1 || r.level > 3 ||
+          !Number.isInteger(r.level) || r.level < 1 || r.level > MAX_ROOM_LEVEL ||
           !validatePlacement(rooms, type, r.x, r.y, terrain).ok) return null;
       rooms.push({ ...r });
       ids.add(r.id);

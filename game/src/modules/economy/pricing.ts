@@ -1,4 +1,5 @@
 import type { BuildableRoomType, RoomType } from '../building/catalog';
+import { MAX_ROOM_LEVEL } from '../building/upgrades';
 
 export const STARTING_COINS = 1500;
 export const DEMO_BONUS_COINS = 500;
@@ -29,7 +30,7 @@ export function getFloorCost(currentHighestFloor: number): number {
 
 // Level denotes the CURRENT room level before upgrading.
 export function getUpgradeCost(type: RoomType, level: number): number {
-  if (!Number.isInteger(level) || level < 1 || level >= 3) {
+  if (!Number.isInteger(level) || level < 1 || level >= MAX_ROOM_LEVEL) {
     throw new Error('Invalid room upgrade level');
   }
   const base = type === 'command' ? 250 : BUILD_COSTS[type];

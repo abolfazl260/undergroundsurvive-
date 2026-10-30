@@ -152,3 +152,13 @@ button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3c
 .menu-audio-toggle input{width:19px;height:19px;accent-color:#7bd6b8}
 .menu-audio-note{margin:8px 0;color:#9eb5c1;font-size:11px;line-height:1.8}
 .menu-audio button:disabled,.menu-audio input:disabled{opacity:.5;cursor:not-allowed}
+
+/* Room upgrades share the existing responsive sidebar layout. */
+.upgrade-panel{margin-top:12px;padding:13px;border:1px solid #567065;border-radius:11px;background:#192d2c}
+.upgrade-panel[hidden]{display:none}
+.upgrade-panel strong{display:block;color:#ecf6eb;font-size:13px}
+.upgrade-panel p{margin:9px 0;color:#bbd7d1;font-size:12px;line-height:1.8}
+#upgrade-cost{color:#ffe1a0;font-weight:700}
+#confirm-upgrade{width:100%;min-height:44px;padding:12px;border:1px solid #6ac9a6;border-radius:9px;background:#25644f;color:#fff;font-size:12px;font-weight:700;touch-action:manipulation}
+#confirm-upgrade:disabled{opacity:.45;cursor:not-allowed}
+#confirm-upgrade:not(:disabled):hover{background:#317e65}
