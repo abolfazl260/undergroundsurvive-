@@ -28,23 +28,28 @@ async function checkAsset(relative, context) {
 }
 
 try {
-  const manifest = parseManifest(await json('manifest.json'));
-  for (const entry of manifest.chapters) {
-    try {
-      const chapter = parseChapter(await json(entry.src));
-      if (entry.id !== chapter.id) throw new Error('Chapter id mismatch with manifest');
-      if (manifest.locale !== chapter.locale) throw new Error('Chapter locale mismatch with manifest');
-      for (const scene of chapter.scenes) {
-        for (const asset of [scene.src, scene.poster, scene.captions]) {
-          if (asset) await checkAsset(asset, chapter.id + '/' + scene.id);
+  let checkedChapters = 0;
+  // Validate both localized catalogs with the same parser and media safety rules.
+  for (const manifestPath of ['manifest.json', 'manifest.en.json']) {
+    const manifest = parseManifest(await json(manifestPath));
+    checkedChapters += manifest.chapters.length;
+    for (const entry of manifest.chapters) {
+      try {
+        const chapter = parseChapter(await json(entry.src));
+        if (entry.id !== chapter.id) throw new Error('Chapter id mismatch with manifest');
+        if (manifest.locale !== chapter.locale) throw new Error('Chapter locale mismatch with manifest');
+        for (const scene of chapter.scenes) {
+          for (const asset of [scene.src, scene.poster, scene.captions]) {
+            if (asset) await checkAsset(asset, chapter.id + '/' + scene.id);
+          }
         }
+      } catch (error) {
+        failures.push(manifestPath + '/' + entry.id + ': ' + error.message);
       }
-    } catch (error) {
-      failures.push(entry.id + ': ' + error.message);
     }
   }
   if (failures.length) throw new Error(failures.join('\n'));
-  console.log('Story content valid (' + manifest.chapters.length + ' chapters).');
+  console.log('Story content valid (' + checkedChapters + ' chapters across both languages).');
 } catch (error) {
   console.error('Story content validation failed:\n' + error.message);
   process.exitCode = 1;
