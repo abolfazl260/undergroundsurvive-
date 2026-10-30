@@ -1,6 +1,7 @@
 import './style.css';
 import { createGame } from './app/createGame';
 import { GameScene, type ToolMode } from './app/GameScene';
+import { ZOOM } from './app/viewport';
 import { WORLD } from './modules/world/grid';
 import type { BuildableRoomType } from './modules/building/catalog';
 import { loadLocalBase, saveLocalBase } from './platform/localSave';
@@ -26,29 +27,29 @@ const kindTitles: Record<TransactionKind, string> = {
   upgrade: 'ارتقای اتاق',
   'demo-bonus': 'کمک‌هزینهٔ آزمایشی'
 };
-
-roomButtonsSetup();
-function roomButtonsSetup(): void {
-  document.querySelectorAll<HTMLButtonElement>('[data-room]').forEach((button) => {
-    const type = button.dataset.room as BuildableRoomType;
-    const price = document.createElement('span');
-    price.className = 'room-cost';
-    price.textContent = formatCoins(BUILD_COSTS[type]) + ' ●';
-    price.setAttribute('aria-label', 'هزینه: ' + formatCoins(BUILD_COSTS[type]) + ' سکه');
-    button.append(price);
-  });
-}
-if (digButton) digButton.textContent = '⛏ حفاری · ' + formatCoins(DIG_COST) + ' سکه';
+const zoomIn = document.querySelector<HTMLButtonElement>('#zoom-in');
+const zoomOut = document.querySelector<HTMLButtonElement>('#zoom-out');
+const zoomReset = document.querySelector<HTMLButtonElement>('#zoom-reset');
+const zoomLevel = document.querySelector<HTMLOutputElement>('#zoom-level');
 const roomButtons = document.querySelectorAll<HTMLButtonElement>('[data-room]');
 const toolButtons = document.querySelectorAll<HTMLButtonElement>('[data-tool]');
+
+roomButtons.forEach((button) => {
+  const type = button.dataset.room as BuildableRoomType;
+  const price = document.createElement('span');
+  price.className = 'room-cost';
+  price.textContent = formatCoins(BUILD_COSTS[type]) + ' ●';
+  price.setAttribute('aria-label', 'هزینه: ' + formatCoins(BUILD_COSTS[type]) + ' سکه');
+  button.append(price);
+});
+if (digButton) digButton.textContent = '⛏ حفاری · ' + formatCoins(DIG_COST) + ' سکه';
 
 let activeRoom: BuildableRoomType = 'habitat';
 let activeTool: ToolMode = 'build';
 
 const scene = new GameScene((snapshot, message) => {
   const saved = saveLocalBase(snapshot);
-  const balance = snapshot.wallet.balance;
-  if (balanceNode) balanceNode.textContent = formatCoins(balance);
+  if (balanceNode) balanceNode.textContent = formatCoins(snapshot.wallet.balance);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
     bonusButton.textContent = snapshot.demoBonusClaimed
@@ -57,13 +58,13 @@ const scene = new GameScene((snapshot, message) => {
   }
   if (historyNode) {
     historyNode.replaceChildren();
-    for (const t of [...snapshot.wallet.transactions].reverse().slice(0, 6)) {
+    for (const txn of [...snapshot.wallet.transactions].reverse().slice(0, 6)) {
       const item = document.createElement('li');
       const label = document.createElement('span');
-      label.textContent = kindTitles[t.kind];
+      label.textContent = kindTitles[txn.kind];
       const amount = document.createElement('b');
-      amount.className = t.delta < 0 ? 'spent' : 'earned';
-      amount.textContent = (t.delta > 0 ? '+' : '−') + formatCoins(Math.abs(t.delta));
+      amount.className = txn.delta < 0 ? 'spent' : 'earned';
+      amount.textContent = (txn.delta > 0 ? '+' : '−') + formatCoins(Math.abs(txn.delta));
       item.append(label, amount);
       historyNode.append(item);
     }
@@ -80,9 +81,17 @@ const scene = new GameScene((snapshot, message) => {
       : '＋ طبقهٔ +' + (snapshot.base.terrain.highestFloor + 1) + ' · ' +
         formatCoins(getFloorCost(snapshot.base.terrain.highestFloor)) + ' سکه';
   }
-}, loadLocalBase());
+}, loadLocalBase(), (zoom) => {
+  if (zoomLevel) zoomLevel.textContent = Math.round(zoom * 100) + '%';
+  if (zoomIn) zoomIn.disabled = zoom >= ZOOM.max - 0.001;
+  if (zoomOut) zoomOut.disabled = zoom <= ZOOM.min + 0.001;
+  if (zoomReset) zoomReset.disabled = Math.abs(zoom - ZOOM.initial) < 0.001;
+});
 
 createGame(scene);
+zoomIn?.addEventListener('click', () => scene.zoomBy(ZOOM.step));
+zoomOut?.addEventListener('click', () => scene.zoomBy(-ZOOM.step));
+zoomReset?.addEventListener('click', () => scene.resetZoom());
 
 function updateSelectedButtons(): void {
   roomButtons.forEach((button) => {

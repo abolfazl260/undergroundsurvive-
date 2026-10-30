@@ -44,6 +44,16 @@ button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3c
 
 .icon-workshop{color:#e9b978}.icon-storage{color:#d2af79}.icon-mine{color:#f2bd6a}
 
+/* Accessible overlay controls share the same placement on desktop and mobile. */
+.canvas-shell{position:relative;min-width:0}
+.zoom-controls{position:absolute;left:12px;bottom:12px;display:flex;align-items:center;gap:4px;z-index:2;direction:ltr;padding:5px;border:1px solid #456074;border-radius:12px;background:rgba(8,17,29,.9);box-shadow:0 3px 14px rgba(0,0,0,.3)}
+.zoom-controls button{width:39px;height:39px;display:grid;place-items:center;border:1px solid #496579;border-radius:8px;background:#1b3445;color:#f1f7fc;font-size:23px;font-weight:700;touch-action:manipulation}
+.zoom-controls button:last-child{width:42px;font-size:12px}
+.zoom-controls button:hover:not(:disabled){background:#286052;border-color:#81d6b8}
+.zoom-controls button:disabled{opacity:.35;cursor:default}
+#zoom-level{min-width:49px;text-align:center;color:#def3f0;font:700 12px/1 Arial,sans-serif}
+@media(max-width:640px){.zoom-controls{bottom:7px;left:7px;gap:3px;padding:4px}.zoom-controls button{width:34px;height:34px;font-size:20px}.zoom-controls button:last-child{width:38px;font-size:11px}#zoom-level{min-width:43px;font-size:11px}}
+
 /* Economy status: shared compact layout for web and narrow mobile widths. */
 .topbar-right{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:12px}
 .coin-balance{display:flex;align-items:center;gap:6px;border:1px solid #9b7d35;border-radius:12px;

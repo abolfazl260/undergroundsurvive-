@@ -25,7 +25,15 @@
       <main class="workspace">
         <section class="play-area" aria-label="نمای دوبعدی پناهگاه">
           <div class="scene-header"><span>ساخت طبقات روی زمین و حفاری زیرزمین</span><span class="live-dot">LOCAL SAVE</span></div>
-          <div id="game-canvas"></div>
+          <div class="canvas-shell">
+            <div id="game-canvas"></div>
+            <div class="zoom-controls" role="group" aria-label="کنترل بزرگ‌نمایی نقشه">
+              <button type="button" id="zoom-out" aria-label="کوچک‌نمایی نقشه" title="کوچک‌نمایی">−</button>
+              <output id="zoom-level" aria-label="مقیاس فعلی نقشه">100%</output>
+              <button type="button" id="zoom-in" aria-label="بزرگ‌نمایی نقشه" title="بزرگ‌نمایی">+</button>
+              <button type="button" id="zoom-reset" aria-label="بازگشت به بزرگ‌نمایی پیش‌فرض" title="بازگشت به ۱۰۰ درصد">۱:۱</button>
+            </div>
+          </div>
           <div class="scene-footer">
             <span id="status" role="status" aria-live="polite">ابزار موردنظر را انتخاب کنید.</span>
             <span id="room-count">اتاق‌ها: ۰</span>
