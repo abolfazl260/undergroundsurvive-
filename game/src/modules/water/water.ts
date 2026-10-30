@@ -40,6 +40,11 @@ export class WaterProductionProcessor {
     if (!c) return false;
     c.enabled = !c.enabled; return true;
   }
+  /** Used by other rooms after all costs have been checked. */
+  spendClean(amount: number): boolean {
+    if (!Number.isSafeInteger(amount) || amount < 0 || this.state.clean < amount) return false;
+    this.state.clean -= amount; return true;
+  }
   collect(operationId: string, rooms: readonly Room[], power: WaterPower): boolean {
     if (!operationId || this.state.operations.includes(operationId) || this.state.operations.length >= 5000) return false;
     const amount = WATER_CONFIG.collectAmount;

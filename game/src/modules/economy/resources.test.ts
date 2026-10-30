@@ -14,9 +14,9 @@ describe('resource production and consumption', () => {
     const engine = ResourceEngine.create();
     const rooms = [room('command'), room('habitat'), room('generator'), room('hydroponics')];
     expect(engine.advance(2_500, rooms)).toBe(0);
-    expect(engine.snapshot().stock).toEqual({ power: 12, food: 12, ore: 0, supplies: 0 });
+    expect(engine.snapshot().stock).toEqual({ power: 12, food: 12, meal: 12, ore: 0, supplies: 0 });
     expect(engine.advance(2_500, rooms)).toBe(1);
-    expect(engine.snapshot().stock).toEqual({ power: 16, food: 18, ore: 0, supplies: 0 });
+    expect(engine.snapshot().stock).toEqual({ power: 16, food: 20, meal: 10, ore: 0, supplies: 0 });
     expect(engine.snapshot().tickCount).toBe(1);
     expect(engine.snapshot().inactiveRooms).toBe(0);
     expect(engine.remainingMs).toBe(RESOURCE_TICK_MS);
@@ -26,7 +26,7 @@ describe('resource production and consumption', () => {
     const engine = ResourceEngine.create();
     const rooms = [room('generator'), room('mine'), room('workshop')];
     engine.advance(RESOURCE_TICK_MS, rooms);
-    expect(engine.snapshot().stock).toEqual({ power: 16, food: 12, ore: 2, supplies: 5 });
+    expect(engine.snapshot().stock).toEqual({ power: 16, food: 12, meal: 12, ore: 2, supplies: 5 });
     expect(engine.snapshot().lastShortages).toEqual([]);
   });
 
@@ -53,7 +53,7 @@ describe('resource production and consumption', () => {
     expect(state.stock.power).toBeGreaterThanOrEqual(0);
     expect(state.stock.food).toBeGreaterThanOrEqual(0);
     expect(state.stock.ore).toBe(0);
-    expect(state.lastShortages).toContain('food');
+    expect(state.lastShortages).toContain('meal');
     expect(state.lastShortages).toContain('ore');
     expect(state.lastShortages).toContain('supplies');
     expect(state.inactiveRooms).toBeGreaterThan(0);
