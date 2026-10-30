@@ -30,10 +30,10 @@ function constrainAxis(scroll: number, size: number, zoom: number): number {
   return Math.max(visibleHalf, Math.min(size - visibleHalf, center)) - size / 2;
 }
 
-export function constrainScroll(view: Viewport): Point {
+export function constrainScroll(view: Viewport): Pick<Viewport, 'scrollX' | 'scrollY'> {
   return {
-    x: constrainAxis(view.scrollX, view.width, view.zoom),
-    y: constrainAxis(view.scrollY, view.height, view.zoom)
+    scrollX: constrainAxis(view.scrollX, view.width, view.zoom),
+    scrollY: constrainAxis(view.scrollY, view.height, view.zoom)
   };
 }
 
