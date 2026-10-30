@@ -4,6 +4,7 @@ import {
   type AchievementMetric, type AchievementId, type AchievementView
 } from '../modules/achievements/achievements';
 import { formatNumber, getLocale, t } from '../i18n';
+import { assetUrl } from './assets/assetManager';
 
 /** Presentation-only groups. Game rules and saved achievements remain unchanged. */
 export type AchievementCategory = 'all' | 'construction' | 'exploration' | 'production' | 'community';
@@ -27,10 +28,20 @@ const categoryById = new Map<AchievementId, Exclude<AchievementCategory, 'all'>>
   ACHIEVEMENTS.map((definition) => [definition.id, categoryForAchievement(definition.metric)] as const)
 );
 
-/** Each milestone has two independent, color-preserving, browser-cacheable WebP files. */
-export function achievementArtPaths(id: AchievementId): { small: string; large: string } {
-  const base = '/assets/achievements/' + id;
-  return { small: base + '-360.webp', large: base + '-540.webp' };
+/**
+ * The image filenames are runtime img/srcset values, not Vite CSS/JS imports.
+ * Prefix with Vite's deployed base so GitHub Pages project URLs work alongside
+ * root-hosted local previews, without hard-coding an origin or repository name.
+ */
+export function achievementArtPaths(
+  id: AchievementId,
+  baseUrl: string = import.meta.env.BASE_URL
+): { small: string; large: string } {
+  const filename = 'assets/achievements/' + id;
+  return {
+    small: assetUrl(baseUrl, filename + '-360.webp'),
+    large: assetUrl(baseUrl, filename + '-540.webp')
+  };
 }
 
 /** Responsive, keyboard-accessible dialog; badges never award coins or resources. */

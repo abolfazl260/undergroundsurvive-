@@ -62,3 +62,20 @@ reproducible authoring, not as a served asset. Run
 WebP validity, uniqueness and the asset-size budget. This check also runs in web CI.
 
 No achievement rule, badge ID, economy field or save-schema value changes.
+
+
+## Asset URLs on GitHub Pages
+
+The WebP files are present in `game/public/assets/achievements/`; a browser
+404 for `https://<account>.github.io/assets/achievements/*.webp` is caused by
+the missing project path, not by missing artwork.
+
+`achievementArtPaths()` now prefixes **both** `src` and `srcset` values
+with Vite's `import.meta.env.BASE_URL` through the shared `assetUrl()` helper.
+This works with `base: './'` (relative project-site URLs) and also with
+explicit bases such as `/undergroundsurvive-/` or `/`. The browser requests
+`/undergroundsurvive-/assets/achievements/*.webp` when the game is served from
+that project URL. The existing preloaded room images and WebP files are unchanged.
+
+Regression tests cover local root hosting, relative hosting, explicit project
+subpaths, both resolution variants, and every achievement ID.
