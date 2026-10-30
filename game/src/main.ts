@@ -32,6 +32,7 @@ import type { UpgradeDetails } from './modules/economy/session';
 import type { TransactionKind } from './modules/economy/wallet';
 import type { GameSnapshot } from './modules/economy/session';
 import { mountResourcePanel } from './app/ui/resourcePanel';
+import { mountPowerPanel } from './app/ui/powerPanel';
 import { formatNumber, loadLocale, localizeGameMessage, mountStaticTranslations, setLocale, subscribeLocaleChange, t } from './i18n';
 
 setLocale(loadLocale());
@@ -43,6 +44,10 @@ const audio = new AudioManager();
 const status = document.querySelector<HTMLElement>('#status');
 const renderHud = mountHud(document);
 const resourcePanel = mountResourcePanel(document);
+const renderPower = mountPowerPanel(document,
+  () => scene.activatePowerNetwork(),
+  (id,priority) => scene.prioritizePower(id,priority));
+const powerOverlayButton = document.querySelector<HTMLButtonElement>('#power-overlay-toggle');
 const renderAchievements = mountAchievements(document);
 const bonusButton = document.querySelector<HTMLButtonElement>('#demo-bonus');
 const historyNode = document.querySelector<HTMLElement>('#transaction-list');
@@ -143,6 +148,9 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   renderHud(snapshot, saved);
   renderAchievements(snapshot);
   resourcePanel.render(snapshot);
+  const powerView = scene.powerView();
+  renderPower(snapshot,powerView.allocation);
+  if(powerOverlayButton)powerOverlayButton.setAttribute('aria-pressed',String(powerView.enabled));
   renderWater(snapshot);
   renderAir(snapshot);
   renderAirHud(snapshot);
@@ -301,6 +309,11 @@ toolButtons.forEach((button) => {
   });
 });
 
+powerOverlayButton?.addEventListener('click', () => {
+  scene.togglePowerOverlay();
+  const view = scene.powerView();
+  powerOverlayButton.setAttribute('aria-pressed',String(view.enabled));
+});
 confirmUpgrade?.addEventListener('click', () => scene.upgradeSelected());
 bonusButton?.addEventListener('click', () => scene.claimDemoBonus());
 document.querySelector<HTMLButtonElement>('#reset-layout')?.addEventListener('click', () => {
