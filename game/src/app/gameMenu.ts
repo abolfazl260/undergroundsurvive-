@@ -3,8 +3,10 @@ import type { AudioManager } from '../modules/audio/AudioManager';
 import type { AudioSettings } from '../modules/audio/settings';
 import { loadMenuSettings, saveMenuSettings, type MenuSettings } from './menuSettings';
 import { getLocale, setLocale, subscribeLocaleChange, t, formatNumber } from '../i18n';
+import { getPolicyContent } from './policies';
 
-type MenuScreen = 'home' | 'pause' | 'settings' | 'confirm-new';
+type MenuScreen = 'home' | 'pause' | 'settings' | 'policies' | 'confirm-new';
+type PolicyReturnScreen = 'home' | 'pause' | 'settings';
 type ReturnScreen = 'home' | 'pause';
 
 /** The modal makes other DOM controls inert while the Phaser scene is paused. */
@@ -29,13 +31,19 @@ export function setupGameMenu(
   const effectsVolume = document.querySelector<HTMLInputElement>('#menu-effects-volume');
   const musicValue = document.querySelector<HTMLOutputElement>('#menu-music-volume-value');
   const effectsValue = document.querySelector<HTMLOutputElement>('#menu-effects-volume-value');
+  const policiesIntro = document.querySelector<HTMLElement>('#menu-policies-intro');
+  const policiesSections = document.querySelector<HTMLElement>('#menu-policies-sections');
+  const policiesVersion = document.querySelector<HTMLElement>('#menu-policies-version');
+  const policiesNotice = document.querySelector<HTMLElement>('#menu-policies-notice');
   if (!dialog || !menuButton || !continueButton || !continueLabel || !pauseTitle || !newButton || !reducedMotion || !mute ||
-      !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue || !language) return;
+      !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue ||
+      !language || !policiesIntro || !policiesSections || !policiesVersion || !policiesNotice) return;
 
   let playing = false;
   let hasSave = savedGameExists;
   let screen: MenuScreen = 'home';
   let returnScreen: ReturnScreen = 'home';
+  let policyReturnScreen: PolicyReturnScreen = 'home';
   let settings: MenuSettings = loadMenuSettings();
 
   function renderHome(): void {
@@ -81,6 +89,47 @@ export function setupGameMenu(
     onAudioChange();
   }
 
+  /** Build policy copy as text nodes, never as executable HTML. */
+  function renderPolicies(): void {
+    const policy = getPolicyContent(getLocale());
+    policiesIntro!.textContent = policy.introduction;
+    policiesVersion!.textContent = policy.versionLabel;
+    policiesNotice!.textContent = policy.notice;
+
+    const previous = policiesSections!.querySelectorAll<HTMLDetailsElement>('details[data-policy-section]');
+    const expanded = new Set(Array.from(previous).filter((node) => node.open).map((node) => node.dataset.policySection));
+    const firstRender = previous.length === 0;
+    const panels = policy.sections.map((section, index) => {
+      const panel = document.createElement('details');
+      panel.className = 'menu-policy-section';
+      panel.dataset.policySection = section.id;
+      panel.open = firstRender ? index === 0 : expanded.has(section.id);
+
+      const summary = document.createElement('summary');
+      const heading = document.createElement('strong');
+      heading.textContent = section.title;
+      const subtitle = document.createElement('small');
+      subtitle.textContent = section.description;
+      summary.append(heading, subtitle);
+
+      const items = document.createElement('div');
+      items.className = 'menu-policy-items';
+      for (const item of section.items) {
+        const article = document.createElement('article');
+        article.className = 'menu-policy-item';
+        const title = document.createElement('h3');
+        title.textContent = item.heading;
+        const body = document.createElement('p');
+        body.textContent = item.description;
+        article.append(title, body);
+        items.append(article);
+      }
+      panel.append(summary, items);
+      return panel;
+    });
+    policiesSections!.replaceChildren(...panels);
+  }
+
   function showScreen(next: MenuScreen): void {
     screen = next;
     dialog!.querySelectorAll<HTMLElement>('[data-menu-screen]').forEach((panel) => {
@@ -88,6 +137,7 @@ export function setupGameMenu(
     });
     dialog!.setAttribute('aria-labelledby', 'menu-' + next + '-title');
     if (next === 'settings') renderAudio();
+    if (next === 'policies') renderPolicies();
     dialog!.querySelector<HTMLElement>('#menu-' + next + '-title')?.focus();
   }
 
@@ -133,6 +183,7 @@ export function setupGameMenu(
     renderHome();
     renderPauseHeading();
     renderAudio();
+    if (screen === 'policies') renderPolicies();
   });
   mute.addEventListener('click', () => changeAudio({ muted: !audio.getSettings().muted }));
   musicEnabled.addEventListener('change', () => changeAudio({ musicEnabled: musicEnabled.checked }));
@@ -164,6 +215,13 @@ export function setupGameMenu(
         returnScreen = screen === 'pause' ? 'pause' : 'home';
         showScreen('settings');
         break;
+      case 'policies':
+        policyReturnScreen = screen === 'settings' ? 'settings' : screen === 'pause' ? 'pause' : 'home';
+        showScreen('policies');
+        break;
+      case 'policy-back':
+        showScreen(policyReturnScreen);
+        break;
       case 'back':
         showScreen(returnScreen);
         break;
@@ -178,6 +236,7 @@ export function setupGameMenu(
   dialog.addEventListener('cancel', (event) => {
     event.preventDefault();
     if (screen === 'pause') resume();
+    else if (screen === 'policies') showScreen(policyReturnScreen);
     else if (screen !== 'home') showScreen(returnScreen);
   });
   document.addEventListener('keydown', (event) => {
