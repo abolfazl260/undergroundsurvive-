@@ -3,6 +3,7 @@ import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/gri
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
 import { BuildingLayout, type BaseSnapshot } from '../modules/building/layout';
 import type { PlacementResult } from '../modules/building/placement';
+import { ROOM_ATLAS_KEY, ROOM_ATLAS_URL, ROOM_ATLAS_FRAME_WIDTH, ROOM_ATLAS_FRAME_HEIGHT, ROOM_FRAME_BY_TYPE } from './roomArt';
 
 export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade';
 
@@ -19,6 +20,13 @@ export class GameScene extends Phaser.Scene {
   constructor(private readonly report: (snapshot: BaseSnapshot, message: string) => void, saved: unknown) {
     super({ key: 'UndergroundScene' });
     this.layout = BuildingLayout.restore(saved) ?? new BuildingLayout();
+  }
+
+  preload(): void {
+    this.load.spritesheet(ROOM_ATLAS_KEY, ROOM_ATLAS_URL, {
+      frameWidth: ROOM_ATLAS_FRAME_WIDTH,
+      frameHeight: ROOM_ATLAS_FRAME_HEIGHT
+    });
   }
 
   create(): void {
@@ -191,23 +199,41 @@ export class GameScene extends Phaser.Scene {
   private paintRooms(): void {
     if (!this.roomLayer) return;
     this.roomLayer.removeAll(true);
+    const artworkReady = this.textures.exists(ROOM_ATLAS_KEY);
+
     for (const room of this.layout.rooms) {
-      const d = ROOM_DEFINITIONS[room.type];
+      const definition = ROOM_DEFINITIONS[room.type];
       const { left, top } = toPixels(room.x, room.y);
       const width = room.width * WORLD.cellSize - 4;
       const height = room.height * WORLD.cellSize - 4;
-      const g = this.add.graphics();
-      g.fillStyle(d.color).fillRoundedRect(left + 2, top + 2, width, height, 4);
-      g.lineStyle(2, d.accent).strokeRoundedRect(left + 2, top + 2, width, height, 4);
-      g.fillStyle(d.accent, 0.21).fillRect(left + 10, top + 9, width - 16, 8);
-      this.roomLayer.add(g);
-      const text = this.add.text(left + width / 2 + 2, top + 26, d.label, {
-        fontSize: '12px', fontFamily: 'Arial', fontStyle: 'bold', color: '#f3f8fb'
-      }).setOrigin(0.5);
-      const level = this.add.text(left + width / 2 + 2, top + 43, 'LV ' + room.level, {
-        fontSize: '10px', fontFamily: 'Arial', color: '#c5dee0'
-      }).setOrigin(0.5);
-      this.roomLayer.add([text, level]);
+      const frame = ROOM_FRAME_BY_TYPE[room.type];
+
+      if (artworkReady && frame !== undefined) {
+        const sprite = this.add.image(left + 2, top + 2, ROOM_ATLAS_KEY, frame)
+          .setOrigin(0, 0)
+          .setDisplaySize(width, height);
+        this.roomLayer.add(sprite);
+      }
+
+      const graphics = this.add.graphics();
+      if (!artworkReady || frame === undefined) {
+        // Keep legacy room types and failed asset requests playable.
+        graphics.fillStyle(definition.color).fillRoundedRect(left + 2, top + 2, width, height, 4);
+        graphics.fillStyle(definition.accent, 0.21).fillRect(left + 10, top + 9, width - 16, 8);
+      }
+      graphics.lineStyle(1.5, definition.accent, 0.9)
+        .strokeRoundedRect(left + 2, top + 2, width, height, 4);
+      graphics.fillStyle(0x09131f, 0.82)
+        .fillRoundedRect(left + 6, top + height - 17, width - 8, 14, 3);
+      this.roomLayer.add(graphics);
+
+      const name = this.add.text(left + 9, top + height - 15, definition.label, {
+        fontSize: '9px', fontFamily: 'Arial', fontStyle: 'bold', color: '#f4f7fa'
+      });
+      const level = this.add.text(left + width - 8, top + height - 15, 'LV ' + room.level, {
+        fontSize: '9px', fontFamily: 'Arial', color: '#e0e5eb'
+      }).setOrigin(1, 0);
+      this.roomLayer.add([name, level]);
     }
   }
 

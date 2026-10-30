@@ -41,3 +41,5 @@ button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3c
 .room-button.active{box-shadow:inset 0 0 0 1px #6fcfb1}
 @media(max-width:640px){.stats-row{padding:9px 11px;gap:6px;font-size:9px}.side-label{margin-top:17px}.tool-button{padding:10px 4px}}
 
+
+.icon-workshop{color:#e9b978}.icon-storage{color:#d2af79}.icon-mine{color:#f2bd6a}
