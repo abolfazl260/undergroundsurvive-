@@ -35,7 +35,12 @@ export const DISCONNECTION_REASON = 'این تغییر اتصال اتاق‌ه�
 
 /** A new or moved room must itself have a complete route back to an elevator. */
 export function validateRoomConnection(rooms: readonly Room[], room: Room, terrain: TerrainMap): PlacementResult {
-  return connectedRoomIds([...rooms, room], terrain).has(room.id)
+  // Never key a candidate by a special string that an untrusted saved room could also use.
+  const linked = connectedRoomIds(rooms, terrain);
+  const touchesShaft = connectedSegments(terrain.elevators).some((segment) =>
+    touchesSide(room, { ...segment, width: 1, height: 1 }));
+  const touchesNetwork = rooms.some((existing) => linked.has(existing.id) && touchesSide(room, existing));
+  return touchesShaft || touchesNetwork
     ? { ok: true }
     : { ok: false, reason: CONNECTED_ROOM_REASON };
 }
