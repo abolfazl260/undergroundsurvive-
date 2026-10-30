@@ -1,0 +1,183 @@
+name: Build signed Android release (manual only)
+
+# Never run a signed release on push, pull_request, schedule or workflow_call.
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_format:
+        description: Android release output to generate
+        required: true
+        type: choice
+        options:
+          - both
+          - apk
+          - aab
+        default: both
+      version_code:
+        description: "Android versionCode (increase for each Play Store upload)"
+        required: true
+        type: string
+        default: "1"
+      version_name:
+        description: "Android versionName"
+        required: true
+        type: string
+        default: "0.1.0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-signed-android-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  signed-android:
+    name: Signed Android release
+    # Production signing keys must not be exposed to arbitrary workflow refs.
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: game
+    env:
+      RELEASE_FORMAT: ${{ inputs.artifact_format }}
+      RELEASE_VERSION_CODE: ${{ inputs.version_code }}
+      RELEASE_VERSION_NAME: ${{ inputs.version_name }}
+      ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/underground-survive-release.jks
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Android SDK build tools
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          if [[ -z "$SDKMANAGER" ]]; then
+            echo "::error::Android SDK command-line tools are unavailable"
+            exit 1
+          fi
+          "$SDKMANAGER" --sdk_root="$SDK_ROOT" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Check signing secrets and restore temporary keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for secret in KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [[ -z "${!secret}" ]]; then
+              echo "::error::Required Android signing secret is missing: $secret"
+              exit 1
+            fi
+          done
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+          if [[ ! -s "$ANDROID_KEYSTORE_PATH" ]]; then
+            echo "::error::Decoded Android keystore is empty"
+            exit 1
+          fi
+          keytool -list -keystore "$ANDROID_KEYSTORE_PATH" \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
+          echo "Temporary signing keystore validated."
+
+      - name: Install web and Capacitor dependencies
+        run: |
+          npm install --no-audit --no-fund
+          # Work around npm's occasional omission of Linux Rollup optional binaries.
+          npm install --no-save --no-package-lock --no-audit --no-fund \
+            "@rollup/rollup-linux-x64-gnu@$(node -p "require('./node_modules/rollup/package.json').version")"
+
+      - name: Run web and mobile tests
+        run: |
+          npm test
+          npm run mobile:test
+
+      - name: Generate Android project and sync offline game assets
+        run: npm run mobile:prepare:android
+
+      - name: Configure signing and build release
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          node scripts/configure-android-release.mjs "$RELEASE_VERSION_CODE" "$RELEASE_VERSION_NAME"
+          case "$RELEASE_FORMAT" in
+            apk) tasks=(:app:assembleRelease) ;;
+            aab) tasks=(:app:bundleRelease) ;;
+            both) tasks=(:app:assembleRelease :app:bundleRelease) ;;
+            *) echo "::error::Unsupported artifact format"; exit 1 ;;
+          esac
+          cd android
+          ./gradlew "${tasks[@]}" --no-daemon
+
+      - name: Verify signatures and stage release artifacts
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/underground-survive-android-release"
+          mkdir -p "$OUT"
+          if [[ "$RELEASE_FORMAT" == apk || "$RELEASE_FORMAT" == both ]]; then
+            APK="android/app/build/outputs/apk/release/app-release.apk"
+            if [[ ! -f "$APK" ]]; then
+              echo "::error::Signed release APK was not generated"
+              exit 1
+            fi
+            SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+            APKSIGNER="$SDK_ROOT/build-tools/36.0.0/apksigner"
+            "$APKSIGNER" verify --verbose --print-certs "$APK" > "$RUNNER_TEMP/apk-signature-verification.txt"
+            cp "$APK" "$OUT/underground-survive-v${RELEASE_VERSION_NAME}-signed.apk"
+          fi
+          if [[ "$RELEASE_FORMAT" == aab || "$RELEASE_FORMAT" == both ]]; then
+            AAB="android/app/build/outputs/bundle/release/app-release.aab"
+            if [[ ! -f "$AAB" ]]; then
+              echo "::error::Signed release AAB was not generated"
+              exit 1
+            fi
+            jarsigner -verify "$AAB" > "$RUNNER_TEMP/aab-signature-verification.txt"
+            grep -q 'jar verified' "$RUNNER_TEMP/aab-signature-verification.txt" || {
+              echo "::error::Android App Bundle signature verification failed"
+              exit 1
+            }
+            cp "$AAB" "$OUT/underground-survive-v${RELEASE_VERSION_NAME}-signed.aab"
+          fi
+          (cd "$OUT" && sha256sum *.apk *.aab 2>/dev/null > SHA256SUMS) || {
+            # Bash glob may have no matching extension: regenerate checksums from actual files.
+            (cd "$OUT" && find . -maxdepth 1 -type f \( -name '*.apk' -o -name '*.aab' \) -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          }
+          if [[ ! -s "$OUT/SHA256SUMS" ]]; then
+            echo "::error::No verified signed artifacts were staged"
+            exit 1
+          fi
+          echo "Release signature verification completed."
+
+      - name: Upload signed Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: underground-survive-android-signed-${{ github.run_number }}
+          path: ${{ runner.temp }}/underground-survive-android-release/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove temporary signing materials
+        if: ${{ always() }}
+        run: |
+          rm -f "$ANDROID_KEYSTORE_PATH" "$RUNNER_TEMP/apk-signature-verification.txt" \
+            "$RUNNER_TEMP/aab-signature-verification.txt"
