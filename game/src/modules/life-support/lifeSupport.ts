@@ -20,7 +20,7 @@ export interface LifeSupportEvent {
   readonly tick: number;
 }
 export interface LifeSupportLink { readonly a: string; readonly b: string; readonly open: boolean; readonly capacity: number }
-export interface LifeSupportZone { readonly ids: string[]; readonly hasWater: boolean; readonly hasOxygen: boolean }
+export interface LifeSupportZone { readonly ids: string[]; readonly hasWater: boolean; readonly hasOxygen: boolean; readonly waterStock?: number; readonly oxygenStock?: number }
 export interface LifeSupportRoomStatus { readonly id: string; readonly status: LifeCondition; readonly missing: LifeResource[] }
 export interface LifeSupportSnapshot {
   schemaVersion: 2;
@@ -35,6 +35,7 @@ export interface LifeSupportSnapshot {
   ticks: number;
   graceTicks: number;
   lastProduced: number;
+  lastWaterProduced: number;
   lastWaterUsed: number;
   lastOxygenUsed: number;
   events: LifeSupportEvent[];
@@ -51,7 +52,7 @@ export interface LifeSupportOccupancy { population(): number }
 export interface LifeSupportPower { powered(roomId: string): boolean }
 export interface LifeSupportVent { readonly id: string; readonly powered: boolean }
 export interface LifeSupportView {
-  readonly water: { readonly stock: number; readonly capacity: number; readonly consumed: number; readonly etaTicks: number | null };
+  readonly water: { readonly stock: number; readonly capacity: number; readonly produced: number; readonly consumed: number; readonly etaTicks: number | null };
   readonly oxygen: { readonly stock: number; readonly capacity: number; readonly produced: number; readonly consumed: number; readonly etaTicks: number | null };
   readonly zones: LifeSupportZone[];
   readonly links: LifeSupportLink[];
@@ -185,7 +186,7 @@ export class LifeSupportService {
     oxygenLots: {}, waterLots: {}, legacyOxygen: LIFE_SUPPORT_CONFIG.initialOxygen,
     legacyWater: 0, waterLedgerSeen: 0, closedLinks: [],
     ticks: 0, graceTicks: LIFE_SUPPORT_CONFIG.legacyGraceTicks,
-    lastProduced: 0, lastWaterUsed: 0, lastOxygenUsed: 0, events: [], roomStatuses: []
+    lastProduced: 0, lastWaterProduced: 0, lastWaterUsed: 0, lastOxygenUsed: 0, events: [], roomStatuses: []
   };
   snapshot(): LifeSupportSnapshot { return structuredClone(this.state); }
   static restore(raw: unknown): LifeSupportService | null {
@@ -202,7 +203,7 @@ export class LifeSupportService {
       !lotsValid(s.waterLots) || !lotsValid(s.oxygenLots) ||
       !validNumber(s.legacyWater) || !validNumber(s.legacyOxygen) || !validNumber(s.waterLedgerSeen) ||
       (s.legacyOxygen! + Object.values(s.oxygenLots!).reduce((a,b)=>a+b,0)) !== s.oxygen ||
-      !validNumber(s.lastProduced) || !validNumber(s.lastWaterUsed) || !validNumber(s.lastOxygenUsed) ||
+      !validNumber(s.lastProduced) || !validNumber(s.lastWaterProduced) || !validNumber(s.lastWaterUsed) || !validNumber(s.lastOxygenUsed) ||
       !Array.isArray(s.closedLinks) || s.closedLinks.length > 500 ||
       !s.closedLinks.every(k => typeof k === 'string' && k.length > 0 && k.length < 400) ||
       new Set(s.closedLinks).size !== s.closedLinks.length ||
@@ -261,6 +262,7 @@ export class LifeSupportService {
     const records=(water.records?.()??[]).filter(r=>validNumber(r.id)&&validNumber(r.clean))
       .sort((a,b)=>a.id-b.id);
     const maxId=records.at(-1)?.id??this.state.waterLedgerSeen;
+    this.state.lastWaterProduced=0;
     const producers=[...rooms].filter(r=>r.type==='waterTreatment').sort((a,b)=>a.id.localeCompare(b.id));
     const storage=[...rooms].filter(r=>r.type==='storage').sort((a,b)=>a.id.localeCompare(b.id));
     const defaultSource=producers[0]??storage[0];
@@ -279,8 +281,10 @@ export class LifeSupportService {
       allocation(defaultSource?.id,actual);
       this.state.waterLedgerSeen=maxId;
     } else {
-      for(const record of records)if(record.id>this.state.waterLedgerSeen)
+      for(const record of records)if(record.id>this.state.waterLedgerSeen) {
         allocation(record.roomId,record.clean);
+        this.state.lastWaterProduced+=record.clean;
+      }
       this.state.waterLedgerSeen=Math.max(this.state.waterLedgerSeen,maxId);
       let recorded=this.state.legacyWater+Object.values(this.state.waterLots).reduce((n,v)=>n+v,0);
       if(recorded>actual) {
@@ -400,11 +404,14 @@ export class LifeSupportService {
   view(rooms: readonly Room[], water: LifeSupportWater): LifeSupportView {
     const graph=new LifeSupportGraph(rooms,this.state.closedLinks);
     return {
-      water:{stock:water.available(),capacity:water.capacity(),consumed:this.state.lastWaterUsed,
-        etaTicks:eta(water.available(),this.state.lastWaterUsed,0)},
+      water:{stock:water.available(),capacity:water.capacity(),produced:this.state.lastWaterProduced,consumed:this.state.lastWaterUsed,
+        etaTicks:eta(water.available(),this.state.lastWaterUsed,this.state.lastWaterProduced)},
       oxygen:{stock:this.state.oxygen,capacity:oxygenCapacity(rooms),produced:this.state.lastProduced,
         consumed:this.state.lastOxygenUsed,etaTicks:eta(this.state.oxygen,this.state.lastOxygenUsed,this.state.lastProduced)},
-      zones:graph.zones,links:graph.links,rooms:structuredClone(this.state.roomStatuses),
+      zones:graph.zones.map(z=>({...z,
+        waterStock:z.ids.reduce((n,id)=>n+(this.state.waterLots[id]??0),0),
+        oxygenStock:z.ids.reduce((n,id)=>n+(this.state.oxygenLots[id]??0),0)})),
+      links:graph.links,rooms:structuredClone(this.state.roomStatuses),
       graceTicks:this.state.graceTicks,events:structuredClone(this.state.events)
     };
   }
