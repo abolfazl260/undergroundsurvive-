@@ -1,4 +1,5 @@
 import './style.css';
+import { setupGameMenu } from './app/gameMenu';
 import { createGame } from './app/createGame';
 import { GameScene, type ToolMode } from './app/GameScene';
 import { ZOOM } from './app/viewport';
@@ -47,6 +48,7 @@ if (digButton) digButton.textContent = '⛏ حفاری · ' + formatCoins(DIG_CO
 let activeRoom: BuildableRoomType = 'habitat';
 let activeTool: ToolMode = 'build';
 
+const savedGame = loadLocalBase();
 const scene = new GameScene((snapshot, message) => {
   const saved = saveLocalBase(snapshot);
   if (balanceNode) balanceNode.textContent = formatCoins(snapshot.wallet.balance);
@@ -81,7 +83,7 @@ const scene = new GameScene((snapshot, message) => {
       : '＋ طبقهٔ +' + (snapshot.base.terrain.highestFloor + 1) + ' · ' +
         formatCoins(getFloorCost(snapshot.base.terrain.highestFloor)) + ' سکه';
   }
-}, loadLocalBase(), (zoom) => {
+}, savedGame, (zoom) => {
   if (zoomLevel) zoomLevel.textContent = Math.round(zoom * 100) + '%';
   if (zoomIn) zoomIn.disabled = zoom >= ZOOM.max - 0.001;
   if (zoomOut) zoomOut.disabled = zoom <= ZOOM.min + 0.001;
@@ -89,6 +91,7 @@ const scene = new GameScene((snapshot, message) => {
 });
 
 createGame(scene);
+setupGameMenu(scene, savedGame !== null);
 zoomIn?.addEventListener('click', () => scene.zoomBy(ZOOM.step));
 zoomOut?.addEventListener('click', () => scene.zoomBy(-ZOOM.step));
 zoomReset?.addEventListener('click', () => scene.resetZoom());

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { MenuSettings } from './menuSettings';
 import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/grid';
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
 import { BuildingLayout } from '../modules/building/layout';
@@ -25,6 +26,10 @@ export class GameScene extends Phaser.Scene {
   private readonly contacts = new Map<number, Contact>();
   private pinch?: { initialDistance: number; initialZoom: number; worldAnchor: Point };
   private gestureUsed = false;
+  private gameplayPaused = true;
+  private sceneReady = false;
+  private menuSettings: MenuSettings = { masterVolume: 80, reducedMotion: false };
+  private residentTween?: Phaser.Tweens.Tween;
 
   constructor(
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
@@ -51,6 +56,8 @@ export class GameScene extends Phaser.Scene {
     this.paintTerrain();
     this.paintRooms();
     this.addResident();
+    this.sceneReady = true;
+    this.applyMenuSettings(this.menuSettings);
 
     this.input.addPointer(2); // Accept simultaneous touch contacts for pinch gestures.
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.startContact(pointer));
@@ -74,6 +81,33 @@ export class GameScene extends Phaser.Scene {
     });
     this.onZoomChange(this.cameras.main.zoom);
     this.notify('ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.');
+    if (this.gameplayPaused) this.scene.pause();
+  }
+
+  /** Pause actual scene updates/tweens, not just the HTML controls. */
+  pauseGameplay(): void {
+    this.gameplayPaused = true;
+    this.contacts.clear();
+    this.pinch = undefined;
+    this.gestureUsed = false;
+    this.hovered = null;
+    this.paintPreview();
+    if (this.sceneReady && this.scene.isActive()) this.scene.pause();
+  }
+
+  resumeGameplay(): void {
+    this.gameplayPaused = false;
+    if (this.sceneReady && this.scene.isPaused()) this.scene.resume();
+  }
+
+  applyMenuSettings(settings: MenuSettings): void {
+    this.menuSettings = { ...settings };
+    if (!this.sceneReady) return;
+    this.sound.volume = this.menuSettings.masterVolume / 100;
+    if (this.residentTween) {
+      if (this.menuSettings.reducedMotion) this.residentTween.pause();
+      else this.residentTween.resume();
+    }
   }
 
   /** Exposed to the responsive HTML zoom controls. */
@@ -244,6 +278,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private actOnCell(cell: GridPosition): void {
+    if (this.gameplayPaused) return;
     const { x, y } = cell;
     let result: PlacementResult = { ok: false, reason: 'دستور نامعتبر است.' };
     let successMessage = '';
@@ -420,7 +455,7 @@ export class GameScene extends Phaser.Scene {
       this.add.rectangle(-4, 10, 3, 10, 0x1a2638),
       this.add.rectangle(4, 10, 3, 10, 0x1a2638)
     ]);
-    this.tweens.add({ targets: person, x: left + 126, duration: 2300, yoyo: true, repeat: -1 });
+    this.residentTween = this.tweens.add({ targets: person, x: left + 126, duration: 2300, yoyo: true, repeat: -1 });
   }
 
   private paintPreview(): void {
