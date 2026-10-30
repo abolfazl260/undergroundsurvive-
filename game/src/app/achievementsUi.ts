@@ -3,7 +3,7 @@ import {
   ACHIEVEMENTS, getAchievementViews,
   type AchievementMetric, type AchievementId, type AchievementView
 } from '../modules/achievements/achievements';
-import { formatNumber, t } from '../i18n';
+import { formatNumber, getLocale, t } from '../i18n';
 
 /** Presentation-only groups. Game rules and saved achievements remain unchanged. */
 export type AchievementCategory = 'all' | 'construction' | 'exploration' | 'production' | 'community';
@@ -27,20 +27,11 @@ const categoryById = new Map<AchievementId, Exclude<AchievementCategory, 'all'>>
   ACHIEVEMENTS.map((definition) => [definition.id, categoryForAchievement(definition.metric)] as const)
 );
 
-/** Frame of the per-achievement color storyboard (one independent scene per milestone). */
-export const ACHIEVEMENT_ARTWORK: Readonly<Record<AchievementId, number>> = {
-  'first-room': 0,
-  builder: 1,
-  'first-dig': 2,
-  excavator: 3,
-  'first-upgrade': 4,
-  upgrader: 5,
-  'upper-floor': 6,
-  skyline: 7,
-  'first-cycles': 8,
-  'steady-shelter': 9,
-  'diverse-shelter': 10
-};
+/** Each milestone has two independent, color-preserving, browser-cacheable WebP files. */
+export function achievementArtPaths(id: AchievementId): { small: string; large: string } {
+  const base = '/assets/achievements/' + id;
+  return { small: base + '-360.webp', large: base + '-540.webp' };
+}
 
 /** Responsive, keyboard-accessible dialog; badges never award coins or resources. */
 export function mountAchievements(root: Document): (snapshot: GameSnapshot) => void {
@@ -87,51 +78,102 @@ export function mountAchievements(root: Document): (snapshot: GameSnapshot) => v
     filterButtons.set(category.id, button);
   }
 
-  function renderList(resetScroll = false): void {
-    const priorScroll = resetScroll ? 0 : list.scrollTop;
+  type CardRef = {
+    element: HTMLLIElement;
+    title: HTMLElement;
+    description: HTMLParagraphElement;
+    progress: HTMLProgressElement;
+    status: HTMLElement;
+    medal: HTMLElement;
+    statusIcon: HTMLElement;
+  };
+  const cards = new Map<AchievementId, CardRef>();
+  let renderedKey = '';
+
+  function createCard(view: AchievementView): CardRef {
+    const item = root.createElement('li');
+    item.className = 'achievement-item';
+    const medal = root.createElement('span');
+    medal.className = 'achievement-medal';
+    medal.setAttribute('aria-hidden', 'true');
+
+    const detail = root.createElement('div');
+    detail.className = 'achievement-detail';
+    const title = root.createElement('strong');
+    const description = root.createElement('p');
+    const progress = root.createElement('progress');
+    progress.max = view.target;
+    const status = root.createElement('span');
+    status.className = 'achievement-item-status';
+    const statusText = root.createElement('span');
+    const statusIcon = root.createElement('span');
+    statusIcon.className = 'achievement-state-icon';
+    statusIcon.setAttribute('aria-hidden', 'true');
+    status.append(statusText, statusIcon);
+    detail.append(title, description, progress, status);
+
+    const art = root.createElement('img');
+    art.className = 'achievement-art';
+    const paths = achievementArtPaths(view.id);
+    art.src = paths.large;
+    art.srcset = paths.small + ' 360w, ' + paths.large + ' 540w';
+    art.sizes = '(max-width: 720px) calc(100vw - 30px), 420px';
+    art.alt = t(view.title);
+    art.loading = 'lazy';
+    art.decoding = 'async';
+    art.width = 540;
+    art.height = 180;
+    item.append(medal, detail, art);
+
+    return { element: item, title, description, progress, status: statusText,
+      medal, statusIcon };
+  }
+
+  function updateCard(view: AchievementView, ref: CardRef): void {
+    ref.element.classList.toggle('is-unlocked', view.unlocked);
+    const translatedTitle = t(view.title);
+    if (ref.title.textContent !== translatedTitle) ref.title.textContent = translatedTitle;
+    const translatedDescription = t(view.description);
+    if (ref.description.textContent !== translatedDescription) {
+      ref.description.textContent = translatedDescription;
+    }
+    const progressLabel = t('پیشرفت') + ': ' + translatedTitle;
+    if (ref.progress.getAttribute('aria-label') !== progressLabel) {
+      ref.progress.setAttribute('aria-label', progressLabel);
+    }
+    const progress = view.unlocked ? view.target : view.progress;
+    if (ref.progress.value !== progress) ref.progress.value = progress;
+    const status = view.unlocked ? t('باز شده') :
+      formatNumber(view.progress) + ' / ' + formatNumber(view.target);
+    if (ref.status.textContent !== status) ref.status.textContent = status;
+    const icon = view.unlocked ? '✓' : '◇';
+    if (ref.statusIcon.textContent !== icon) ref.statusIcon.textContent = icon;
+    const medal = view.unlocked ? '★' : '◇';
+    if (ref.medal.textContent !== medal) ref.medal.textContent = medal;
+  }
+
+  /** Reuse existing cards across resource ticks; images keep their current request and decode state. */
+  function renderList(force = false): void {
+    if (!dialog.open) return;
     const shown = latestViews.filter((view) =>
       activeFilter === 'all' || categoryById.get(view.id) === activeFilter
     );
-    const items = shown.map((view) => {
-      const item = root.createElement('li');
-      item.className = 'achievement-item' + (view.unlocked ? ' is-unlocked' : '');
-
-      const medal = root.createElement('span');
-      medal.className = 'achievement-medal';
-      medal.textContent = view.unlocked ? '★' : '◇';
-      medal.setAttribute('aria-hidden', 'true');
-
-      const detail = root.createElement('div');
-      detail.className = 'achievement-detail';
-      const title = root.createElement('strong');
-      title.textContent = t(view.title);
-      const description = root.createElement('p');
-      description.textContent = t(view.description);
-      const progress = root.createElement('progress');
-      progress.max = view.target;
-      progress.value = view.unlocked ? view.target : view.progress;
-      progress.setAttribute('aria-label', t('پیشرفت') + ': ' + t(view.title));
-      const status = root.createElement('span');
-      status.className = 'achievement-item-status';
-      const statusText = root.createElement('span');
-      statusText.textContent = view.unlocked ? t('باز شده') :
-        formatNumber(view.progress) + ' / ' + formatNumber(view.target);
-      const statusIcon = root.createElement('span');
-      statusIcon.className = 'achievement-state-icon';
-      statusIcon.textContent = view.unlocked ? '✓' : '◇';
-      statusIcon.setAttribute('aria-hidden', 'true');
-      status.append(statusText, statusIcon);
-      detail.append(title, description, progress, status);
-
-      const art = root.createElement('span');
-      art.className = 'achievement-art';
-      art.dataset.scene = String(ACHIEVEMENT_ARTWORK[view.id]);
-      art.setAttribute('aria-hidden', 'true');
-      item.append(medal, detail, art);
-      return item;
-    });
-    list.replaceChildren(...items);
-    list.scrollTop = priorScroll;
+    const key = getLocale() + ':' + activeFilter;
+    if (force || renderedKey !== key ||
+        shown.length !== cards.size ||
+        shown.some((view) => !cards.has(view.id))) {
+      cards.clear();
+      const fragment = root.createDocumentFragment();
+      for (const view of shown) {
+        const ref = createCard(view);
+        cards.set(view.id, ref);
+        fragment.append(ref.element);
+      }
+      list.replaceChildren(fragment);
+      list.scrollTop = 0;
+      renderedKey = key;
+    }
+    for (const view of shown) updateCard(view, cards.get(view.id)!);
   }
 
   function updateFilters(): void {
@@ -161,8 +203,8 @@ export function mountAchievements(root: Document): (snapshot: GameSnapshot) => v
     if (!dialog.open) {
       activeFilter = 'all';
       updateFilters();
-      renderList(true);
       dialog.showModal();
+      renderList(true);
     }
   });
   closeButton.addEventListener('click', () => dialog.close());
