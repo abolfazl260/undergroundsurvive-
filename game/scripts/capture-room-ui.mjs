@@ -12,6 +12,9 @@ for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
   await page.locator('canvas').waitFor();
   await page.waitForTimeout(800);
   await page.screenshot({path:`${output}/${mode}-${width}x${height}-scene.png`});
+  // The baseline may keep mobile tools behind its action dock.
+  const dockTools = page.locator('#dock-tools');
+  if (await dockTools.isVisible()) await dockTools.click();
   await page.locator('[data-tool="upgrade"]').click();
   await page.locator('#upgrade-panel').waitFor({state:'visible'});
   if(mode==='after') {
