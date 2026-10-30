@@ -4,6 +4,7 @@ import type { AudioCue } from '../modules/audio/AudioManager';
 import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/grid';
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
 import { BuildingLayout } from '../modules/building/layout';
+import { findRoomPath, ResidentNavigator, walkPoint } from '../modules/characters/pathfinding';
 import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE } from './roomArt';
@@ -13,7 +14,7 @@ import { panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 
-export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade';
+export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade' | 'navigate';
 
 export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
@@ -37,7 +38,13 @@ export class GameScene extends Phaser.Scene {
   private gameplayPaused = true;
   private sceneReady = false;
   private menuSettings: MenuSettings = { reducedMotion: false };
-  private residentTween?: Phaser.Tweens.Tween;
+  private resident?: Phaser.GameObjects.Container;
+  private residentLabel?: Phaser.GameObjects.Text;
+  private residentLegs: Phaser.GameObjects.Rectangle[] = [];
+  private residentPathLayer?: Phaser.GameObjects.Graphics;
+  private navigator?: ResidentNavigator;
+  private residentWaitMs = 1400;
+  private patrolCursor = 0;
 
   constructor(
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
@@ -63,6 +70,7 @@ export class GameScene extends Phaser.Scene {
     this.drawBackdrop();
     this.terrainLayer = this.add.graphics().setDepth(1);
     this.roomLayer = this.add.container(0, 0).setDepth(3);
+    this.residentPathLayer = this.add.graphics().setDepth(3.5);
     this.preview = this.add.graphics().setDepth(6);
     this.drawLevelMarkers();
     this.paintTerrain();
@@ -100,24 +108,6 @@ export class GameScene extends Phaser.Scene {
     if (this.gameplayPaused) this.scene.pause();
   }
 
-  private lastCycleCountdown = -1;
-
-  update(_time: number, delta: number): void {
-    if (this.gameplayPaused) return;
-    const completed = this.session.advanceTime(delta);
-    const seconds = Math.ceil(this.session.resources.remainingMs / 1000);
-    if (seconds !== this.lastCycleCountdown) {
-      this.lastCycleCountdown = seconds;
-      this.onCycleProgress(seconds);
-    }
-    if (completed > 0) {
-      const result = this.session.resources.snapshot();
-      this.notify(result.lastShortages.length
-        ? 'چرخهٔ منابع انجام شد؛ برخی اتاق‌ها به‌علت کمبود منابع متوقف شدند.'
-        : 'چرخهٔ تولید و مصرف منابع انجام شد.');
-    }
-  }
-
   /** Pause scene updates, resident animations and world interactions. */
   pauseGameplay(): void {
     this.gameplayPaused = true;
@@ -136,9 +126,43 @@ export class GameScene extends Phaser.Scene {
 
   applyMenuSettings(settings: MenuSettings): void {
     this.menuSettings = { ...settings };
-    if (!this.sceneReady || !this.residentTween) return;
-    if (settings.reducedMotion) this.residentTween.pause();
-    else this.residentTween.resume();
+    if (settings.reducedMotion && this.navigator?.isMoving) {
+      this.navigator.finishImmediately();
+      this.showResidentArrival();
+      this.syncResident();
+      this.paintResidentPath();
+    }
+  }
+
+  private lastCycleCountdown = -1;
+
+  update(_time: number, delta: number): void {
+    if (this.gameplayPaused) return;
+    const completed = this.session.advanceTime(delta);
+    const seconds = Math.ceil(this.session.resources.remainingMs / 1000);
+    if (seconds !== this.lastCycleCountdown) {
+      this.lastCycleCountdown = seconds;
+      this.onCycleProgress(seconds);
+    }
+    if (completed > 0) {
+      const result = this.session.resources.snapshot();
+      this.notify(result.lastShortages.length
+        ? 'چرخهٔ منابع انجام شد؛ برخی اتاق‌ها به‌علت کمبود منابع متوقف شدند.'
+        : 'چرخهٔ تولید و مصرف منابع انجام شد.');
+    }
+    if (!this.navigator) return;
+    const arrived = this.navigator.advance(delta);
+    this.syncResident();
+    if (arrived) {
+      this.showResidentArrival();
+      this.paintResidentPath();
+    } else if (this.navigator.isMoving) {
+      this.paintResidentPath();
+    }
+    if (!this.navigator.isMoving) {
+      this.residentWaitMs -= Math.max(0, Math.min(delta, 1000));
+      if (this.residentWaitMs <= 0) this.patrolResident();
+    }
   }
 
   /** Exposed to the responsive HTML zoom controls. */
@@ -282,7 +306,8 @@ export class GameScene extends Phaser.Scene {
       dig: 'برای حفاری روی زمین بستهٔ زیرزمینی مجاور فضای باز بزنید.',
       move: 'ابتدا اتاق را انتخاب کنید و سپس مکان جدید آن را لمس کنید.',
       remove: 'برای تخریب روی اتاق کلیک کنید. اتاق فرمان محفوظ است.',
-      upgrade: 'اتاق را انتخاب کنید، جزئیات ارتقا را ببینید و سپس پرداخت را تأیید کنید.'
+      upgrade: 'اتاق را انتخاب کنید، جزئیات ارتقا را ببینید و سپس پرداخت را تأیید کنید.',
+      navigate: 'اتاق مقصد را لمس کنید تا آدمک از راهروهای قابل‌عبور به آن برسد.'
     };
     this.onAudioCue('select');
     this.notify(messages[tool]);
@@ -291,7 +316,10 @@ export class GameScene extends Phaser.Scene {
   unlockFloor(): void {
     const cost = this.session.floorCost();
     const result = this.session.unlockFloor();
-    if (result.ok) this.paintTerrain();
+    if (result.ok) {
+      this.paintTerrain();
+      this.refreshResidentPath();
+    }
     this.onAudioCue(result.ok ? 'floor' : 'error');
     this.paintPreview();
     this.notify(result.ok ? 'طبقهٔ جدید با پرداخت ' + cost + ' سکه آزاد شد؛ برای ساخت تکیه‌گاه لازم است.' : result.reason);
@@ -314,6 +342,7 @@ export class GameScene extends Phaser.Scene {
     this.onUpgradeSelection(null);
     this.paintTerrain();
     this.paintRooms();
+    this.resetResident();
     this.paintPreview();
     this.notify('نقشه، حفاری‌ها و طبقات به وضعیت اولیه بازگردانده شدند.');
   }
@@ -346,6 +375,17 @@ export class GameScene extends Phaser.Scene {
   private actOnCell(cell: GridPosition): void {
     if (this.gameplayPaused) return;
     const { x, y } = cell;
+    if (this.mode === 'navigate') {
+      const room = this.layout.getRoomAt(x, y);
+      if (!room || !this.beginResidentWalk(room.id, true)) {
+        this.onAudioCue('error');
+        this.notify(room ? 'مسیر قابل‌عبوری به این اتاق وجود ندارد.' : 'ابتدا یک اتاق مقصد انتخاب کنید.');
+        return;
+      }
+      this.onAudioCue('select');
+      this.notify('مقصد آدمک: ' + ROOM_DEFINITIONS[room.type].label + '.');
+      return;
+    }
     if (this.mode === 'upgrade') {
       const room = this.layout.getRoomAt(x, y);
       this.selectedUpgradeId = room?.id ?? null;
@@ -409,6 +449,7 @@ export class GameScene extends Phaser.Scene {
     if (result.ok) {
       this.paintTerrain();
       this.paintRooms();
+      this.refreshResidentPath();
     }
     this.hovered = cell;
     this.paintPreview();
@@ -533,15 +574,107 @@ export class GameScene extends Phaser.Scene {
   }
 
   private addResident(): void {
-    const { left, top } = toPixels(5, -1);
-    const person = this.add.container(left + 27, top + 35).setDepth(4);
+    this.navigator = new ResidentNavigator(this.layout, { x: 6, y: -1 });
+    const { x, y } = this.navigator.position;
+    const person = this.add.container(x, y).setDepth(4);
+    this.residentLegs = [
+      this.add.rectangle(-4, 10, 3, 10, 0x1a2638),
+      this.add.rectangle(4, 10, 3, 10, 0x1a2638)
+    ];
+    this.residentLabel = this.add.text(0, -34, 'IDLE', {
+      fontSize: '9px', fontFamily: 'Arial', color: '#f7fff5',
+      backgroundColor: '#163943', padding: { x: 3, y: 1 }
+    }).setOrigin(0.5).setResolution(3);
     person.add([
       this.add.circle(0, -14, 5, 0xf7d9ae),
       this.add.rectangle(0, -2, 11, 15, 0x8bd9c4),
-      this.add.rectangle(-4, 10, 3, 10, 0x1a2638),
-      this.add.rectangle(4, 10, 3, 10, 0x1a2638)
+      ...this.residentLegs,
+      this.residentLabel
     ]);
-    this.residentTween = this.tweens.add({ targets: person, x: left + 126, duration: 2300, yoyo: true, repeat: -1 });
+    this.resident = person;
+  }
+
+  private resetResident(): void {
+    this.navigator = new ResidentNavigator(this.layout, { x: 6, y: -1 });
+    this.residentWaitMs = 1400;
+    this.patrolCursor = 0;
+    this.residentLabel?.setText('IDLE');
+    this.syncResident();
+    this.paintResidentPath();
+  }
+
+  private syncResident(): void {
+    if (!this.navigator || !this.resident) return;
+    const { x, y } = this.navigator.position;
+    this.resident.setPosition(x, y);
+    const swing = this.navigator.isMoving && !this.menuSettings.reducedMotion
+      ? Math.sin((x + y) * 0.23) * 18 : 0;
+    this.residentLegs[0]?.setAngle(swing);
+    this.residentLegs[1]?.setAngle(-swing);
+  }
+
+  private showResidentArrival(): void {
+    const room = this.layout.rooms.find((r) => r.id === this.navigator?.destinationId);
+    const label = !room || room.type === 'command' ? 'IDLE' :
+      room.type === 'habitat' ? 'REST' : 'WORK';
+    this.residentLabel?.setText(label);
+  }
+
+  private paintResidentPath(): void {
+    const g = this.residentPathLayer;
+    if (!g) return;
+    g.clear();
+    if (!this.navigator?.isMoving) return;
+    const points = [this.navigator.position, ...this.navigator.remainingCells.map(walkPoint)];
+    g.lineStyle(2, 0x9aeed7, 0.54);
+    for (let i = 1; i < points.length; i++) {
+      g.lineBetween(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
+      g.fillStyle(0xc1f9eb, 0.72);
+      g.fillCircle(points[i].x, points[i].y, 2.5);
+    }
+  }
+
+  private beginResidentWalk(roomId: string, manual: boolean): boolean {
+    if (!this.navigator?.goToRoom(roomId)) return false;
+    this.residentWaitMs = manual ? 9000 : 1800;
+    this.residentLabel?.setText(this.navigator.isMoving ? 'MOVE' : 'IDLE');
+    if (this.menuSettings.reducedMotion && this.navigator.isMoving) {
+      this.navigator.finishImmediately();
+    }
+    if (!this.navigator.isMoving) this.showResidentArrival();
+    this.syncResident();
+    this.paintResidentPath();
+    return true;
+  }
+
+  private patrolResident(): void {
+    const rooms = this.layout.rooms;
+    for (let i = 0; i < rooms.length; i++) {
+      const index = (this.patrolCursor + i) % rooms.length;
+      if (rooms[index].id === this.navigator?.destinationId) continue;
+      if (this.beginResidentWalk(rooms[index].id, false)) {
+        this.patrolCursor = (index + 1) % rooms.length;
+        return;
+      }
+    }
+    this.residentWaitMs = 4000;
+  }
+
+  private refreshResidentPath(): void {
+    if (!this.navigator) return;
+    if (!this.navigator.refresh()) {
+      this.residentLabel?.setText('IDLE');
+      this.residentWaitMs = 1600;
+    } else if (this.menuSettings.reducedMotion && this.navigator.isMoving) {
+      this.navigator.finishImmediately();
+      this.showResidentArrival();
+    } else if (this.navigator.isMoving) {
+      this.residentLabel?.setText('MOVE');
+    } else {
+      this.showResidentArrival();
+    }
+    this.syncResident();
+    this.paintResidentPath();
   }
 
   private paintPreview(): void {
@@ -578,7 +711,10 @@ export class GameScene extends Phaser.Scene {
       valid = this.mode === 'upgrade' ?
         this.session.upgradeCostAt(x, y) !== null &&
         this.session.canAfford(this.session.upgradeCostAt(x, y)!) :
-        this.mode === 'remove' ? room.type !== 'command' : room.type !== 'command';
+        this.mode === 'navigate' ?
+          !!this.navigator?.currentCell() &&
+          findRoomPath(this.layout, this.navigator.currentCell()!, room.id) !== null :
+          room.type !== 'command';
     } else return;
     const { left, top } = toPixels(startX, startY);
     const w = width * WORLD.cellSize - 4, h = height * WORLD.cellSize - 4;
