@@ -1,6 +1,7 @@
+import { ELEVATOR_DEFINITION } from '../modules/world/elevators';
 import Phaser from 'phaser';
 import type { MenuSettings } from './menuSettings';
-import { getLocale } from '../i18n';
+import { getLocale, localizeGameMessage } from '../i18n';
 import type { AudioCue } from '../modules/audio/AudioManager';
 import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/grid';
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
@@ -21,7 +22,7 @@ const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
   waterTreatment: 'تصفیه آب', medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
 };
 
-export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade' | 'navigate';
+export type ToolMode = 'elevator' | 'build' | 'dig' | 'move' | 'remove' | 'upgrade' | 'navigate';
 
 export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
@@ -38,6 +39,8 @@ export class GameScene extends Phaser.Scene {
   private roomLayer?: Phaser.GameObjects.Container;
   private roomBadges: Phaser.GameObjects.Container[] = [];
   private preview?: Phaser.GameObjects.Graphics;
+  private previewReason?: Phaser.GameObjects.Text;
+  private readonly recoveryFailed: boolean;
   private hovered: GridPosition | null = null;
   private readonly contacts = new Map<number, Contact>();
   private pinch?: { initialDistance: number; initialZoom: number; worldAnchor: Point };
@@ -70,6 +73,7 @@ export class GameScene extends Phaser.Scene {
     private readonly onCycleProgress: (remainingSeconds: number) => void = () => {}
   ) {
     super({ key: 'UndergroundScene' });
+    this.recoveryFailed = saved != null && !GameSession.restore(saved) && !BuildingLayout.restore(saved);
     this.session = GameSession.fromSave(saved);
   }
 
@@ -135,7 +139,8 @@ export class GameScene extends Phaser.Scene {
     });
     this.onZoomChange(this.cameras.main.zoom);
     this.onCycleProgress(Math.ceil(this.session.resources.remainingMs / 1000));
-    this.notify('ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.');
+    if(this.recoveryFailed) this.notify('ذخیره قابل بازیابی نیست؛ نسخهٔ اصلی برای بازیابی نگهداری شد.');
+    else this.notify('ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.');
     if (this.gameplayPaused) this.scene.pause();
   }
 
@@ -343,6 +348,7 @@ export class GameScene extends Phaser.Scene {
     this.syncResidents();
     this.paintPreview();
     const messages: Record<ToolMode, string> = {
+      elevator: 'آسانسور را در خانهٔ مجاور شفت امتداد دهید.',
       build: 'برای ساخت، یک خانهٔ خالی و آماده را انتخاب کنید.',
       dig: 'برای حفاری روی زمین بستهٔ زیرزمینی مجاور فضای باز بزنید.',
       move: 'ابتدا اتاق را انتخاب کنید و سپس مکان جدید آن را لمس کنید.',
@@ -425,6 +431,11 @@ export class GameScene extends Phaser.Scene {
   private actOnCell(cell: GridPosition, worldPoint?: Point): void {
     if (this.gameplayPaused) return;
     const { x, y } = cell;
+    if (this.mode === 'elevator') {
+      const result=this.session.buildElevator(x,y);
+      if(result.ok) { this.paintTerrain(); this.refreshResidentPath(); }
+      this.notify(result.ok ? 'آسانسور ساخته و طبقه آزاد شد.' : result.reason); return;
+    }
     if (this.mode === 'navigate') {
       // Tap a character to select it, then tap a room to direct that resident.
       // Use rendered positions, not only grid origins, for moving characters.
@@ -575,6 +586,12 @@ export class GameScene extends Phaser.Scene {
         g.lineStyle(1, 0x91b0ae, 0.18);
         g.strokeRect(left, top, WORLD.cellSize, WORLD.cellSize);
       }
+    }
+    for(const segment of this.layout.terrain.elevators) {
+      const {left,top}=toPixels(segment.x,segment.y);
+      g.fillStyle(0x729ba5,0.8).fillRect(left+15,top+2,24,WORLD.cellSize-4);
+      g.lineStyle(2,0xd5efec).strokeRect(left+9,top+2,36,WORLD.cellSize-4);
+      g.lineBetween(left+27,top+2,left+27,top+WORLD.cellSize-2);
     }
   }
 
@@ -749,6 +766,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.preview) return;
     const g = this.preview;
     g.clear();
+    this.previewReason?.setVisible(false);
     const selected = this.mode === 'upgrade'
       ? this.layout.rooms.find((room) => room.id === this.selectedUpgradeId)
       : undefined;
@@ -763,7 +781,15 @@ export class GameScene extends Phaser.Scene {
     if (y >= 0 && (this.mode === 'build' || this.mode === 'dig' || this.mode === 'move')) return;
     const room = this.layout.getRoomAt(x, y);
     let width = 1, height = 1, startX = x, startY = y, valid = false;
-    if (this.mode === 'build') {
+    if (this.mode === 'elevator') {
+      const result=this.layout.canBuildElevator(x,y);
+      valid=result.ok && this.session.canAfford(ELEVATOR_DEFINITION.cost);
+      if(!valid) {
+        const point=toPixels(x,y);
+        this.previewReason ??= this.add.text(0,0,'',{fontSize:'12px',color:'#ffffff',backgroundColor:'#641c30',wordWrap:{width:170},padding:{x:5,y:5}}).setDepth(7).setResolution(3);
+        this.previewReason.setText(localizeGameMessage(result.ok ? 'سکهٔ کافی برای این عملیات ندارید.' : result.reason)).setPosition(point.left+54,point.top).setVisible(true);
+      }
+    } else if (this.mode === 'build') {
       const d = ROOM_DEFINITIONS[this.selectedRoom];
       width = d.width; height = d.height;
       valid = this.layout.canPlace(this.selectedRoom, x, y).ok &&

@@ -15,7 +15,9 @@ describe('terrain excavation and floors', () => {
     expect(t.dig(5, -4).ok).toBe(false);
     expect(t.dig(5, -2).ok).toBe(true);
     expect(t.dig(5, -2).ok).toBe(false);
-    expect(t.dig(5, -3).ok).toBe(true);
+    expect(t.dig(5, -3).ok).toBe(false);
+    const extended=t.withElevator(0,-3)!;
+    expect(extended.dig(5,-3).ok).toBe(true);
     expect(t.dig(1, 0).ok).toBe(false);
     expect(t.dig(-1, -1).ok).toBe(false);
   });

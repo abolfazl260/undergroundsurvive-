@@ -1,0 +1,41 @@
+import { expect, it } from 'vitest';
+import { accessibleFloors, validElevators } from './elevators';
+import { BuildingLayout } from '../building/layout';
+import { GameSession } from '../economy/session';
+import { TerrainMap } from './terrain';
+it('derives floors from contiguous shafts, rejects gaps, duplicates and out-of-bounds',()=>{
+ expect([...accessibleFloors([{x:0,y:0},{x:0,y:-2}])]).toEqual([0]);
+ expect(validElevators([{x:0,y:0},{x:0,y:-2}])).toBe(false);
+ expect(validElevators([{x:0,y:0},{x:0,y:0}])).toBe(false);
+ expect(validElevators([{x:99,y:0}])).toBe(false);
+ const t=new TerrainMap({highestFloor:0,excavated:[],elevators:[{x:0,y:0}]});
+ const down=t.withElevator(0,-1)!;
+ expect(down.isOpen(0,-1)).toBe(true); expect(down.isOpen(1,-1)).toBe(false);
+ expect(down.isFloorAccessible(-2)).toBe(false);
+ expect(t.withElevator(0,2)).toBeNull();
+ const up=t.withElevator(0,1)!; expect(up.isOpen(1,1)).toBe(true);expect(up.isOpen(1,2)).toBe(false);
+});
+it('blocks every dig/build bypass, applies atomic fees and protects shafts',()=>{
+ const s=GameSession.create(), before=s.snapshot();
+ expect(s.dig(1,-3).ok).toBe(false);expect(s.build('habitat',1,-3).ok).toBe(false);
+ expect(s.unlockFloor().ok).toBe(false);expect(s.buildElevator(2,-3).ok).toBe(false);
+ expect(s.buildElevator(1,-2).ok).toBe(false);expect(s.buildElevator(0,1).ok).toBe(false);
+ expect(s.snapshot()).toEqual(before);
+ expect(s.buildElevator(0,-3).ok).toBe(true);expect(s.wallet.balance).toBe(before.wallet.balance-150);
+ expect(s.layout.terrain.isExcavated(1,-3)).toBe(false);
+ expect(s.layout.dig(1,-3).ok).toBe(true);expect(s.layout.removeElevator().ok).toBe(false);
+ expect(s.layout.canPlace('habitat',0,-3).ok).toBe(false);
+ expect(GameSession.restore(s.snapshot())!.snapshot()).toEqual(s.snapshot());
+});
+it('migrates v1 collision-free, preserves all rooms and rejects impossible migration or manipulated v2',()=>{
+ const layout=new BuildingLayout(), modern=layout.snapshot();
+ const legacy={...modern,schemaVersion:1,terrain:{highestFloor:0,excavated:modern.terrain.excavated}};
+ const migrated=BuildingLayout.restore(legacy)!;
+ expect(migrated.rooms).toEqual(layout.rooms);expect(migrated.snapshot().schemaVersion).toBe(2);
+ const bad=structuredClone(modern);bad.terrain.elevators=bad.terrain.elevators!.filter(p=>p.y!==-1);
+ expect(BuildingLayout.restore(bad)).toBeNull();
+ expect(BuildingLayout.restore({...modern,terrain:{...modern.terrain,elevators:undefined}})).toBeNull();
+ expect(BuildingLayout.restore({...modern,terrain:{...modern.terrain,highestFloor:2}})).toBeNull();
+ const noSpace={...legacy,rooms:Array.from({length:7},(_,i)=>({id:'full'+i,type:'habitat',x:i*2,y:-1,width:2,height:1,level:1}))};
+ expect(BuildingLayout.restore(noSpace)).toBeNull();
+});

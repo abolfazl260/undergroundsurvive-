@@ -156,3 +156,7 @@ Supabase کلاینت برای احراز هویت و خواندن داده‌ه
 حدود زمین/طبقات، قوانین حفاری، مدل حرکت آدمک‌ها، نوع ورود، نیاز به آفلاین، روش کسب سکه، سناریو، قوانین PvP، نحوهٔ پرداخت وب و مدل قیمت‌گذاری اسکین‌ها.
 
 **ارجاع:** [قابلیت‌ها](FEATURES.md) | [نقشهٔ راه](../README.md)
+
+F-04 / P1: connected elevators gate every new underground floor; digging cannot
+unlock vertical levels. Starter and legacy snapshots use connected shafts.
+Construction remains underground-only (#28). See [elevator design](https://github.com/abolfazl260/undergroundsurvive-/blob/main/Docs/ELEVATORS.md).

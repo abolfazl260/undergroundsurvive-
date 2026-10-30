@@ -1,3 +1,4 @@
+import { ELEVATOR_DEFINITION } from '../world/elevators';
 import { WaterProductionProcessor, type WaterSnapshot } from '../water/water';
 import { BuildingLayout, type BaseSnapshot } from '../building/layout';
 import { Wallet, type WalletSnapshot } from './wallet';
@@ -155,6 +156,9 @@ export class GameSession {
     return this.execute(DIG_COST, 'dig', (world) => world.dig(x, y));
   }
 
+  buildElevator(x:number,y:number): CommandResult {
+    return this.execute(ELEVATOR_DEFINITION.cost,'floor',world=>world.buildElevator(x,y));
+  }
   unlockFloor(): CommandResult {
     return this.execute(this.floorCost(), 'floor', (world) => world.unlockFloor());
   }

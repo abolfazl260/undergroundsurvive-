@@ -1,3 +1,5 @@
+import { GameSession } from '../modules/economy/session';
+import { BuildingLayout } from '../modules/building/layout';
 import type { GameSnapshot } from '../modules/economy/session';
 
 const NEW_KEY = 'underground-survive:game:v2';
@@ -17,6 +19,12 @@ export function loadLocalBase(): unknown {
 
 export function saveLocalBase(snapshot: GameSnapshot): boolean {
   try {
+    const previous = window.localStorage.getItem(NEW_KEY) ?? window.localStorage.getItem(LEGACY_KEY);
+    if(previous && !window.localStorage.getItem('underground-survive:recovery')) {
+      let valid=false;
+      try { const value:unknown=JSON.parse(previous); valid=!!GameSession.restore(value)||!!BuildingLayout.restore(value); } catch { /* Keep malformed originals too. */ }
+      if(!valid) window.localStorage.setItem('underground-survive:recovery',previous);
+    }
     window.localStorage.setItem(NEW_KEY, JSON.stringify(snapshot));
     return true;
   } catch {

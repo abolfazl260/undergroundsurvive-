@@ -3,6 +3,15 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
+  "ذخیره قابل بازیابی نیست؛ نسخهٔ اصلی برای بازیابی نگهداری شد.": "Save could not be restored; the original was retained for recovery.",
+  "آسانسور": "Elevator",
+  "این خانه آسانسور دارد.": "This cell already has an elevator.",
+  "آسانسور باید به شفت پیوسته متصل باشد.": "Extend an adjacent connected shaft.",
+  "این طبقه قفل است؛ آسانسور را امتداد دهید.": "Floor locked: extend the elevator.",
+  "این محل با آسانسور تداخل دارد.": "This location overlaps an elevator.",
+  "حذف یا انتقال شفت متصل مجاز نیست.": "Moving or removing a connected shaft is disabled.",
+  "آسانسور را در خانهٔ مجاور شفت امتداد دهید.": "Extend the shaft into an adjacent cell. Cost: 150 coins.",
+  "آسانسور ساخته و طبقه آزاد شد.": "Elevator built; floor now accessible.",
   "آب خام برداشت شد.": "Raw water collected.",
   "برداشت ممکن نیست؛ برق، فضای مخزن و ذخیرهٔ چاه را بررسی کنید.": "Cannot pump: check power, tank space and aquifer reserve.",
   "تصفیه آب": "Water treatment",

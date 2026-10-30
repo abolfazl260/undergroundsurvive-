@@ -106,3 +106,7 @@ npm run dev
 - جزئیات هنوز تصمیم‌گیری‌نشده (مانند قوانین حمله، نوع اسکین، روش کسب سکه و داستان) در [سند قابلیت‌ها](Docs/FEATURES.md) با عنوان «باز» مشخص شده‌اند.
 
 
+
+F-04 / P1: connected elevators gate every new underground floor; digging cannot
+unlock vertical levels. Starter and legacy snapshots use connected shafts.
+Construction remains underground-only (#28). See [elevator design](https://github.com/abolfazl260/undergroundsurvive-/blob/main/Docs/ELEVATORS.md).
