@@ -57,7 +57,8 @@ const kindTitles: Record<TransactionKind, string> = {
   research: 'پژوهش',
   radiation: 'کاهش تشعشع',
   air: 'تعمیر تهویه',
-  'demo-bonus': 'کمک‌هزینهٔ آزمایشی'
+  'demo-bonus': 'کمک‌هزینهٔ آزمایشی',
+  'achievement-reward': 'پاداش دستاورد'
 };
 const audioMute = document.querySelector<HTMLButtonElement>('#audio-mute');
 const musicEnabled = document.querySelector<HTMLInputElement>('#music-enabled');
