@@ -180,6 +180,8 @@ const english: Readonly<Record<string, string>> = {
   "هنوز تراکنشی ثبت نشده است.": "No transactions yet.",
   "بازنشانی تمام تغییرات آزمایشی": "Reset all prototype changes",
   "قوانین این نسخه": "Rules for this version",
+  "قوانین و حریم خصوصی": "Policies & Privacy",
+  "شرایط استفاده، داده‌ها و دسترسی‌ها": "Terms, data and permissions",
   "حفاری از خانه‌های باز مجاور انجام می‌شود. برای ساخت طبقهٔ بالا، خانه‌های زیر اتاق باید تکیه‌گاه باشند. حذف تکیه‌گاه مجاز نیست. ارتقا تا سطح ۳ است و به سکه نیاز دارد.": "Excavate next to an open cell. Rooms above ground require support across their width. You cannot remove a supporting room. Upgrades cost coins and are capped at level 3.",
   "سکه‌ها و تغییرات فقط در همین مرورگر ذخیره می‌شوند؛ اقتصاد این نسخه آزمایشی است و هنوز سرور، حساب کاربری یا پرداخت واقعی وجود ندارد.": "Coins and changes are stored only in this browser. The economy is experimental; there are no servers, accounts or real payments.",
   "پناهگاه زیرزمینی": "Underground shelter",
