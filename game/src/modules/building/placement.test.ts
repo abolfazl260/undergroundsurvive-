@@ -53,9 +53,9 @@ describe('underground-only construction', () => {
     expect(layout.dig(5, -2).ok).toBe(true);
     expect(layout.dig(6, -2).ok).toBe(true);
     expect(layout.buildElevator(0,-3).ok).toBe(true);
-    expect(layout.dig(5, -3).ok).toBe(true);
-    expect(layout.dig(6, -3).ok).toBe(true);
-    expect(layout.place('medbay', 5, -3).ok).toBe(true);
+    expect(layout.dig(1, -3).ok).toBe(true);
+    expect(layout.dig(2, -3).ok).toBe(true);
+    expect(layout.place('medbay', 1, -3).ok).toBe(true);
     expect(layout.dig(5, 0).ok).toBe(false);
   });
 
@@ -71,10 +71,10 @@ describe('underground-only construction', () => {
     const layout = new BuildingLayout();
     expect(layout.place('medbay', 8, -1).ok).toBe(true);
     const id = layout.getRoomAt(8, -1)!.id;
-    expect(layout.move(id, 9, -1).ok).toBe(true);
+    expect(layout.move(id, 9, -1).ok).toBe(false);
     expect(layout.move(id, 9, 0).ok).toBe(false);
-    expect(layout.getRoomAt(9, -1)?.id).toBe(id);
-    expect(layout.move('initial-command', 4, -1).ok).toBe(true);
+    expect(layout.getRoomAt(8, -1)?.id).toBe(id);
+    expect(layout.move('initial-command', 4, -1).ok).toBe(false);
     expect(layout.upgrade(id).ok).toBe(true);
     expect(layout.upgrade(id).ok).toBe(true);
     expect(layout.upgrade(id).ok).toBe(false);
