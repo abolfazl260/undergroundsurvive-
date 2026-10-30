@@ -5,6 +5,7 @@ import { RadiationField, type RadiationSnapshot, type RadiationOccupant } from '
 import { ResearchScheduler, type ResearchSnapshot } from '../research/research';
 import { ELEVATOR_DEFINITION } from '../world/elevators';
 import { WaterProductionProcessor, type WaterSnapshot } from '../water/water';
+import { AirSystem, ROOM_AIR_EMISSIONS, type AirSystemState } from '../air/air';
 import { BuildingLayout, type BaseSnapshot } from '../building/layout';
 import { Wallet, type WalletSnapshot } from './wallet';
 import { ResourceEngine, type ResourceSnapshot } from './resources';
@@ -19,7 +20,8 @@ import { AchievementTracker, type AchievementSnapshot } from '../achievements/ac
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 9;
+  schemaVersion: 10;
+  air: AirSystemState;
   survivors: SurvivorSnapshot;
   guardPosts: ReturnType<GuardPosts['snapshot']>;
   commandCenter: CommandCenterSnapshot;
@@ -77,6 +79,16 @@ export class GameSession {
   startResearch(id:string,operationId:string):boolean {
     return this.researchState.start(id,operationId,this.researchFacility(),this.wallet.balance,n=>this.purse.spend(n,'research'));
   }
+  private airState = new AirSystem();
+  get air(): AirSystem { return this.airState; }
+  toggleVent(id: string, operationId: string): boolean {
+    this.airState.sync(this.world.rooms);
+    return this.airState.toggle(id, operationId);
+  }
+  repairVent(id: string, operationId: string): boolean {
+    this.airState.sync(this.world.rooms);
+    return this.airState.repair(id, operationId, coins => this.purse.spend(coins, 'air'));
+  }
   private waterState = new WaterProductionProcessor();
   get water(): WaterProductionProcessor { return this.waterState; }
   private powerAdapter() { return { available: () => this.resources.snapshot().stock.power, spend: (n: number) => this.resources.spendPower(n) }; }
@@ -107,13 +119,13 @@ export class GameSession {
   static restore(raw: unknown): GameSession | null {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
-    if ((value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4 && value.schemaVersion !== 5 && value.schemaVersion !== 6 && value.schemaVersion !== 7 && value.schemaVersion !== 8 && value.schemaVersion !== 9) ||
+    if ((value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4 && value.schemaVersion !== 5 && value.schemaVersion !== 6 && value.schemaVersion !== 7 && value.schemaVersion !== 8 && value.schemaVersion !== 9 && value.schemaVersion !== 10) ||
         typeof value.demoBonusClaimed !== 'boolean') return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
-    const resources = (value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 || value.schemaVersion === 9)
+    const resources = (value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 || value.schemaVersion === 9 || value.schemaVersion === 10)
       ? ResourceEngine.restore(value.resources) : ResourceEngine.create();
-    const achievements = (value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 || value.schemaVersion === 9)
+    const achievements = (value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 || value.schemaVersion === 9 || value.schemaVersion === 10)
       ? AchievementTracker.restore(value.achievements) : new AchievementTracker();
     if (!world || !wallet || !resources || !achievements) return null;
     resources.reconcileCapacity(world.rooms);
@@ -121,32 +133,43 @@ export class GameSession {
     if ((value.demoBonusClaimed && bonusCount !== 1) ||
         (!value.demoBonusClaimed && bonusCount !== 0)) return null;
     const session = new GameSession(world, wallet, value.demoBonusClaimed, resources, achievements);
-    if (value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 || value.schemaVersion === 9) {
+    if (value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 || value.schemaVersion === 9 || value.schemaVersion === 10) {
       const water = WaterProductionProcessor.restore(value.water);
       if (!water) return null;
       session.waterState = water;
     }
-    if(value.schemaVersion===6 || value.schemaVersion===7 || value.schemaVersion===8||value.schemaVersion===9) {
+    if(value.schemaVersion===6 || value.schemaVersion===7 || value.schemaVersion===8||value.schemaVersion===9||value.schemaVersion===10) {
       const research=ResearchScheduler.restore(value.research);if(!research)return null;
       if(research.snapshot().nowMs!==resources.tickCount*5000)return null;
       session.researchState=research;
     } else session.researchState=ResearchScheduler.restore({...session.researchState.snapshot(),nowMs:resources.tickCount*5000})!;
     if(!session.researchState)return null;
-    if(value.schemaVersion===7 || value.schemaVersion===8||value.schemaVersion===9) {
+    if(value.schemaVersion===7 || value.schemaVersion===8||value.schemaVersion===9||value.schemaVersion===10) {
       const radiation=RadiationField.restore(value.radiation);if(!radiation||radiation.snapshot().nowMs!==resources.tickCount*5000)return null;
       session.radiationState=radiation;
     } else session.radiationState=RadiationField.restore({...session.radiationState.snapshot(),nowMs:resources.tickCount*5000})!;
     if(!session.radiationState)return null;
-    if(value.schemaVersion===8||value.schemaVersion===9) {
+    if(value.schemaVersion===8||value.schemaVersion===9||value.schemaVersion===10) {
       const command=CapabilityGate.restore(value.commandCenter);if(!command)return null;
       session.commandState=command;
     }
-    if(value.schemaVersion===9) {
+    if(value.schemaVersion===9||value.schemaVersion===10) {
       const survivors=SurvivorRoster.restore(world,value.survivors);if(!survivors)return null;
       session.survivors=survivors;
       session.guardPosts=new GuardPosts(()=>session.world.rooms,survivors,()=>session.resources.snapshot().stock.power);
       if(!session.guardPosts.restore(value.guardPosts))return null;
     }
+    if (value.schemaVersion === 10) {
+      const air = AirSystem.restore(value.air);
+      if (!air || air.snapshot().nowMs !== resources.tickCount * 5000) return null;
+      session.airState = air;
+    } else {
+      // Older saves have no atmosphere field. Start at full quality on their
+      // existing simulation clock; do not replay offline ticks or power use.
+      const seed = {...session.airState.snapshot(), nowMs: resources.tickCount * 5000};
+      session.airState = AirSystem.restore(seed)!;
+    }
+    session.airState.sync(world.rooms);
     session.survivors.reconcile(session.resources.snapshot().stock.power>=1);
     session.commandStatus();
     session.waterState.sync(world.rooms);
@@ -175,6 +198,8 @@ export class GameSession {
       ticks += completed;
       if (completed) {
         this.waterState.advance(5000, this.world.rooms, this.powerAdapter());
+        this.airState.advanceTo(this.resources.tickCount * 5000, this.world.rooms,
+          this.survivors.survivors.length, ROOM_AIR_EMISSIONS.emissions(this.world.rooms), this.powerAdapter());
         this.researchState.advanceTo(this.resources.tickCount*5000,this.researchFacility());
         this.radiationState.advanceTo(this.resources.tickCount*5000,this.radiationState.world(this.world.terrain,this.world.rooms),this.radiationOccupants);
         if(this.resources.tickCount%24===0)this.radiationState.triggerSurge('leaking-pipe');
@@ -274,6 +299,7 @@ export class GameSession {
     this.radiationOccupants = [];
     this.researchState = new ResearchScheduler();
     this.waterState = new WaterProductionProcessor();
+    this.airState = new AirSystem();
     this.world = new BuildingLayout();
     this.survivors=new SurvivorRoster(this.world);
     this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,()=>this.resources.snapshot().stock.power);
@@ -287,13 +313,15 @@ export class GameSession {
     this.resourceState.reconcileCapacity(this.world.rooms);
     this.commandStatus();
     this.waterState.sync(this.world.rooms);
+    this.airState.sync(this.world.rooms);
     this.radiationState.reconcileRooms(this.world.rooms);
     const base = this.world.snapshot();
     const wallet = this.purse.snapshot();
     const resources = this.resourceState.snapshot();
     this.achievementState.evaluate({ base, wallet, resources });
     return {
-      schemaVersion: 9,
+      schemaVersion: 10,
+      air: this.airState.snapshot(),
       survivors:this.survivors.snapshot(),
       guardPosts:this.guardPosts.snapshot(),
       commandCenter: this.commandState.snapshot(),
