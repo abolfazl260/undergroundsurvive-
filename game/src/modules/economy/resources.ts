@@ -123,7 +123,7 @@ export class ResourceEngine {
     };
     // Priority is fixed rather than dependent on insertion/snapshot room order.
     const priority = ['generator', 'command', 'habitat', 'hydroponics',
-      'mine', 'workshop', 'medbay', 'storage', 'waterTreatment', 'laboratory', 'guardPost'] as const;
+      'mine', 'workshop', 'medbay', 'storage', 'waterTreatment', 'laboratory', 'guardPost', 'recreation'] as const;
     const ordered = [...rooms].sort((a, b) =>
       priority.indexOf(a.type) - priority.indexOf(b.type) || a.id.localeCompare(b.id));
     for (const room of ordered) {

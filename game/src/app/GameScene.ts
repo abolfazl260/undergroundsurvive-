@@ -20,7 +20,7 @@ import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomA
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
-  guardPost:'نگهبانی', command: 'فرمان', habitat: 'مسکونی', generator: 'برق', hydroponics: 'گلخانه',
+  recreation:'تفریح', guardPost:'نگهبانی', command: 'فرمان', habitat: 'مسکونی', generator: 'برق', hydroponics: 'گلخانه',
   laboratory: 'آزمایشگاه', waterTreatment: 'تصفیه آب', medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
 };
 
@@ -385,8 +385,8 @@ export class GameScene extends Phaser.Scene {
   assignSurvivor(id:string,roomId:string):void {
     if(this.gameplayPaused)return;
     const room=this.layout.rooms.find(r=>r.id===roomId);
-    const block=room?.type==='laboratory'?this.session.assignScientist(id,roomId,crypto.randomUUID()):null;
-    const reason=room?.type==='laboratory'?(block?({survivor:'بازمانده وجود ندارد.',room:'اتاق معتبر نیست.',busy:'نیرو شغل دیگری دارد؛ ابتدا آزاد کنید.',capacity:'ظرفیت اتاق پر است.',path:'مسیر قابل‌عبور نیست.',duplicate:'درخواست تکراری است.'}[block]):null):this.session.assignGuard(id,roomId,crypto.randomUUID());
+    const block=room?.type==='laboratory'?this.session.assignScientist(id,roomId,crypto.randomUUID()):room?.type==='recreation'?this.session.assignRecreation(id,roomId,crypto.randomUUID()):null;
+    const reason=room?.type==='laboratory'||room?.type==='recreation'?(block?({survivor:'بازمانده وجود ندارد.',room:'اتاق معتبر نیست.',busy:'نیرو شغل دیگری دارد؛ ابتدا آزاد کنید.',capacity:'ظرفیت اتاق پر است.',path:'مسیر قابل‌عبور نیست.',duplicate:'درخواست تکراری است.',satisfied:'روحیه کامل است.',power:'برق کافی نیست.'}[block]):null):this.session.assignGuard(id,roomId,crypto.randomUUID());
     this.syncResidents();this.notify(reason??'تخصیص انجام شد؛ نیرو در مسیر است.');
   }
   releaseSurvivor(id:string):void {
@@ -744,7 +744,7 @@ export class GameScene extends Phaser.Scene {
       figure.lastX = resident.position.x;
       const room = this.layout.getRoomAt(resident.cell.x, resident.cell.y);
       const state = resident.isWalking ? 'walk' : !resident.isWaiting && room &&
-        room.type !== 'habitat' && room.type !== 'command' ? 'work' : 'idle';
+        room.type !== 'habitat' && room.type !== 'command' && room.type !== 'recreation' ? 'work' : 'idle';
       const frame = survivorFrame(figure.variant, state, this.time.now, this.menuSettings.reducedMotion);
       const texture = this.assets.resolve(SURVIVOR_ART.key, this.textures, frame)
         ?? this.assets.resolve(SURVIVOR_ART.key, this.textures, figure.variant * 6);

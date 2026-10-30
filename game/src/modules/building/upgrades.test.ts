@@ -6,14 +6,15 @@ import { GameSession } from '../economy/session';
 import { getUpgradeCost, STARTING_COINS } from '../economy/pricing';
 
 describe('room upgrade capacities', () => {
-  it('increases every room type capacity through all three levels', () => {
+  it('reports room capacities and supported recreation upgrade levels', () => {
     for (const type of Object.keys(ROOM_DEFINITIONS) as RoomType[]) {
       const a = getRoomPerformance(type, 1);
       const b = getRoomPerformance(type, 2);
       const c = getRoomPerformance(type, 3);
       expect(a.value).toBeGreaterThan(0);
       expect(b.value).toBeGreaterThan(a.value);
-      expect(c.value).toBeGreaterThan(b.value);
+      if(type==='recreation')expect(c.value).toBe(b.value);
+      else expect(c.value).toBeGreaterThan(b.value);
       expect(a.unit).toBe(c.unit);
     }
     expect(MAX_ROOM_LEVEL).toBe(3);

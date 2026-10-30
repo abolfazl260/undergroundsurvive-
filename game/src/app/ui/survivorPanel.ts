@@ -1,3 +1,4 @@
+import { RECREATION_CONFIG } from '../../modules/recreation/recreation';
 import type { GameSnapshot } from '../../modules/economy/session';
 import { getLocale } from '../../i18n';
 import { ROOM_DEFINITIONS } from '../../modules/building/catalog';
@@ -5,7 +6,11 @@ export function mountSurvivorPanel(root:HTMLElement,assign:(id:string,roomId:str
   return (s:GameSnapshot)=>{
     const en=getLocale()==='en',heading=document.createElement('h3');
     heading.textContent=en?'Survivors · assignments':'بازماندگان · تخصیص نیرو';root.replaceChildren(heading);
-    const posts=s.base.rooms.filter(r=>r.type==='guardPost'||r.type==='laboratory');
+    const posts=s.base.rooms.filter(r=>r.type==='guardPost'||r.type==='laboratory'||r.type==='recreation');
+    for(const room of posts.filter(r=>r.type==='recreation')) {
+      const p=document.createElement('p'),visits=s.survivors.assignments.filter(a=>a.roomId===room.id);
+      p.textContent=`${en?'Recreation':'تفریح'} · ${room.id} · ${visits.length}/${RECREATION_CONFIG.capacity[room.level-1]} · ${en?'Morale/s':'روحیه در ثانیه'} +${RECREATION_CONFIG.moralePerSecond[room.level-1]} · ${RECREATION_CONFIG.durationMs/1000}s · ${en?'Power to reserve':'برق رزرو'} ${RECREATION_CONFIG.activationPower}`;root.append(p);
+    }
     for(const lab of s.laboratories) {
       const p=document.createElement('p');
       p.textContent=`${en?'Laboratory':'آزمایشگاه'} · ${lab.roomId} · LV ${lab.level} · ${lab.assignedScientists}/${lab.scientistCapacity} · ${en?lab.status:lab.status==='active'?'فعال':lab.status==='unpowered'?'بدون برق':'بدون دانشمند'} · ${en?'Research':'پژوهش'}: ${s.research.activeResearchId??'—'}`;root.append(p);
@@ -19,7 +24,7 @@ export function mountSurvivorPanel(root:HTMLElement,assign:(id:string,roomId:str
     for(const person of s.survivors.survivors) {
       const row=document.createElement('div'),label=document.createElement('p'),job=s.survivors.assignments.find(a=>a.survivorId===person.id);
       const states={enRoute:en?'En route':'در مسیر',active:en?'At work':'در محل کار',suspended:en?'Suspended':'معلق'};
-      label.textContent=`${person.name} · ${job?`${job.roomId} · ${states[job.state]}`:(en?'Available':'آزاد')}`;row.append(label);
+      label.textContent=`${person.name} · ${en?'Morale':'روحیه'} ${person.morale.toFixed(1)}/100 · ${job?`${job.roomId} · ${states[job.state]}${job.kind==='recreation'?` · ${Math.floor(job.elapsedMs/1000)}/${RECREATION_CONFIG.durationMs/1000}s`:''}`:(en?'Available':'آزاد')}`;row.append(label);
       if(job){const b=document.createElement('button');b.type='button';b.dataset.release=person.id;b.textContent=en?'Release':'آزادسازی';b.onclick=()=>release(person.id);row.append(b);}
       else for(const room of posts){const b=document.createElement('button');b.type='button';b.dataset.assignRoom=room.id;b.textContent=`${en?'Assign':'تخصیص'} · ${room.id}`;b.onclick=()=>assign(person.id,room.id);row.append(b);}
       root.append(row);

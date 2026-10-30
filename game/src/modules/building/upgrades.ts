@@ -1,3 +1,4 @@
+import { RECREATION_CONFIG } from '../recreation/recreation';
 import type { RoomType } from './catalog';
 
 export const MAX_ROOM_LEVEL = 3;
@@ -11,6 +12,7 @@ interface RoomEffectDefinition {
 
 // Nominal room capacities; actual resource production is a separate feature.
 const ROOM_EFFECTS: Record<RoomType, RoomEffectDefinition> = {
+  recreation:{label:'ظرفیت تفریح',unit:'نفر',base:1,perLevel:1},
   guardPost: {label:'ظرفیت نگهبانی',unit:'نفر',base:1,perLevel:1},
   command: { label: 'ظرفیت هماهنگی', unit: 'واحد', base: 1, perLevel: 1 },
   habitat: { label: 'ظرفیت اسکان', unit: 'نفر', base: 2, perLevel: 2 },
@@ -36,5 +38,5 @@ export function getRoomPerformance(type: RoomType, level: number): RoomPerforman
   }
   const effect = ROOM_EFFECTS[type];
   if (!effect) throw new Error('Invalid room type');
-  return { label: effect.label, unit: effect.unit, value: effect.base + (level - 1) * effect.perLevel };
+  return { label: effect.label, unit: effect.unit, value: type==='recreation'?RECREATION_CONFIG.capacity[level-1]:effect.base + (level - 1) * effect.perLevel };
 }

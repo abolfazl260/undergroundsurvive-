@@ -1,3 +1,5 @@
+import { RECREATION_CONFIG } from '../recreation/recreation';
+import type { AssignmentBlock } from '../survivors/roster';
 import { laboratoryFacilities, researchFacility, type LaboratoryFacility } from '../laboratory/laboratory';
 import { SurvivorRoster, type SurvivorSnapshot } from '../survivors/roster';
 import { GuardPosts } from '../defense/guardPost';
@@ -20,7 +22,7 @@ import { AchievementTracker, type AchievementSnapshot } from '../achievements/ac
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 10;
+  schemaVersion: 11;
   laboratories:LaboratoryFacility[];
   researchFacility:ReturnType<typeof researchFacility>;
   survivors: SurvivorSnapshot;
@@ -53,7 +55,7 @@ export class GameSession {
   guardPosts:GuardPosts;
   assignGuard(id:string,roomId:string,op:string):string|null {
     const reason=this.survivors.assign(id,roomId,'guard',op);
-    const reasons={survivor:'بازمانده وجود ندارد.',room:'پست معتبر نیست.',busy:'نیرو شغل دیگری دارد؛ ابتدا آزاد کنید.',capacity:'ظرفیت اتاق پر است.',path:'مسیر قابل‌عبور نیست.',duplicate:'درخواست تکراری است.'};
+    const reasons={survivor:'بازمانده وجود ندارد.',room:'پست معتبر نیست.',busy:'نیرو شغل دیگری دارد؛ ابتدا آزاد کنید.',capacity:'ظرفیت اتاق پر است.',path:'مسیر قابل‌عبور نیست.',duplicate:'درخواست تکراری است.',satisfied:'روحیه کامل است.',power:'برق کافی نیست.'};
     return reason?reasons[reason]:null;
   }
 
@@ -76,6 +78,12 @@ export class GameSession {
   installRadiationFilter(roomId:string,id:string):boolean {return this.radiationState.installFilter(roomId,this.world.rooms,id,n=>this.wallet.spend(n,'radiation'));}
   private researchState = new ResearchScheduler();
   get research():ResearchScheduler {return this.researchState;}
+  assignRecreation(id:string,roomId:string,op:string):AssignmentBlock|null {
+    if(this.resources.snapshot().stock.power<RECREATION_CONFIG.activationPower)return 'power';
+    const reason=this.survivors.assign(id,roomId,'recreation',op);
+    if(!reason)this.resources.spendPower(RECREATION_CONFIG.activationPower);
+    return reason;
+  }
   laboratories():LaboratoryFacility[] {
     this.survivors.reconcile(this.resources.snapshot().stock.power);
     return laboratoryFacilities(this.world.rooms,this.survivors.assignments,this.resources.snapshot().stock.power);
@@ -117,7 +125,7 @@ export class GameSession {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
     const version=value.schemaVersion;
-    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>10||typeof value.demoBonusClaimed!=='boolean')return null;
+    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>11||typeof value.demoBonusClaimed!=='boolean')return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
     const resources = (version>=3)
@@ -151,11 +159,14 @@ export class GameSession {
       session.commandState=command;
     }
     if(version>=9) {
-      const survivors=SurvivorRoster.restore(world,value.survivors);if(!survivors)return null;
+      const survivors=SurvivorRoster.restore(world,value.survivors,resources.tickCount*5000+resources.snapshot().elapsedMs);if(!survivors)return null;
       session.survivors=survivors;
       session.guardPosts=new GuardPosts(()=>session.world.rooms,survivors,()=>session.resources.snapshot().stock.power);
       if(!session.guardPosts.restore(value.guardPosts))return null;
     }
+    if(version<9)session.survivors.initializeLegacyClock(resources.tickCount*5000+resources.snapshot().elapsedMs);
+    const survivorTime=session.survivors.snapshot();
+    if(Math.abs(survivorTime.nowMs+survivorTime.remainderMs-(resources.tickCount*5000+resources.snapshot().elapsedMs))>0.1)return null;
     session.survivors.reconcile(session.resources.snapshot().stock.power);
     session.commandStatus();
     session.waterState.sync(world.rooms);
@@ -303,7 +314,7 @@ export class GameSession {
     const resources = this.resourceState.snapshot();
     this.achievementState.evaluate({ base, wallet, resources });
     return {
-      schemaVersion: 10,
+      schemaVersion: 11,
       laboratories:this.laboratories(),
       researchFacility:this.researchFacility(),
       survivors:this.survivors.snapshot(),

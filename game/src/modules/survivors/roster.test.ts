@@ -17,7 +17,8 @@ describe('guard assignments and defense adapter',()=>{
   s.advanceTime(10000);
   expect(s.survivors.assignment('resident-1')?.state).toBe('active');
   expect(s.guardPosts.getDefensePosts()[0]).toMatchObject({guards:1,readiness:1});
-  expect(s.survivors.traffic.getResident('resident-1')?.cell.x).toBe(2);
+  const cell=s.survivors.traffic.getResident('resident-1')!.cell;
+  expect(s.layout.getRoomAt(cell.x,cell.y)?.id).toBe(room.id);
  });
  it('rejects duplicate and incompatible assignments and preserves movement across reload',()=>{
   const s=setup(),room=s.layout.rooms.find(r=>r.type==='guardPost')!;

@@ -22,6 +22,7 @@ export interface ResidentState {
   route: GridPosition[]; // Subsequent steps, excluding the in-progress segment.
   destinationId: string | null;
   waiting: boolean;
+  targetCell?:GridPosition|null;
 }
 
 const key = (p: GridPosition): string => p.x + ':' + p.y;
@@ -71,7 +72,7 @@ export class ResidentTraffic {
     const room = agent.destinationId
       ? this.layout.rooms.find((r) => r.id === agent.destinationId)
       : undefined;
-    const inRoom = room?.id === this.layout.getRoomAt(agent.cell.x, agent.cell.y)?.id && !agent.next;
+    const inRoom = room?.id === this.layout.getRoomAt(agent.cell.x, agent.cell.y)?.id && !agent.next && (!agent.targetCell||key(agent.cell)===key(agent.targetCell));
     return {
       id: agent.id, cell: { ...agent.cell }, position: { ...agent.position },
       destinationId: agent.destinationId,
@@ -90,8 +91,16 @@ export class ResidentTraffic {
     const agent = this.agents.find((item) => item.id === id);
     if (!agent) return false;
     const anchor = agent.next ?? agent.cell;
-    const path = findRoomPath(this.layout, anchor, roomId);
-    if (!path) return false;
+    const room=this.layout.rooms.find(r=>r.id===roomId);if(!room)return false;
+    // Settle deeper inside a room so later arrivals can use its doorway cell.
+    const reserved=new Set(this.agents.filter(a=>a!==agent).flatMap(a=>[...(a.targetCell?[key(a.targetCell)]:[])]));
+    const goals=Array.from({length:room.width},(_,i)=>({x:room.x+i,y:room.y}))
+      .filter(cell=>!reserved.has(key(cell)))
+      .sort((a,b)=>Math.abs(b.x-anchor.x)-Math.abs(a.x-anchor.x));
+    let path:GridPosition[]|null=null,goal:GridPosition|undefined;
+    for(const candidate of goals) {path=findRoomPath(this.layout,anchor,roomId,new Set(),candidate);if(path){goal=candidate;break;}}
+    if (!path||!goal) return false;
+    agent.targetCell=goal;
     agent.destinationId = roomId;
     agent.route = path.slice(1);
     agent.waiting = false;
@@ -103,6 +112,7 @@ export class ResidentTraffic {
     if (!agent) return;
     // Finish an already reserved segment safely rather than teleporting home.
     agent.destinationId = null;
+    agent.targetCell=null;
     agent.route = [];
     agent.waiting = false;
   }
@@ -119,7 +129,8 @@ export class ResidentTraffic {
 
   private reached(agent: ResidentState): boolean {
     return !!agent.destinationId && agent.next === null &&
-      this.layout.getRoomAt(agent.cell.x, agent.cell.y)?.id === agent.destinationId;
+      this.layout.getRoomAt(agent.cell.x, agent.cell.y)?.id === agent.destinationId &&
+      (!agent.targetCell||key(agent.cell)===key(agent.targetCell));
   }
 
   /**
@@ -177,7 +188,7 @@ export class ResidentTraffic {
       const anchor = agent.cell;
       const target = agent.destinationId;
       if (!agent.route.length || !canWalkBetween(this.layout, anchor, agent.route[0])) {
-        const path = findRoomPath(this.layout, anchor, target);
+        const path = findRoomPath(this.layout, anchor, target,new Set(),agent.targetCell??undefined);
         if (!path) {
           this.cancel(agent.id);
           continue;
@@ -186,7 +197,7 @@ export class ResidentTraffic {
       }
       const blocked = this.heldCells(agent.id);
       if (agent.route[0] && blocked.has(key(agent.route[0]))) {
-        const alternative = findRoomPath(this.layout, anchor, target, blocked);
+        const alternative = findRoomPath(this.layout, anchor, target, blocked,agent.targetCell??undefined);
         if (alternative) agent.route = alternative.slice(1);
       }
       const next = agent.route[0];
@@ -219,6 +230,7 @@ export class ResidentTraffic {
         !a.position || !Number.isFinite(a.position.x) || !Number.isFinite(a.position.y) ||
         (a.destinationId!==null && typeof a.destinationId!=='string') || typeof a.waiting!=='boolean' ||
         !Array.isArray(a.route) || a.route.length>100) return null;
+      if(a.targetCell && (!isWalkableCell(layout,a.targetCell)||layout.getRoomAt(a.targetCell.x,a.targetCell.y)?.id!==a.destinationId))return null;
       ids.add(a.id);
       const start=walkPoint(a.cell), end=a.next?walkPoint(a.next):start;
       if(a.next && !canWalkBetween(layout,a.cell,a.next)) return null;
@@ -244,7 +256,11 @@ export class ResidentTraffic {
       }
       if (!agent.destinationId) continue;
       const anchor = agent.next ?? agent.cell;
-      const path = findRoomPath(this.layout, anchor, agent.destinationId);
+      if(agent.targetCell&&this.layout.getRoomAt(agent.targetCell.x,agent.targetCell.y)?.id!==agent.destinationId) {
+        if(this.goToRoom(agent.id,agent.destinationId))continue;
+        cancelled.push(agent.id);this.cancel(agent.id);continue;
+      }
+      const path = findRoomPath(this.layout, anchor, agent.destinationId,new Set(),agent.targetCell??undefined);
       if (!path) {
         cancelled.push(agent.id);
         this.cancel(agent.id);
