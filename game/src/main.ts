@@ -19,6 +19,7 @@ import './achievements.css';
 import { createIcon } from './ui/icons';
 import { enhanceIcons, setButtonLabel, setPressed } from './ui/components';
 import { createGame } from './app/createGame';
+import { mountStartupScreen } from './startupScreen';
 import { GameScene, type ToolMode } from './app/GameScene';
 import { ZOOM } from './app/viewport';
 import { AudioManager } from './modules/audio/AudioManager';
@@ -35,6 +36,8 @@ import { mountResourcePanel } from './app/ui/resourcePanel';
 import { formatNumber, loadLocale, localizeGameMessage, mountStaticTranslations, setLocale, subscribeLocaleChange, t } from './i18n';
 
 setLocale(loadLocale());
+const startup = mountStartupScreen();
+startup.restoring();
 mountStaticTranslations(document);
 enhanceIcons();
 const gameDock = mountGameDock();
@@ -199,10 +202,17 @@ const scene = new GameScene((snapshot, message) => {
 }, (cue) => audio.play(cue), () => audio.activate(), (details) => {
   upgradeSelection = details;
   renderUpgradePanel();
-}, (seconds) => resourcePanel.renderCountdown(seconds));
+}, (seconds) => resourcePanel.renderCountdown(seconds),
+(progress) => startup.assets(progress),
+(key) => startup.assetUnavailable(key),
+() => startup.worldReady(),
+() => startup.finish(openStartMenu));
 
+// The start menu is kept out of the browser's top layer until the loader and
+// the first game scene are complete; otherwise it would cover the splash.
+const openStartMenu = setupGameMenu(scene, savedGame !== null, audio, renderAudioControls);
+startup.assets(0);
 createGame(scene);
-setupGameMenu(scene, savedGame !== null, audio, renderAudioControls);
 function renderAudioControls(): void {
   const settings = audio.getSettings();
   if (audioMute) {
