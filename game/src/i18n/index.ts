@@ -3,6 +3,10 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
+  'آشپزخانه': 'Kitchen',
+  'مواد خام': 'Raw food',
+  'جیره': 'Meals',
+  'جیره در هر پخت': 'Meals per batch',
   'نگهبانی':'Guard post',
   'ظرفیت نگهبانی':'Guard capacity',
   'تخصیص انجام شد؛ نیرو در مسیر است.':'Assigned; survivor is en route.',
