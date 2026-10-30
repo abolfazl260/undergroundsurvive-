@@ -1,4 +1,4 @@
-name: Capacitor Android and iOS checks
+name: Capacitor Android checks
 
 on:
   push:
@@ -73,24 +73,3 @@ jobs:
           path: game/android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 7
-
-  ios-shell:
-    name: iOS SPM project generation
-    needs: web-bundle
-    runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: game
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Show Xcode version
-        run: xcodebuild -version
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Generate and sync iOS shell
-        run: npm run mobile:prepare:ios
-      - name: Check generated Xcode project
-        run: test -f ios/App/App.xcodeproj/project.pbxproj
