@@ -89,6 +89,24 @@
           </div>
           <button type="button" id="unlock-floor" class="floor-button">＋ بازکردن طبقهٔ +۱</button>
           <button type="button" id="demo-bonus" class="bonus-button">دریافت ۵۰۰ سکهٔ آزمایشی (یک‌بار)</button>
+          <section class="audio-panel" aria-labelledby="audio-heading">
+            <div class="audio-heading">
+              <strong id="audio-heading">صدا و موسیقی</strong>
+              <button type="button" id="audio-mute" aria-pressed="false">قطع همهٔ صداها</button>
+            </div>
+            <div class="audio-control-row">
+              <label for="music-enabled"><input id="music-enabled" type="checkbox" checked /> موسیقی محیطی</label>
+              <output id="music-volume-value" for="music-volume">۳۰٪</output>
+            </div>
+            <input id="music-volume" class="audio-volume" type="range" min="0" max="100" step="5" value="30" aria-label="حجم موسیقی" />
+            <div class="audio-control-row">
+              <label for="effects-enabled"><input id="effects-enabled" type="checkbox" checked /> افکت‌های بازی</label>
+              <output id="effects-volume-value" for="effects-volume">۶۵٪</output>
+            </div>
+            <input id="effects-volume" class="audio-volume" type="range" min="0" max="100" step="5" value="65" aria-label="حجم افکت‌های صوتی" />
+            <button type="button" id="audio-preview">آزمایش افکت صوتی</button>
+            <p id="audio-hint" role="status">موسیقی پس از اولین لمس یا کلیک شروع می‌شود.</p>
+          </section>
           <div class="side-label">آخرین تراکنش‌ها</div>
           <ul class="transaction-list" id="transaction-list" aria-label="تاریخچهٔ سکه"><li>هنوز تراکنشی ثبت نشده است.</li></ul>
           <button type="button" id="reset-layout" class="reset-button">بازنشانی تمام تغییرات آزمایشی</button>
