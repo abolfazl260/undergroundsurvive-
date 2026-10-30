@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "id": "demo-shelter",
+  "locale": "fa-IR",
+  "title": "نمونهٔ نمایشی: آغاز پناهگاه",
+  "enabled": true,
+  "scenes": [
+    {
+      "id": "surface",
+      "type": "image",
+      "src": "media/images/demo-surface.svg",
+      "title": "سطح زمین",
+      "text": "این یک سناریوی نمونه برای آزمایش سیستم نمایش است؛ داستان رسمی بازی هنوز نوشته نشده است."
+    },
+    {
+      "id": "underground",
+      "type": "image",
+      "src": "media/images/demo-underground.svg",
+      "title": "زیرزمین",
+      "text": "هر صحنه را می‌توان از طریق فایل JSON در GitHub ویرایش یا با فایل ویدیویی MP4/WebM جایگزین کرد."
+    }
+  ]
+}
