@@ -1,0 +1,36 @@
+name: Validate story content
+
+on:
+  pull_request:
+    paths:
+      - "game/public/content/**"
+      - "game/src/modules/narrative/**"
+      - "game/src/main.ts"
+      - "game/index.html"
+      - "game/scripts/validate-story.mjs"
+      - "game/package.json"
+      - ".github/workflows/story-content-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  story:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: game
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate content manifest and media
+        run: npm run validate:story
+      - name: Unit tests
+        run: npm test
+      - name: Type-check and build
+        run: npm run build
