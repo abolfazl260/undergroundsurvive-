@@ -32,6 +32,7 @@ button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3c
 
 .side-label{margin:20px 0 10px;color:#c9dadf;font-weight:700;font-size:12px}
 .tools-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.tools-grid [data-tool="navigate"]{grid-column:1/-1}
 .tool-button{border:1px solid #3b5364;background:#1b2c3c;color:#d6e6ed;border-radius:9px;padding:12px 6px;font-size:12px;white-space:nowrap}
 .tool-button:hover,.tool-button.active{background:#254c46;border-color:#81d6b8;color:#fff}
 .floor-button{margin-top:18px;width:100%;border-radius:10px;border:1px solid #528e84;background:#18483c;color:#bcf2df;font-weight:700;padding:13px 12px;font-size:12px}
@@ -163,6 +164,18 @@ button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3c
 #confirm-upgrade:disabled{opacity:.45;cursor:not-allowed}
 #confirm-upgrade:not(:disabled):hover{background:#317e65}
 
+/* Resource production: compact tiles shared across mobile and desktop. */
+.resource-panel{direction:rtl;margin:-7px 0 16px;padding:12px 14px;border:1px solid #31545a;border-radius:13px;background:#122733}
+.resource-panel-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;color:#e1f5ee;font-size:12px}
+.resource-panel-header span{color:#b4ced3;font-size:11px}
+.resource-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:11px}
+.resource-item{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;padding:10px;background:#193442;border:1px solid #315363;border-radius:9px;font-size:12px}
+.resource-item span{color:#a9d2d1}
+.resource-item strong{direction:ltr;font-size:13px;color:#f5f3d6}
+#resource-warning{margin:9px 0 0;font-size:11px;line-height:1.7;color:#a8cbcc}
+#resource-warning[data-shortage="true"]{color:#ffb7a9}
+@media(max-width:640px){.resource-panel{padding:10px;margin:0 0 12px}.resource-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.resource-item{padding:8px;font-size:11px}}
+
 /* Localization: preserve desktop/mobile layout while making text flow follow locale. */
 html[dir="ltr"] .sidebar, html[dir="ltr"] .player-profile,
 html[dir="ltr"] .hud-bar, html[dir="ltr"] .scene-header,
@@ -177,3 +190,5 @@ html[dir="ltr"] .coin-unit {direction:ltr}
 .menu-language select {width:100%;margin-top:12px;padding:11px 12px;border-radius:9px;
   border:1px solid #537783;background:#203745;color:#eef9ff;font:inherit}
 .menu-language select:focus-visible {outline:2px solid #a4e3cd;outline-offset:2px}
+
+html[dir="ltr"] .resource-panel {direction:ltr}

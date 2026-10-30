@@ -51,6 +51,19 @@
           <div class="hud-tile-content"><span class="hud-label">خانه‌های حفاری‌شده</span><strong id="hud-excavated">۱۹</strong></div>
         </div>
       </section>
+      <section class="resource-panel" aria-label="منابع و چرخهٔ زمانی پناهگاه">
+        <div class="resource-panel-header">
+          <strong>تولید و مصرف منابع</strong>
+          <span>چرخه <output id="resource-tick-count">۰</output> · چرخهٔ بعد در <output id="resource-next-tick">۵</output> ثانیه</span>
+        </div>
+        <div class="resource-grid">
+          <div class="resource-item"><span>برق</span><strong id="resource-power">۱۲ / ۳۰</strong></div>
+          <div class="resource-item"><span>غذا</span><strong id="resource-food">۱۲ / ۳۰</strong></div>
+          <div class="resource-item"><span>سنگ معدن</span><strong id="resource-ore">۰ / ۳۰</strong></div>
+          <div class="resource-item"><span>تجهیزات</span><strong id="resource-supplies">۰ / ۳۰</strong></div>
+        </div>
+        <p id="resource-warning" role="status" aria-live="polite">تولید هر ۵ ثانیه از زمان فعال بازی محاسبه می‌شود.</p>
+      </section>
       <main class="workspace">
         <section class="play-area" aria-label="نمای دوبعدی پناهگاه">
           <div class="scene-header"><span>ساخت طبقات روی زمین و حفاری زیرزمین</span><span class="live-dot">LOCAL SAVE</span></div>
@@ -90,6 +103,7 @@
             <button type="button" class="tool-button ui-button" data-tool="move" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="move" aria-hidden="true">↔</span><span class="ui-control-label">جابه‌جایی</span></button>
             <button type="button" class="tool-button ui-button" data-tool="upgrade" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="arrow-up" aria-hidden="true">↑</span><span class="ui-control-label">ارتقا</span></button>
             <button type="button" class="tool-button ui-button" data-tool="remove" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="trash" aria-hidden="true">×</span><span class="ui-control-label">تخریب</span></button>
+            <button type="button" class="tool-button ui-button" data-tool="navigate" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="route" aria-hidden="true">•</span><span class="ui-control-label">مسیریابی آدمک</span></button>
           </div>
           <section class="upgrade-panel" id="upgrade-panel" aria-label="جزئیات ارتقای اتاق" aria-live="polite" hidden>
             <strong id="upgrade-title">یک اتاق انتخاب کنید</strong>
