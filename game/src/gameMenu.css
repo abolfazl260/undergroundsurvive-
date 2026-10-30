@@ -246,6 +246,10 @@ html[dir="ltr"] .game-menu .menu-choice-copy { direction: ltr; text-align: left;
   .game-menu .menu-content { padding-top: 9px; padding-bottom: 10px; }
   .game-menu .menu-save-note { margin-top: 9px; }
 }
+.game-menu.reduce-motion .menu-choice-list .menu-choice,
+.game-menu.reduce-motion .menu-close { transition: none; }
+.game-menu.reduce-motion .menu-choice-list .menu-choice:hover,
+.game-menu.reduce-motion .menu-choice-list .menu-choice:active { transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .game-menu .menu-choice-list .menu-choice, .game-menu .menu-close { transition: none; }
   .game-menu .menu-choice-list .menu-choice:hover,
