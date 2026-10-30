@@ -46,13 +46,12 @@ missions, persistence, or the existing artwork files.
 ## Level 2 room art completion (#95)
 
 Nine additional upgraded interiors are raster WebP sprites, with no embedded people or text.
-The 8-frame `level2-additions.webp` atlas (4 columns × 2 rows) uses 160×53 frames;
-`level2-additions-hd.webp` uses 360×120 source-derived frames. Ordered frames:
+The 8-frame `level2-additions-v2.webp` atlas (4 columns × 2 rows) uses 160×53 frames;
+`level2-additions-v2-hd.webp` uses 560×186 native-source-derived frames (3.5×). Ordered frames:
 habitat, hydroponics, workshop, storage, mine, recreation, guardPost, ventilation.
 
-The three-cell command room uses a dedicated panoramic WebP (`level2-command.webp`,
-240×53; `level2-command-hd.webp`, 540×120). At 1× the complete new artwork
-totals about 19 KiB; high-density variants are loaded through `AssetManager`.
+The three-cell command room uses a dedicated true panoramic source, rather than mirrored edges (`level2-command-v2.webp`, 240×53; `level2-command-v2-hd.webp`, 840×186).
+The new 1× images total about 25 KiB; 3.5× source-derived variants are loaded through `AssetManager`. The images preserve the existing industrial bunker cutaway framing, have no embedded labels or characters, and avoid geometric stretching.
 The five pre-existing Level 2 frames (generator, waterTreatment, kitchen, medbay,
 laboratory) are unchanged.
 
@@ -60,3 +59,11 @@ laboratory) are unchanged.
 level >= 2; when an upgraded texture or frame is unavailable, existing Level 1
 art or the basic graphical placeholder remains available. No new artwork is
 defined for Level 3 yet.
+
+
+### Level 2 visual quality revision
+
+- Replaced the cropped comparison-sheet artwork with high-detail purpose-built bunker interiors for all nine upgraded room types; the legacy originals remain present for older cached clients.
+- Kept the eight-frame row-major mapping and three-cell command asset contract; upgraded HD sizes to 560×186 and 840×186 respectively, compared with 360×120 and 540×120 before. New versioned filenames avoid stale image caching.
+- Tests verify every WebP image's true encoded pixel dimensions, atlas frame count, mapping and fallback. The five other pre-existing Level 2 rooms are unchanged.
+- Verify mobile 75%/100%/250% zoom visually after deployment.
