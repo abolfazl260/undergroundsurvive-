@@ -105,8 +105,8 @@ export class GameSession {
     const block=capability?this.commandState.block(capability,this.world.rooms,this.resources.snapshot().stock.power):null;
     return block?{ok:false,reason:CAPABILITY_REASONS[block]}:{ok:true};
   }
-  moveRoom(id:string,x:number,y:number):CommandResult {this.commandStatus();const result=this.world.move(id,x,y);this.survivors.setLayout(this.world);this.kitchenState.sync(this.world.rooms);this.lifeSupportState.sync(this.world.rooms);this.commandStatus();return result;
-  removeRoom(id:string):CommandResult {this.commandStatus();const result=this.world.remove(id);if(result.ok)this.powerState={...this.powerState,overrides:this.powerState.overrides.filter(o=>o.roomId!==id)};this.survivors.setLayout(this.world);this.lifeSupportState.sync(this.world.rooms);this.commandStatus();return result;
+  moveRoom(id:string,x:number,y:number):CommandResult {this.commandStatus();const result=this.world.move(id,x,y);this.survivors.setLayout(this.world);this.kitchenState.sync(this.world.rooms);this.lifeSupportState.sync(this.world.rooms);this.commandStatus();return result;}
+  removeRoom(id:string):CommandResult {this.commandStatus();const result=this.world.remove(id);if(result.ok)this.powerState={...this.powerState,overrides:this.powerState.overrides.filter(o=>o.roomId!==id)};this.survivors.setLayout(this.world);this.lifeSupportState.sync(this.world.rooms);this.commandStatus();return result;}
   private radiationState = new RadiationField();
   private radiationOccupants: readonly RadiationOccupant[] = [];
   get radiation():RadiationField {return this.radiationState;}
