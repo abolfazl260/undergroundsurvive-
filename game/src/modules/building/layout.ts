@@ -1,3 +1,4 @@
+import { COMMAND_CENTER_DEFINITION } from '../command/commandCenter';
 import { ROOM_DEFINITIONS, type BuildableRoomType, type RoomType } from './catalog';
 import { MAX_ROOM_LEVEL } from './upgrades';
 import { validatePlacement, hasStructuralSupport, type PlacementResult, type Room } from './placement';
@@ -39,6 +40,7 @@ export class BuildingLayout {
     return canEditFootprint(room.y, room.height, this.policy);
   }
   canPlace(type: BuildableRoomType, x: number, y: number): PlacementResult {
+    if(type==='command'&&COMMAND_CENTER_DEFINITION.singleton&&this.data.some(r=>r.type==='command'))return {ok:false,reason:'فقط یک اتاق فرماندهی مجاز است.'};
     return validatePlacement(this.data, type, x, y, this.terrain, this.policy);
   }
   place(type: BuildableRoomType, x: number, y: number): PlacementResult {
@@ -53,7 +55,7 @@ export class BuildingLayout {
   }
   canMove(id: string, x: number, y: number): PlacementResult {
     const room = this.data.find((r) => r.id === id);
-    if (!room || room.type === 'command')
+    if (!room)
       return { ok: false, reason: 'این اتاق قابل جابه‌جایی نیست.' };
     if (!this.canEditRoom(room))
       return { ok: false, reason: LEGACY_SURFACE_READ_ONLY_REASON };
@@ -74,8 +76,8 @@ export class BuildingLayout {
   }
   remove(id: string): PlacementResult {
     const room = this.data.find((r) => r.id === id);
-    if (!room || room.type === 'command')
-      return { ok: false, reason: 'اتاق فرمان قابل حذف نیست.' };
+    if (!room)
+      return { ok: false, reason: 'ابتدا یک اتاق را انتخاب کنید.' };
     if (!this.canEditRoom(room))
       return { ok: false, reason: LEGACY_SURFACE_READ_ONLY_REASON };
     const remaining = this.data.filter((r) => r.id !== id);
@@ -160,8 +162,7 @@ export class BuildingLayout {
       const others = rooms.filter((other) => other.id !== room.id);
       if (!validatePlacement(others, room.type, room.x, room.y, terrain, LEGACY_SURFACE_POLICY).ok) return null;
     }
-    if (!rooms.some((r) => r.id === 'initial-command' && r.type === 'command') ||
-        !hasStructuralSupport(rooms, terrain)) return null;
+    if (!hasStructuralSupport(rooms, terrain)) return null;
     return new BuildingLayout({
       schemaVersion: 2, terrain: terrain.snapshot(),
       rooms, nextRoomId: data.nextRoomId!

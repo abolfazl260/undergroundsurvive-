@@ -3,6 +3,16 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
+  "ارتقا در دسترس نیست": "Upgrade unavailable",
+  "اتاق فرماندهی": "Command center",
+  "فقط یک اتاق فرماندهی مجاز است.": "Only one command center is allowed.",
+  "این قابلیت هنوز فعال نشده است.": "This capability is not implemented/enabled yet.",
+  "اتاق فرماندهی فعال لازم است.": "An active command center is required.",
+  "فرماندهی برق کافی ندارد.": "Command center has insufficient power.",
+  "فرماندهی سطح ۲ لازم است.": "Command center level 2 is required.",
+  "ارتقای فرماندهی به برق و درخواست جدید نیاز دارد.": "Command upgrade requires power and a new operation.",
+  "فرماندهی ارتقا یافت.": "Command center upgraded.",
+  "برای تخریب روی اتاق کلیک کنید. مجوزهای کسب‌شده حفظ می‌شوند.": "Tap a room to demolish it. Earned capabilities are retained.",
   "کاهش تشعشع": "Radiation mitigation",
   "منطقهٔ تشعشع انتخاب شد.": "Radiation cell selected.",
   "پاکسازی انجام شد.": "Decontamination completed.",

@@ -361,7 +361,7 @@ export class GameScene extends Phaser.Scene {
       build: 'برای ساخت، یک خانهٔ خالی و آماده را انتخاب کنید.',
       dig: 'برای حفاری روی زمین بستهٔ زیرزمینی مجاور فضای باز بزنید.',
       move: 'ابتدا اتاق را انتخاب کنید و سپس مکان جدید آن را لمس کنید.',
-      remove: 'برای تخریب روی اتاق کلیک کنید. اتاق فرمان محفوظ است.',
+      remove: 'برای تخریب روی اتاق کلیک کنید. مجوزهای کسب‌شده حفظ می‌شوند.',
       upgrade: 'اتاق را انتخاب کنید، جزئیات ارتقا را ببینید و سپس پرداخت را تأیید کنید.',
       navigate: 'ابتدا آدمک را لمس کنید، سپس اتاق مقصد را انتخاب کنید. مسیر فقط از زمین قابل‌عبور می‌گذرد.'
     };
@@ -381,6 +381,13 @@ export class GameScene extends Phaser.Scene {
     this.notify(result.ok ? 'طبقهٔ جدید با پرداخت ' + cost + ' سکه آزاد شد؛ برای ساخت تکیه‌گاه لازم است.' : result.reason);
   }
 
+  commandPopulation():number{return this.traffic?.residents.length??0;}
+  upgradeCommandCenter():void {
+    if(this.gameplayPaused)return;
+    const id=this.session.commandStatus().activeRoomId;
+    const result=id?this.session.upgradeRoom(id,crypto.randomUUID()):{ok:false as const,reason:'اتاق فرماندهی فعال لازم است.'};
+    if(result.ok)this.paintRooms();this.notify(result.ok?'فرماندهی ارتقا یافت.':result.reason);
+  }
   toggleRadiation():void {this.radiationOverlay=!this.radiationOverlay;this.paintRadiation();}
   radiationView() {return {enabled:this.radiationOverlay,cell:{...this.radiationSelection}};}
   cleanupRadiation():void {
@@ -454,7 +461,7 @@ export class GameScene extends Phaser.Scene {
       this.notify(details ? details.blockedReason ?? 'این اتاق در بالاترین سطح قرار دارد.' : 'اتاق انتخاب‌شده وجود ندارد.');
       return;
     }
-    const result = this.session.upgradeRoom(id);
+    const result = this.session.upgradeRoom(id,crypto.randomUUID());
     if (result.ok) this.paintRooms();
     this.onUpgradeSelection(this.session.upgradeDetails(id));
     this.paintPreview();
@@ -529,7 +536,7 @@ export class GameScene extends Phaser.Scene {
     } else if (this.mode === 'move') {
       const room = this.layout.getRoomAt(x, y);
       if (!this.pendingMoveId) {
-        if (!room || room.type === 'command' || !this.layout.canEditRoom(room)) {
+        if (!room || !this.layout.canEditRoom(room)) {
           this.onAudioCue('error');
           this.notify(room && !this.layout.canEditRoom(room) ? LEGACY_SURFACE_READ_ONLY_REASON :
             'برای جابه‌جایی ابتدا یک اتاق معمولی انتخاب کنید.');
@@ -548,7 +555,7 @@ export class GameScene extends Phaser.Scene {
         this.notify('انتخاب جابه‌جایی لغو شد.');
         return;
       }
-      result = this.layout.move(this.pendingMoveId, x, y);
+      result = this.session.moveRoom(this.pendingMoveId, x, y);
       successMessage = 'اتاق به محل جدید منتقل شد.';
       if (result.ok) this.pendingMoveId = null;
     } else {
@@ -558,7 +565,7 @@ export class GameScene extends Phaser.Scene {
         this.notify('در این موقعیت اتاقی وجود ندارد.');
         return;
       }
-      result = this.layout.remove(room.id);
+      result = this.session.removeRoom(room.id);
       successMessage = 'اتاق تخریب شد.';
     }
     if (result.ok) {
@@ -831,7 +838,7 @@ export class GameScene extends Phaser.Scene {
     } else if (this.mode === 'build') {
       const d = ROOM_DEFINITIONS[this.selectedRoom];
       width = d.width; height = d.height;
-      valid = this.layout.canPlace(this.selectedRoom, x, y).ok &&
+      valid = this.session.canBuild(this.selectedRoom, x, y).ok &&
         this.session.canAfford(this.session.buildCost(this.selectedRoom));
     } else if (this.mode === 'dig') {
       valid = this.layout.terrain.canDig(x, y).ok && this.session.canAfford(this.session.digCost());
@@ -849,7 +856,7 @@ export class GameScene extends Phaser.Scene {
         this.mode === 'navigate' ?
           !!this.traffic?.getResident(this.selectedResidentId) &&
           findRoomPath(this.layout, this.traffic.getResident(this.selectedResidentId)!.cell, room.id) !== null :
-          room.type !== 'command' && this.layout.canEditRoom(room);
+          this.layout.canEditRoom(room);
     } else return;
     const { left, top } = toPixels(startX, startY);
     const w = width * WORLD.cellSize - 4, h = height * WORLD.cellSize - 4;

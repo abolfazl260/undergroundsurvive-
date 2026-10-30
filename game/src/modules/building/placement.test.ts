@@ -74,7 +74,7 @@ describe('underground-only construction', () => {
     expect(layout.move(id, 9, -1).ok).toBe(true);
     expect(layout.move(id, 9, 0).ok).toBe(false);
     expect(layout.getRoomAt(9, -1)?.id).toBe(id);
-    expect(layout.move('initial-command', 4, -1).ok).toBe(false);
+    expect(layout.move('initial-command', 4, -1).ok).toBe(true);
     expect(layout.upgrade(id).ok).toBe(true);
     expect(layout.upgrade(id).ok).toBe(true);
     expect(layout.upgrade(id).ok).toBe(false);
