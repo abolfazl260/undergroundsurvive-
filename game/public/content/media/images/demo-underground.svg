@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-label="نمای نمونهٔ اتاق‌ها در زیرزمین">
+  <defs><linearGradient id="rock" x2="0" y2="1"><stop stop-color="#302d36"/><stop offset="1" stop-color="#172b33"/></linearGradient></defs>
+  <rect width="960" height="540" fill="url(#rock)"/>
+  <g stroke="#49505a" stroke-width="4" opacity=".5"><path d="M0 97l90 23 56-44 80 27 70-42 99 29 60-29 95 45 76-20 81 41 100-20 153 34M0 444l93-40 78 27 87-25 98 41 75-20 98 29 95-26 84 17 86-23 166 27"/></g>
+  <g stroke="#84a0a3" stroke-width="9" fill="#253e47">
+    <rect x="100" y="137" width="330" height="127" rx="12"/>
+    <rect x="530" y="137" width="330" height="127" rx="12"/>
+    <rect x="100" y="295" width="330" height="127" rx="12"/>
+    <rect x="530" y="295" width="330" height="127" rx="12"/>
+  </g>
+  <g fill="#72b5aa"><rect x="124" y="164" width="130" height="14" rx="3"/><rect x="554" y="164" width="145" height="14" rx="3"/><rect x="124" y="325" width="138" height="14" rx="3"/><rect x="554" y="325" width="154" height="14" rx="3"/></g>
+  <g fill="#a8b8ad"><rect x="133" y="203" width="64" height="35" rx="4"/><rect x="218" y="203" width="64" height="35" rx="4"/><rect x="560" y="203" width="110" height="35" rx="4"/><rect x="690" y="203" width="110" height="35" rx="4"/></g>
+  <g fill="#bd996b"><rect x="133" y="360" width="255" height="36" rx="6"/><rect x="560" y="359" width="110" height="39" rx="6"/><rect x="699" y="359" width="105" height="39" rx="6"/></g>
+  <rect x="462" y="65" width="36" height="404" fill="#122a36" stroke="#779b9f" stroke-width="6"/>
+  <rect x="467" y="230" width="26" height="72" fill="#f2bc69"/>
+  <g stroke="#c5af85" stroke-width="3" opacity=".4"><path d="M24 18l124 33M735 55l140-35M12 516l140-40M725 489l190 23"/></g>
+</svg>
