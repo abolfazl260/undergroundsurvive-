@@ -19,6 +19,7 @@ import { AssetManager } from './assets/assetManager';
 import { TWO_CELL_CONSTRUCTION_ART_ASSET, TwoCellConstructionAnimation } from './twoCellConstruction';
 import { DIGGING_ART_ASSET, DiggingAnimation } from './diggingAnimation';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
+import { roomCorridors } from './roomCorridors';
 import { clampZoom, constrainScroll, fitCameraZoom, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport, type ZoomLimits } from './viewport';
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
@@ -820,6 +821,8 @@ export class GameScene extends Phaser.Scene {
     this.constructionViews.clear();
     this.roomBadges = [];
     this.airBadges = [];
+    // Draw connector passages over the room artwork, then restore UI labels on top.
+    const roomLabels: Phaser.GameObjects.GameObject[] = [];
     for (const room of this.layout.rooms) {
       const definition = ROOM_DEFINITIONS[room.type];
       const { left, top } = toPixels(room.x, room.y);
@@ -884,8 +887,8 @@ export class GameScene extends Phaser.Scene {
           }
         }
       }
-      graphics.lineStyle(1.5 + (room.level - 1) * 0.6, definition.accent, 0.9)
-        .strokeRoundedRect(left + 2, top + 2, width, height, 4);
+      // The illustrated steel room shell already provides its own border.
+      // Removing the coloured rounded outline restores that original frame.
       this.roomLayer.add(graphics);
 
       // At high zoom, keep the nameplate at its original screen size so it
@@ -903,14 +906,14 @@ export class GameScene extends Phaser.Scene {
       }).setOrigin(1, 0).setResolution(3);
       badge.add([plate, name, level]);
       this.roomBadges.push(badge);
-      this.roomLayer.add(badge);
+      roomLabels.push(badge);
       if (room.type === 'ventilation') {
         const airLabel = this.add.text(left + 7, top + height - 14, '', {
           fontSize: '10px', color: '#a8fff0', fontFamily: getLocale() === 'fa' ? 'Vazirmatn, Tahoma, Arial, sans-serif' : 'Arial', fontStyle: 'bold',
           backgroundColor: '#09202bd9', padding: {x:3,y:1},
         }).setResolution(3);
         this.airBadges.push({id: room.id, label: airLabel});
-        this.roomLayer.add(airLabel);
+        roomLabels.push(airLabel);
       }
       if (room.type === 'kitchen') {
         const cycle = this.session.kitchen.snapshot().cycles.find(c => c.roomId === room.id);
@@ -919,13 +922,50 @@ export class GameScene extends Phaser.Scene {
           const cooking = this.add.text(left + 8, top + height - 14,
             (cycle.status === 'completed' ? '✓' : cycle.status === 'running' ? '♨' : 'Ⅱ') + ' ' + pct + '%',
             { fontSize: '10px', fontFamily: getLocale() === 'fa' ? 'Vazirmatn, Tahoma, Arial, sans-serif' : 'Arial', color: '#fff5d5', backgroundColor: '#222222aa' }).setResolution(3);
-          this.roomLayer.add(cooking);
+          roomLabels.push(cooking);
         }
       }
     }
+    this.paintRoomCorridors();
+    this.roomLayer.add(roomLabels); // Names and status remain legible above the doors.
     this.updateBadgeScale();
     this.updateAirBadges();
     this.refreshConstructionViews();
+  }
+
+  /** Small steel passages only at actual same-floor, side-by-side room joins. */
+  private paintRoomCorridors(): void {
+    if (!this.roomLayer) return;
+    // A room that's still under construction cannot have a finished doorway.
+    const finished = this.layout.rooms.filter(room => this.construction.visual(room.id) === null);
+    const passages = roomCorridors(finished);
+    if (!passages.length) return;
+    // One batched Graphics object for all passages: no extra textures or scene objects per door.
+    const g = this.add.graphics();
+    for (const { left, top, width, height } of passages) {
+      // Shadowed bulkhead; it bridges the tiny gap between the two pre-painted shells.
+      g.fillStyle(0x071015, 0.98).fillRoundedRect(left - 1, top - 2, width + 2, height + 2, 2);
+      g.fillStyle(0x48535a, 1).fillRect(left, top, width, height);
+      g.fillStyle(0x152027, 1).fillRect(left + 3, top + 5, width - 6, height - 11);
+      g.fillStyle(0x303d44, 1).fillRect(left + 5, top + 7, width - 10, height - 15);
+      // Identical metal jambs and bolts for every room type and level.
+      g.fillStyle(0x626d71, 1).fillRect(left + 1, top + 2, 2, height - 5);
+      g.fillRect(left + width - 3, top + 2, 2, height - 5);
+      g.fillStyle(0x9ca5a7, 0.85).fillRect(left + 1, top + 3, 1, height - 8);
+      g.fillStyle(0x28343d, 1).fillRect(left, top, width, 4);
+      g.fillStyle(0x9ba5a6, 1).fillRect(left + 1, top, width - 2, 1);
+      g.fillStyle(0xe5a950, 0.95).fillRect(left + 4, top + 2, width - 8, 2);
+      // A narrow lit steel threshold suggests a continuous walkable passage.
+      g.fillStyle(0x303a3c, 1).fillRect(left, top + height - 6, width, 5);
+      g.fillStyle(0xd69b46, 0.95).fillRect(left + 3, top + height - 5, width - 6, 2);
+      g.fillStyle(0x7b8588, 0.9).fillRect(left + 1, top + height - 2, width - 2, 1);
+      g.fillStyle(0xe0b978, 0.9)
+        .fillRect(left + 1, top + 8, 1, 1)
+        .fillRect(left + width - 2, top + 8, 1, 1)
+        .fillRect(left + 1, top + height - 9, 1, 1)
+        .fillRect(left + width - 2, top + height - 9, 1, 1);
+    }
+    this.roomLayer.add(g);
   }
 
   /** Updates only a handful of existing sprites, keeping mobile redraws cheap. */
