@@ -38,6 +38,18 @@ export function mountGameDock(root: Document = document): {
   const upgradePanel = sheet.querySelector<HTMLElement>('#upgrade-panel');
   const playArea = root.querySelector<HTMLElement>('.play-area');
   if (upgradePanel && playArea) playArea.append(upgradePanel);
+  // Measure actual wrapping and safe-area padding rather than assuming a dock height.
+  const measureHud = () => {
+    root.documentElement.style.setProperty('--hud-dock-occupied', dock.getBoundingClientRect().height + 'px');
+    root.documentElement.style.setProperty('--hud-top-occupied', topbar.getBoundingClientRect().height + 'px');
+  };
+  if (typeof ResizeObserver !== 'undefined') {
+    const observer = new ResizeObserver(measureHud);
+    observer.observe(dock);
+    observer.observe(topbar);
+  }
+  measureHud();
+  root.defaultView?.addEventListener('resize', measureHud);
   let current: GameSheet = null;
   const collapseResources = () => {
     resourcePanel.dataset.expanded = 'false';

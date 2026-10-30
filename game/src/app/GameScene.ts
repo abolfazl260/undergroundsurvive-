@@ -12,7 +12,7 @@ import { findRoomPath, walkPoint } from '../modules/characters/pathfinding';
 import { ResidentTraffic } from '../modules/characters/traffic';
 import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
-import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE } from './roomArt';
+import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE, LAB_WATER_ART_ASSET, LAB_WATER_FRAME_BY_TYPE } from './roomArt';
 import { SURVIVOR_ART, survivorGeometry, survivorFrame, hitSurvivor } from './survivorArt';
 import { AssetManager } from './assets/assetManager';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
@@ -29,7 +29,7 @@ export type ToolMode = 'elevator' | 'build' | 'dig' | 'move' | 'remove' | 'upgra
 export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
   private readonly assets = new AssetManager(
-    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART], import.meta.env.BASE_URL,
+    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART, LAB_WATER_ART_ASSET], import.meta.env.BASE_URL,
     Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
   );
   private get layout(): BuildingLayout { return this.session.layout; }
@@ -114,7 +114,6 @@ export class GameScene extends Phaser.Scene {
     this.roomLayer = this.add.container(0, 0).setDepth(3);
     this.residentPathLayer = this.add.graphics().setDepth(3.5);
     this.preview = this.add.graphics().setDepth(6);
-    this.drawLevelMarkers();
     this.paintTerrain();
     this.paintRooms();
     this.addResident();
@@ -604,15 +603,6 @@ export class GameScene extends Phaser.Scene {
     this.add.text(20, 566, 'UNDERGROUND / EXCAVATE BELOW', { fontSize: '13px', color: '#cbb7a0' }).setDepth(2);
   }
 
-  private drawLevelMarkers(): void {
-    for (let y: number = WORLD.minY; y <= WORLD.maxY; y++) {
-      const { top } = toPixels(0, y);
-      this.add.text(68, top + 22, y > 0 ? '+' + y : String(y), {
-        fontSize: '13px', fontFamily: 'Arial', color: y >= 0 ? '#b5d4df' : '#b6a58f'
-      }).setOrigin(0.5).setDepth(2).setResolution(3);
-    }
-  }
-
   private paintTerrain(): void {
     if (!this.terrainLayer) return;
     const g = this.terrainLayer;
@@ -652,9 +642,10 @@ export class GameScene extends Phaser.Scene {
       const { left, top } = toPixels(room.x, room.y);
       const width = room.width * WORLD.cellSize - 4;
       const height = room.height * WORLD.cellSize - 4;
-      const specialFrame = GARDEN_MEDBAY_FRAME_BY_TYPE[room.type];
+      const labWaterFrame = LAB_WATER_FRAME_BY_TYPE[room.type];
+      const specialFrame = labWaterFrame ?? GARDEN_MEDBAY_FRAME_BY_TYPE[room.type];
       const frame = specialFrame ?? ROOM_FRAME_BY_TYPE[room.type];
-      const assetKey = specialFrame === undefined ? ROOM_ART_ASSET.key : GARDEN_MEDBAY_ART_ASSET.key;
+      const assetKey = labWaterFrame !== undefined ? LAB_WATER_ART_ASSET.key : specialFrame === undefined ? ROOM_ART_ASSET.key : GARDEN_MEDBAY_ART_ASSET.key;
 
       const texture = frame === undefined ? null : this.assets.resolve(
         assetKey, this.textures, frame

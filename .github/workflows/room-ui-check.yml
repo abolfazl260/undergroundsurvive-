@@ -1,0 +1,41 @@
+name: Room UI visual checks
+on:
+  pull_request:
+    paths: ['game/**', '.github/workflows/room-ui-check.yml']
+permissions:
+  contents: read
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser and build
+        working-directory: game
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+          npm run build
+      - name: Capture responsive after and before evidence
+        working-directory: game
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          npm run preview -- --port 4173 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173 >/dev/null && break || sleep 1; done
+          node scripts/capture-room-ui.mjs http://127.0.0.1:4173 ui-evidence after
+          git worktree add /tmp/room-ui-before "$BASE_SHA"
+          ln -s "$PWD/node_modules" /tmp/room-ui-before/game/node_modules
+          (cd /tmp/room-ui-before/game && npm run build && npm run preview -- --port 4174) &
+          for i in $(seq 1 90); do curl -fsS http://127.0.0.1:4174 >/dev/null && break || sleep 1; done
+          node scripts/capture-room-ui.mjs http://127.0.0.1:4174 ui-evidence before
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: room-ui-before-after
+          path: game/ui-evidence/
