@@ -1,4 +1,4 @@
-:root{font-family:Tahoma,Arial,sans-serif;color:#e9f0f5;background:#07101c;font-synthesis:none}
+:root{font-family:"Vazirmatn",Tahoma,Arial,sans-serif;color:#e9f0f5;background:#07101c;font-synthesis:none}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 23% 3%,#182b3c 0,transparent 46%),#08111d}
 button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3cd;outline-offset:3px}
 #app{max-width:1510px;margin:0 auto;padding:18px 24px 28px}
@@ -94,7 +94,7 @@ button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3c
 .hud-tile-coins .hud-icon{background:#69512a;color:#ffdb85}
 .hud-tile-content{min-width:0;display:grid;gap:5px}
 .hud-label{font-size:11px;color:#b0c2cf}
-.hud-tile-content strong{font:700 clamp(14px,1.7vw,19px)/1.4 Tahoma,Arial,sans-serif;color:#f1f7fc;overflow-wrap:anywhere}
+.hud-tile-content strong{font:700 clamp(14px,1.7vw,19px)/1.4 "Vazirmatn",Tahoma,Arial,sans-serif;color:#f1f7fc;overflow-wrap:anywhere}
 .hud-tile-coins strong{color:#ffe19b}
 .hud-values{direction:ltr;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .hud-change{font-size:11px;font-weight:700;color:#a3b0b9;white-space:nowrap}
@@ -374,3 +374,7 @@ html[dir="ltr"] .achievements-list { direction:ltr; text-align:left; }
   .achievements-header { padding:calc(16px + env(safe-area-inset-top)) 14px 14px; }
   .achievements-list { padding:10px 12px calc(20px + env(safe-area-inset-bottom)); }
 }
+
+/* Preserve the Latin UI stack when switching from Persian to English. */
+html[lang="en"]{font-family:system-ui,Arial,sans-serif}
+html[lang="en"] .hud-tile-content strong{font-family:system-ui,Arial,sans-serif}
