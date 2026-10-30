@@ -22,6 +22,22 @@
 .topbar .hud-tile {min-height:44px; height:44px; min-width:85px; padding:6px 9px;}
 .topbar .hud-tile-coins {background:rgba(53,35,17,.75);border-color:#b58b45;}
 .topbar .resource-panel {flex:0 1 auto; background:rgba(7,27,39,.7);}
+.header-resources {
+  display:flex;flex:0 1 auto;gap:6px;align-items:center;justify-content:center;
+  direction:rtl;min-width:0;
+}
+.header-resource {
+  min-width:65px;display:inline-flex;gap:6px;align-items:center;justify-content:center;
+  padding:9px 8px;border-radius:10px;border:1px solid rgba(91,165,179,.34);
+  background:rgba(10,38,51,.63);
+}
+.header-resource-mark {font-size:19px;color:#77ebd5;line-height:1;}
+.header-resource:nth-child(2) .header-resource-mark {color:#f3bd65;}
+.header-resource:nth-child(3) .header-resource-mark {color:#9be0ff;}
+.header-resource:nth-child(4) .header-resource-mark {color:#c4d9e0;}
+.header-resource strong {color:#e8f8fa;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
+@media(max-width:1180px) {.header-resources {display:none;}}
+
 .topbar .resource-panel-header {min-height:42px;}
 .topbar .resource-panel[data-expanded="true"] {z-index:55;}
 .topbar #resource-details-toggle {color:#bcfff0;}
@@ -59,7 +75,7 @@
 #game-sheet {
   position:absolute; z-index:43; inset:auto auto calc(var(--hud-dock-occupied, 64px) + 2px) 50%;
   transform:translateX(-50%);
-  width:min(1260px,calc(100vw - 24px)); max-width:none;
+  width:min(1600px,calc(100vw - 24px)); max-width:none;
   max-height:min(55dvh,540px);padding:14px clamp(12px,2vw,23px);
   border:1px solid rgba(84,200,184,.55); border-radius:18px 18px 10px 10px;
   color:#e9fff7; background:linear-gradient(125deg,rgba(5,23,34,.98),rgba(11,39,50,.97));
@@ -85,7 +101,7 @@
   flex:0 0 auto;min-height:43px;padding:9px clamp(13px,1.65vw,22px);
   border:1px solid #315e68;border-radius:11px;
   background:linear-gradient(180deg,#132f3f,#0b2432);color:#d4e8e7;
-  font:700 12px/1.4 inherit;white-space:nowrap;cursor:pointer;
+  font-size:12px;font-weight:700;line-height:1.4;font-family:inherit;white-space:nowrap;cursor:pointer;
 }
 .room-categories button[aria-pressed="true"] {
   background:linear-gradient(180deg,#128979,#0b584e);color:#effffb;
