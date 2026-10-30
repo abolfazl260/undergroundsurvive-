@@ -20,11 +20,11 @@ import {
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../building/catalog';
 import { getRoomPerformance, MAX_ROOM_LEVEL, type RoomPerformance } from '../building/upgrades';
 import type { PlacementResult } from '../building/placement';
-import { AchievementTracker, type AchievementSnapshot } from '../achievements/achievements';
+import { ACHIEVEMENTS, AchievementTracker, rewardForAchievement, type AchievementSnapshot } from '../achievements/achievements';
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 13;
+  schemaVersion: 14;
   air: AirSystemState;
   kitchen: CookingSnapshot;
   laboratories:LaboratoryFacility[];
@@ -161,7 +161,7 @@ export class GameSession {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
     const version=value.schemaVersion;
-    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>13||typeof value.demoBonusClaimed!=='boolean')return null;
+    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>14||typeof value.demoBonusClaimed!=='boolean')return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
     const resources = (version>=3)
@@ -210,7 +210,7 @@ export class GameSession {
       if (kitchen.snapshot().cycles.some(c => !world.rooms.some(r => r.id === c.roomId && r.type === 'kitchen'))) return null;
       session.kitchenState = kitchen;
     }
-    if (version === 13) {
+    if (version >= 13) {
       const air = AirSystem.restore(value.air);
       if (!air || air.snapshot().nowMs !== resources.tickCount * 5000) return null;
       session.airState = air;
@@ -223,6 +223,18 @@ export class GameSession {
     session.survivors.reconcile(session.resources.snapshot().stock.power);
     session.commandStatus();
     session.waterState.sync(world.rooms);
+    const rewarded = wallet.transactions.filter((txn) => txn.kind === 'achievement-reward');
+    // Payment markers and ledger entries must correspond in a current save.
+    // A torn or tampered v14 snapshot is rejected rather than double-credited.
+    if (version >= 14) {
+      const granted = achievements.snapshot().rewardGrantedAchievementIds;
+      if (value.achievements?.schemaVersion !== 2 || rewarded.length !== granted.length ||
+          rewarded.some((txn) => !ACHIEVEMENTS.some((entry) =>
+            entry.id === txn.achievementId && entry.rewardCoins === txn.delta) ||
+            !granted.includes(txn.achievementId as typeof ACHIEVEMENTS[number]['id']))) return null;
+    } else if (rewarded.length > 0) return null;
+    // Earlier saves have recorded unlocks but no coin payments.
+    session.refreshAchievementRewards();
     return session;
   }
 
@@ -236,6 +248,22 @@ export class GameSession {
   get wallet(): Wallet { return this.purse; }
   get resources(): ResourceEngine { return this.resourceState; }
   get demoBonusClaimed(): boolean { return this.bonusClaimed; }
+
+  /** Award new (or historical) unlocks from game state, never from opening the dialog. */
+  private refreshAchievementRewards(): void {
+    this.achievementState.evaluate({
+      base: this.world.snapshot(),
+      wallet: this.purse.snapshot(),
+      resources: this.resourceState.snapshot()
+    });
+    for (const id of this.achievementState.pendingRewards()) {
+      if (this.purse.creditAchievement(rewardForAchievement(id), id) ||
+          this.purse.hasAchievementReward(id)) {
+        this.achievementState.markRewardGranted(id);
+      }
+      // A full wallet leaves the achievement unlocked but unpaid for a later retry.
+    }
+  }
 
   /** Simulation advances only when the Phaser scene is active (not paused/offline). */
   advanceTime(deltaMs: number): number {
@@ -258,6 +286,7 @@ export class GameSession {
       }
       remaining -= step;
     }
+    if (ticks) this.refreshAchievementRewards();
     return ticks;
   }
 
@@ -298,6 +327,7 @@ export class GameSession {
     this.world = candidate;
     this.survivors.setLayout(this.world);
     this.kitchenState.sync(this.world.rooms);
+    this.refreshAchievementRewards();
     return { ok: true };
   }
 
@@ -372,11 +402,11 @@ export class GameSession {
     this.radiationState.reconcileRooms(this.world.rooms);
     this.survivors.reconcile(this.resources.snapshot().stock.power);
     const base = this.world.snapshot();
+    this.refreshAchievementRewards();
     const wallet = this.purse.snapshot();
     const resources = this.resourceState.snapshot();
-    this.achievementState.evaluate({ base, wallet, resources });
     return {
-      schemaVersion: 13,
+      schemaVersion: 14,
       air: this.airState.snapshot(),
       kitchen: this.kitchenState.snapshot(),
       laboratories:this.laboratories(),
