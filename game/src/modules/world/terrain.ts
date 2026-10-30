@@ -44,11 +44,9 @@ export class TerrainMap {
     if (result.ok) this.dug.add(key(x, y));
     return result;
   }
+  /** Retained for old callers, but never grants new floors without an elevator. */
   unlockNextFloor(): TerrainResult {
-    if (this.topFloor >= WORLD.maxY)
-      return { ok: false, reason: 'همهٔ طبقات مجاز باز شده‌اند.' };
-    this.topFloor++;
-    return { ok: true };
+    return { ok: false, reason: 'بازکردن طبقات بالایی فعلاً غیرفعال است؛ توسعهٔ عمودی به آسانسور نیاز دارد.' };
   }
   snapshot(): TerrainSnapshot {
     const excavated = [...this.dug].map((value) => {

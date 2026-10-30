@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BuildingLayout } from '../building/layout';
+import { LEGACY_SURFACE_POLICY } from '../building/constructionPolicy';
 import { canWalkBetween, findRoomPath, ResidentNavigator, walkPoint } from './pathfinding';
 
 describe('room pathfinding', () => {
@@ -16,9 +17,12 @@ describe('room pathfinding', () => {
   });
 
   it('cannot pass through solid ground or use stacked ordinary rooms as ladders', () => {
-    const layout = new BuildingLayout();
+    const current = new BuildingLayout().snapshot();
+    const layout = new BuildingLayout({
+      ...current, terrain: { ...current.terrain, highestFloor: 1 }
+    }, LEGACY_SURFACE_POLICY);
     expect(canWalkBetween(layout, { x: 5, y: -1 }, { x: 5, y: -2 })).toBe(false);
-    expect(layout.unlockFloor().ok).toBe(true);
+    expect(layout.place('habitat', 2, 0).ok).toBe(true);
     expect(layout.place('habitat', 2, 1).ok).toBe(true);
     expect(canWalkBetween(layout, { x: 2, y: 0 }, { x: 2, y: 1 })).toBe(false);
     const upper = layout.getRoomAt(2, 1)!;
@@ -65,12 +69,12 @@ describe('room pathfinding', () => {
     const layout = new BuildingLayout();
     const resident = new ResidentNavigator(layout, { x: 6, y: -1 });
     expect(resident.goToRoom('initial-garden')).toBe(true);
-    expect(layout.move('initial-garden', 8, 0).ok).toBe(true);
+    expect(layout.move('initial-garden', 8, -1).ok).toBe(true);
     expect(resident.refresh()).toBe(true);
     const end = resident.remainingCells.at(-1)!;
     expect(layout.getRoomAt(end.x, end.y)?.id).toBe('initial-garden');
-    expect(layout.place('medbay', 10, 0).ok).toBe(true);
-    const id = layout.getRoomAt(10, 0)!.id;
+    expect(layout.place('medbay', 10, -1).ok).toBe(true);
+    const id = layout.getRoomAt(10, -1)!.id;
     expect(resident.goToRoom(id)).toBe(true);
     expect(layout.remove(id).ok).toBe(true);
     expect(resident.refresh()).toBe(false);

@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { BuildingLayout } from './layout';
 import { validatePlacement } from './placement';
+import { canConstructAtLevel, canEditFootprint, LEGACY_SURFACE_POLICY } from './constructionPolicy';
 import { toCell, toPixels } from '../world/grid';
+
+function oldSurfaceLayout(): BuildingLayout {
+  const current = new BuildingLayout().snapshot();
+  const old = new BuildingLayout({
+    ...current, terrain: { ...current.terrain, highestFloor: 1 }
+  }, LEGACY_SURFACE_POLICY);
+  expect(old.place('habitat', 2, 0).ok).toBe(true);
+  expect(old.place('habitat', 2, 1).ok).toBe(true);
+  return old;
+}
 
 describe('grid mapping', () => {
   it('round-trips a cell in each vertical zone', () => {
@@ -12,17 +23,30 @@ describe('grid mapping', () => {
   });
 });
 
-describe('building placement, floors and terrain', () => {
-  it('builds on the surface and rejects overlapping/out-of-bounds rooms', () => {
-    const layout = new BuildingLayout();
-    expect(validatePlacement([], 'habitat', 0, 0).ok).toBe(true);
-    expect(layout.place('habitat', 5, -1).ok).toBe(false);
-    expect(layout.place('habitat', 13, 0).ok).toBe(false);
-    expect(layout.place('medbay', 8, 0).ok).toBe(true);
-    expect(layout.place('medbay', 8, 0).ok).toBe(false);
+describe('underground-only construction', () => {
+  it('restricts all positive and zero levels via one policy, with future opt-in', () => {
+    expect([-4, -2, -1].every((y) => canConstructAtLevel(y))).toBe(true);
+    expect([0, 1, 2].every((y) => canConstructAtLevel(y))).toBe(false);
+    expect(canConstructAtLevel(0, LEGACY_SURFACE_POLICY)).toBe(true);
+    expect(canEditFootprint(-1, 2)).toBe(false);
+    expect(canEditFootprint(-2, 2)).toBe(true);
+    expect(canEditFootprint(-1, 2, LEGACY_SURFACE_POLICY)).toBe(true);
   });
 
-  it('requires excavation under the surface before underground construction', () => {
+  it('starts completely underground, rejects surface/sky and preserves normal collision rules', () => {
+    const layout = new BuildingLayout();
+    expect(layout.rooms.every((room) => room.y < 0)).toBe(true);
+    expect(validatePlacement([], 'habitat', 0, 0).ok).toBe(false);
+    expect(validatePlacement([], 'habitat', 0, 1).ok).toBe(false);
+    expect(layout.place('medbay', 8, 0).ok).toBe(false);
+    expect(layout.place('medbay', 8, 1).ok).toBe(false);
+    expect(layout.place('habitat', 5, -1).ok).toBe(false);
+    expect(layout.place('habitat', 13, -1).ok).toBe(false);
+    expect(layout.place('medbay', 8, -1).ok).toBe(true);
+    expect(layout.place('medbay', 8, -1).ok).toBe(false);
+  });
+
+  it('keeps underground excavation, adjacency, and placement intact', () => {
     const layout = new BuildingLayout();
     expect(layout.place('medbay', 5, -3).ok).toBe(false);
     expect(layout.dig(5, -3).ok).toBe(false);
@@ -31,67 +55,58 @@ describe('building placement, floors and terrain', () => {
     expect(layout.dig(5, -3).ok).toBe(true);
     expect(layout.dig(6, -3).ok).toBe(true);
     expect(layout.place('medbay', 5, -3).ok).toBe(true);
+    expect(layout.dig(5, 0).ok).toBe(false);
   });
 
-  it('unlocks above-ground floors and requires support beneath every cell', () => {
+  it('rejects the legacy upward-floor API in both model and terrain without mutations', () => {
     const layout = new BuildingLayout();
-    expect(layout.place('habitat', 2, 1).ok).toBe(false);
-    expect(layout.unlockFloor().ok).toBe(true);
-    expect(layout.place('habitat', 2, 1).ok).toBe(true);
-    expect(layout.place('habitat', 7, 1).ok).toBe(false);
-    expect(layout.remove('initial-garden').ok).toBe(false);
+    const before = layout.snapshot();
+    expect(layout.unlockFloor().ok).toBe(false);
+    expect(layout.terrain.unlockNextFloor().ok).toBe(false);
+    expect(layout.snapshot()).toEqual(before);
   });
 
-  it('moves ordinary rooms but protects structural supports and command', () => {
+  it('allows moves and upgrades underground but cannot move a room to the surface', () => {
     const layout = new BuildingLayout();
-    expect(layout.place('medbay', 7, 0).ok).toBe(true);
-    const id = layout.getRoomAt(7, 0)!.id;
-    expect(layout.move(id, 8, 0).ok).toBe(true);
-    expect(layout.getRoomAt(8, 0)?.id).toBe(id);
-    expect(layout.move('initial-command', 5, 0).ok).toBe(false);
-    layout.unlockFloor();
-    expect(layout.place('habitat', 2, 1).ok).toBe(true);
-    expect(layout.move('initial-garden', 4, 0).ok).toBe(false);
-    expect(layout.remove('initial-garden').ok).toBe(false);
-  });
-
-  it('allows room upgrades and demolition without accidental reuse', () => {
-    const layout = new BuildingLayout();
-    expect(layout.place('medbay', 8, 0).ok).toBe(true);
-    const id = layout.getRoomAt(8, 0)!.id;
+    expect(layout.place('medbay', 8, -1).ok).toBe(true);
+    const id = layout.getRoomAt(8, -1)!.id;
+    expect(layout.move(id, 9, -1).ok).toBe(true);
+    expect(layout.move(id, 9, 0).ok).toBe(false);
+    expect(layout.getRoomAt(9, -1)?.id).toBe(id);
+    expect(layout.move('initial-command', 4, -1).ok).toBe(false);
     expect(layout.upgrade(id).ok).toBe(true);
     expect(layout.upgrade(id).ok).toBe(true);
     expect(layout.upgrade(id).ok).toBe(false);
-    expect(layout.getRoomAt(8, 0)?.level).toBe(3);
     expect(layout.remove(id).ok).toBe(true);
-    expect(layout.remove('initial-command').ok).toBe(false);
   });
 
-  it('restores upper rooms supported by later-built rooms regardless of snapshot order', () => {
-    const layout = new BuildingLayout();
-    expect(layout.unlockFloor().ok).toBe(true);
-    expect(layout.place('habitat', 2, 1).ok).toBe(true);
-    const upperId = layout.getRoomAt(2, 1)!.id;
-    expect(layout.place('storage', 8, 0).ok).toBe(true);
-    const supportId = layout.getRoomAt(8, 0)!.id;
-    expect(layout.move(upperId, 8, 1).ok).toBe(true);
-
-    const saved = layout.snapshot();
+  it('restores supported historical surface rooms regardless of original order, read-only', () => {
+    const old = oldSurfaceLayout();
+    expect(old.place('storage', 8, 0).ok).toBe(true);
+    const upperId = old.getRoomAt(2, 1)!.id;
+    const supportId = old.getRoomAt(8, 0)!.id;
+    expect(old.move(upperId, 8, 1).ok).toBe(true);
+    const saved = old.snapshot();
     expect(saved.rooms.findIndex((r) => r.id === upperId))
       .toBeLessThan(saved.rooms.findIndex((r) => r.id === supportId));
-    expect(BuildingLayout.restore(saved)?.snapshot()).toEqual(saved);
-
-    // Restoring must not require any particular ordering of valid rooms.
+    const legacy = BuildingLayout.restore(saved)!;
+    expect(legacy.snapshot()).toEqual(saved);
     const reversed = { ...saved, rooms: [...saved.rooms].reverse() };
     expect(BuildingLayout.restore(reversed)?.snapshot()).toEqual(reversed);
+
+    const before = legacy.snapshot();
+    expect(legacy.place('medbay', 10, 0).ok).toBe(false);
+    expect(legacy.place('medbay', 8, 2).ok).toBe(false);
+    expect(legacy.move(upperId, 9, 1).ok).toBe(false);
+    expect(legacy.move(supportId, 8, -1).ok).toBe(false);
+    expect(legacy.remove(upperId).ok).toBe(false);
+    expect(legacy.upgrade(supportId).ok).toBe(false);
+    expect(legacy.snapshot()).toEqual(before);
+    expect(legacy.place('medbay', 8, -1).ok).toBe(true);
   });
 
-  it('rejects overlapping, unsupported and unexcavated rooms after full-set validation', () => {
-    const layout = new BuildingLayout();
-    expect(layout.unlockFloor().ok).toBe(true);
-    expect(layout.place('habitat', 2, 1).ok).toBe(true);
-    const saved = layout.snapshot();
-
+  it('rejects overlaps, unsupported upper rooms and unexcavated rooms on restore', () => {
+    const saved = oldSurfaceLayout().snapshot();
     const overlap = structuredClone(saved);
     overlap.rooms.push({ ...overlap.rooms[0], id: 'overlapping-command' });
     expect(BuildingLayout.restore(overlap)).toBeNull();
@@ -101,17 +116,14 @@ describe('building placement, floors and terrain', () => {
     expect(BuildingLayout.restore(unsupported)).toBeNull();
 
     const unexcavated = structuredClone(saved);
-    const habitat = unexcavated.rooms.find((r) => r.id === 'initial-habitat')!;
-    habitat.x = 5;
-    habitat.y = -3;
+    unexcavated.rooms.find((r) => r.id === 'initial-habitat')!.y = -3;
     expect(BuildingLayout.restore(unexcavated)).toBeNull();
   });
 
-  it('saves, loads, checks malformed data and resets the map', () => {
+  it('saves, loads, rejects malformed data and resets to underground starters', () => {
     const layout = new BuildingLayout();
     layout.dig(5, -2);
-    layout.unlockFloor();
-    layout.place('medbay', 8, 0);
+    layout.place('medbay', 8, -1);
     const saved = layout.snapshot();
     expect(BuildingLayout.restore(saved)?.snapshot()).toEqual(saved);
     expect(BuildingLayout.restore({ ...saved, schemaVersion: 2 })).toBeNull();
@@ -120,6 +132,6 @@ describe('building placement, floors and terrain', () => {
     expect(layout.terrain.highestFloor).toBe(0);
     expect(layout.terrain.isOpen(5, -2)).toBe(false);
     expect(layout.rooms).toHaveLength(4);
+    expect(layout.rooms.every((room) => room.y < 0)).toBe(true);
   });
 });
-
