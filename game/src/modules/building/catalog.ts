@@ -1,4 +1,4 @@
-export type RoomType = 'guardPost' | 'command' | 'habitat' | 'generator' | 'hydroponics' | 'medbay' | 'workshop' | 'storage' | 'mine' | 'waterTreatment' | 'laboratory' | 'kitchen';
+export type RoomType = 'kitchen' | 'recreation' | 'guardPost' | 'command' | 'habitat' | 'generator' | 'hydroponics' | 'medbay' | 'workshop' | 'storage' | 'mine' | 'waterTreatment' | 'laboratory';
 export type BuildableRoomType = RoomType;
 
 export interface RoomDefinition {
@@ -10,6 +10,7 @@ export interface RoomDefinition {
 }
 
 export const ROOM_DEFINITIONS: Record<RoomType, RoomDefinition> = {
+  recreation:{label:'RECREATION',width:2,height:1,color:0x75583d,accent:0xf0c980},
   guardPost: {label:'GUARD POST',width:2,height:1,color:0x4a4841,accent:0xe4b671},
   command: { label: 'COMMAND', width: 3, height: 1, color: 0x294d59, accent: 0x9fdbd8 },
   habitat: { label: 'HABITAT', width: 2, height: 1, color: 0x424f79, accent: 0xc2cbff },

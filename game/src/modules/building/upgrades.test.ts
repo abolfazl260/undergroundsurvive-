@@ -6,7 +6,7 @@ import { GameSession } from '../economy/session';
 import { getUpgradeCost, STARTING_COINS } from '../economy/pricing';
 
 describe('room upgrade capacities', () => {
-  it('increases every room type capacity through all three levels', () => {
+  it('reports room capacities and supported recreation upgrade levels', () => {
     for (const type of Object.keys(ROOM_DEFINITIONS) as RoomType[]) {
       const a = getRoomPerformance(type, 1);
       const b = getRoomPerformance(type, 2);

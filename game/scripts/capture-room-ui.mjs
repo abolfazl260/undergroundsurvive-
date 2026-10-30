@@ -33,7 +33,7 @@ for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
     });
     await page.reload();await page.locator('#menu-continue').click();
     await page.locator('#open-more').click();
-    await page.locator('[data-assign-room="ui-guard"]').first().click();
+    await page.locator('[data-assign-room="ui-guard"]').last().click();
     await page.waitForFunction(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).survivors.assignments.length===1);
     await page.locator('#survivor-panel').scrollIntoViewIfNeeded();
     await page.screenshot({path:`${output}/${mode}-guard-assigned.png`});

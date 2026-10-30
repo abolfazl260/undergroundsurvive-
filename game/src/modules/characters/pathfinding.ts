@@ -41,7 +41,7 @@ export function canWalkBetween(layout: BuildingLayout, from: GridPosition, to: G
 /** Breadth-first search finds the shortest traversable path to any cell of a room. */
 export function findRoomPath(
   layout: BuildingLayout, start: GridPosition, roomId: string,
-  blocked: ReadonlySet<string> = new Set()
+  blocked: ReadonlySet<string> = new Set(), arrivalCell?:GridPosition
 ): GridPosition[] | null {
   if (!isWalkableCell(layout, start) ||
       !layout.rooms.some((room) => room.id === roomId)) return null;
@@ -51,7 +51,7 @@ export function findRoomPath(
   const cells = new Map<string, GridPosition>([[key(start), start]]);
   for (let head = 0; head < queue.length; head++) {
     const current = queue[head];
-    if (layout.getRoomAt(current.x, current.y)?.id === roomId) {
+    if (layout.getRoomAt(current.x, current.y)?.id === roomId && (!arrivalCell||(current.x===arrivalCell.x&&current.y===arrivalCell.y))) {
       const path: GridPosition[] = [];
       let cursor = key(current);
       while (true) {

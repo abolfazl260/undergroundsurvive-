@@ -3,6 +3,12 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
+  'تفریح':'Recreation',
+  'بازیابی روحیه':'Morale recovery',
+  'در ثانیه':'per second',
+  'ظرفیت تفریح':'Recreation capacity',
+  'روحیه کامل است.':'Morale is full.',
+  'برق کافی نیست.':'Insufficient power.',
   'آشپزخانه': 'Kitchen',
   'مواد خام': 'Raw food',
   'جیره': 'Meals',
