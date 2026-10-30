@@ -11,7 +11,7 @@ The network models built-in side-facing pipe/duct fittings between adjacent room
 - 30 base oxygen units plus 25 per storage-room level. One active ventilation-room level produces up to three oxygen units per tick, limited by capacity. Water remains limited by the existing processor capacity.
 - Each survivor consumes one clean-water unit and one oxygen unit per tick once emergency supplies expire. Demand is assigned to habitat room capacity in deterministic ID order; any remaining residents are assigned once to the first room. This does **not** charge per habitat *and* per resident.
 - Medbays consume one unit of each per room level; hydroponics consume one water unit per level. The order is vital residents, medical care, then gardening; ties use ID order. A consumer needing both resources is debited atomically.
-- A consumer can use a resource only when its graph component has an applicable distribution facility (water treatment or storage for water; ventilation or storage for oxygen). Cutting a valve isolates that consumer. Existing storages are the tank roles for both resources; no new art or construction types were added.
+- A consumer can use a resource only when its graph component has an applicable distribution facility (water treatment or storage for water; ventilation or storage for oxygen). Cutting a valve isolates that consumer. Each adjacent fitting transmits up to eight water units and eight oxygen units per five-second tick per minimum adjacent room level; separate flow ledgers are consumed deterministically, and a failed multi-resource delivery reserves neither. Existing storages are the tank roles for both resources; no new art or construction types were added.
 - A 36-tick migration/emergency grace period permits existing v13 (and fresh) saves to gain production before survivor needs begin. Shortages generate typed `life-support-shortage` and `survivor-exposure` records but do **not** change resident health or kill residents.
 - HUD shows water/oxygen stocks, capacity, and rates; water panel shows connection valves and actionable status. All status text is descriptive rather than using color alone.
 - The snapshot migrates game schema v13 → v14 and preserves all pre-existing resources, rooms, and coins. Corrupt life-support snapshots are rejected. Paused games do not tick.
@@ -24,4 +24,4 @@ The v1 network enforces connectivity and availability for consumer *access*, whi
 
 `cd game && npm test && npm run build`
 
-The life-support suite verifies deterministic graph edges, valves, demand order, initial grace, resource accounting, partial isolation, atomic debits, storage capacity and snapshot migration. Full CI must pass before merging.
+The life-support suite verifies deterministic graph edges, valves, demand order, initial grace, resource accounting, partial isolation, bounded pipe and duct throughput, atomic debits, storage capacity and snapshot migration. Full CI must pass before merging.
