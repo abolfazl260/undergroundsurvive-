@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS } from '../modules/achievements/achievements';
-import { ACHIEVEMENT_ARTWORK, categoryForAchievement } from './achievementsUi';
+import { achievementArtPaths, categoryForAchievement } from './achievementsUi';
 
 describe('achievement presentation categories', () => {
   it('assigns every achievement to a single existing category', () => {
@@ -11,10 +11,14 @@ describe('achievement presentation categories', () => {
     )).toBe(true);
   });
 
-  it('assigns a distinct, in-range illustrated scene to all eleven achievements', () => {
-    const frames = ACHIEVEMENTS.map((entry) => ACHIEVEMENT_ARTWORK[entry.id]);
-    expect(frames).toEqual(Array.from({ length: ACHIEVEMENTS.length }, (_, index) => index));
-    expect(new Set(frames).size).toBe(ACHIEVEMENTS.length);
+  it('maps every milestone to its own two independent WebP URLs', () => {
+    const paths = ACHIEVEMENTS.map((entry) => achievementArtPaths(entry.id));
+    expect(new Set(paths.map((entry) => entry.small)).size).toBe(ACHIEVEMENTS.length);
+    expect(new Set(paths.map((entry) => entry.large)).size).toBe(ACHIEVEMENTS.length);
+    for (const [index, entry] of paths.entries()) {
+      expect(entry.small).toBe('/assets/achievements/' + ACHIEVEMENTS[index].id + '-360.webp');
+      expect(entry.large).toBe('/assets/achievements/' + ACHIEVEMENTS[index].id + '-540.webp');
+    }
   });
 
   it('keeps catalog-derived filter totals consistent', () => {
