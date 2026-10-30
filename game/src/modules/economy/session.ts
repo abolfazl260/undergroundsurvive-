@@ -1,4 +1,5 @@
 import { RECREATION_CONFIG } from '../recreation/recreation';
+import { LifeSupportService, type LifeSupportSnapshot, type LifeSupportView } from '../life-support/lifeSupport';
 import type { AssignmentBlock } from '../survivors/roster';
 import { laboratoryFacilities, researchFacility, type LaboratoryFacility } from '../laboratory/laboratory';
 import { SurvivorRoster, type SurvivorSnapshot } from '../survivors/roster';
@@ -27,7 +28,9 @@ import { ACHIEVEMENTS, AchievementTracker, rewardForAchievement, type Achievemen
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 15;
+  schemaVersion: 16;
+  lifeSupport: LifeSupportSnapshot;
+  lifeSupportView: LifeSupportView;
   power: PowerSnapshot;
   air: AirSystemState;
   kitchen: CookingSnapshot;
@@ -102,8 +105,8 @@ export class GameSession {
     const block=capability?this.commandState.block(capability,this.world.rooms,this.resources.snapshot().stock.power):null;
     return block?{ok:false,reason:CAPABILITY_REASONS[block]}:{ok:true};
   }
-  moveRoom(id:string,x:number,y:number):CommandResult {this.commandStatus();const result=this.world.move(id,x,y);this.survivors.setLayout(this.world);this.kitchenState.sync(this.world.rooms);this.commandStatus();return result;}
-  removeRoom(id:string):CommandResult {this.commandStatus();const result=this.world.remove(id);if(result.ok)this.powerState={...this.powerState,overrides:this.powerState.overrides.filter(o=>o.roomId!==id)};this.survivors.setLayout(this.world);this.commandStatus();return result;}
+  moveRoom(id:string,x:number,y:number):CommandResult {this.commandStatus();const result=this.world.move(id,x,y);this.survivors.setLayout(this.world);this.kitchenState.sync(this.world.rooms);this.lifeSupportState.sync(this.world.rooms);this.commandStatus();return result;}
+  removeRoom(id:string):CommandResult {this.commandStatus();const result=this.world.remove(id);if(result.ok)this.powerState={...this.powerState,overrides:this.powerState.overrides.filter(o=>o.roomId!==id)};this.survivors.setLayout(this.world);this.lifeSupportState.sync(this.world.rooms);this.commandStatus();return result;}
   private radiationState = new RadiationField();
   private radiationOccupants: readonly RadiationOccupant[] = [];
   get radiation():RadiationField {return this.radiationState;}
@@ -129,6 +132,17 @@ export class GameSession {
 
   startResearch(id:string,operationId:string):boolean {
     return this.researchState.start(id,operationId,this.researchFacility(),this.wallet.balance,n=>this.purse.spend(n,'research'));
+  }
+  private lifeSupportState = new LifeSupportService();
+  get lifeSupport(): LifeSupportService { return this.lifeSupportState; }
+  toggleLifeSupportLink(a: string, b: string): boolean {
+    return this.lifeSupportState.toggleLink(a, b, this.world.rooms);
+  }
+  private lifeSupportWaterAdapter() {
+    return { available: () => this.waterState.snapshot().clean,
+      capacity: () => this.waterState.capacity(this.world.rooms),
+      spend: (amount: number) => this.waterState.spendClean(amount),
+      records: () => this.waterState.snapshot().ledger };
   }
   private airState = new AirSystem();
   get air(): AirSystem { return this.airState; }
@@ -174,7 +188,7 @@ export class GameSession {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
     const version=value.schemaVersion;
-    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>15||typeof value.demoBonusClaimed!=='boolean')return null;
+    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>16||typeof value.demoBonusClaimed!=='boolean')return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
     const resources = (version>=3)
@@ -234,6 +248,12 @@ export class GameSession {
       session.airState = AirSystem.restore(seed)!;
     }
     session.airState.sync(world.rooms);
+    if (version >= 16) {
+      const lifeSupport = LifeSupportService.restore(value.lifeSupport);
+      if (!lifeSupport) return null;
+      session.lifeSupportState = lifeSupport;
+    }
+    session.lifeSupportState.sync(world.rooms);
     session.kitchenState.sync(world.rooms);
     session.survivors.reconcile(session.resources.snapshot().stock.power);
     session.commandStatus();
@@ -334,6 +354,10 @@ export class GameSession {
         // Water, kitchen and research get their power before ventilation.
         this.airState.advanceTo(this.resources.tickCount * 5000, this.world.rooms,
           this.survivors.survivors.length, ROOM_AIR_EMISSIONS.emissions(this.world.rooms), this.powerAdapter(), poweredRooms);
+        const vents = this.airState.snapshot().vents;
+        this.lifeSupportState.tick(this.world.rooms, this.lifeSupportWaterAdapter(),
+          { population: () => this.survivors.survivors.length },
+          { powered: (id) => vents.some(v => v.id === id && v.powered) }, vents);
         this.radiationState.advanceTo(this.resources.tickCount*5000,this.radiationState.world(this.world.terrain,this.world.rooms),this.radiationOccupants);
         if(this.resources.tickCount%24===0)this.radiationState.triggerSurge('leaking-pipe');
       }
@@ -380,6 +404,7 @@ export class GameSession {
     this.world = candidate;
     this.survivors.setLayout(this.world);
     this.kitchenState.sync(this.world.rooms);
+    this.lifeSupportState.sync(this.world.rooms);
     this.refreshAchievementRewards();
     return { ok: true };
   }
@@ -437,6 +462,7 @@ export class GameSession {
     this.waterState = new WaterProductionProcessor();
     this.kitchenState = new KitchenProcessor();
     this.airState = new AirSystem();
+    this.lifeSupportState = new LifeSupportService();
     this.world = new BuildingLayout();
     this.survivors=new SurvivorRoster(this.world);
     this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,()=>this.resources.snapshot().stock.power);
@@ -453,6 +479,7 @@ export class GameSession {
     this.waterState.sync(this.world.rooms);
     this.kitchenState.sync(this.world.rooms);
     this.airState.sync(this.world.rooms);
+    this.lifeSupportState.sync(this.world.rooms);
     this.radiationState.reconcileRooms(this.world.rooms);
     this.survivors.reconcile(this.resources.snapshot().stock.power);
     const base = this.world.snapshot();
@@ -460,7 +487,9 @@ export class GameSession {
     const wallet = this.purse.snapshot();
     const resources = this.resourceState.snapshot();
     return {
-      schemaVersion: 15,
+      schemaVersion: 16,
+      lifeSupport: this.lifeSupportState.snapshot(),
+      lifeSupportView: this.lifeSupportState.view(this.world.rooms, this.lifeSupportWaterAdapter()),
       power: this.power,
       air: this.airState.snapshot(),
       kitchen: this.kitchenState.snapshot(),

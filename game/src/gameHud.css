@@ -264,3 +264,10 @@ html[dir="ltr"] .topbar .resource-panel[data-expanded="true"] .resource-details 
 .power-priority-options { display: flex; gap: 4px; flex-wrap: wrap; }
 .power-priority-options button { min-height: 34px; }
 @media (pointer: coarse) { .power-panel button { min-height: 44px; } }
+
+/* Life-support readouts share the existing mobile-first resource panel. */
+.topbar #life-resource-warning {font-size:11px; margin:8px 0 0; line-height:1.5;}
+.topbar #life-resource-warning[data-shortage="true"] {color:#ffd9a1;}
+.topbar .life-resource strong {direction:auto; text-align:start;}
+#water-panel .life-support-network {padding:10px 0; border-block:1px solid #355664;}
+#water-panel .life-support-network .life-support-valve {min-height:44px; width:100%; display:block; margin-block:6px; text-align:start; overflow-wrap:anywhere;}

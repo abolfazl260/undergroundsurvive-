@@ -191,7 +191,7 @@ const renderCommand = mountCommandPanel(document.querySelector<HTMLElement>('#co
 const renderRadiation = mountRadiationPanel(document.querySelector<HTMLElement>('#radiation-panel')!,()=>{scene.toggleRadiation();if(lastSnapshot)renderRadiation(lastSnapshot);gameDock.showSheet(null);},()=>scene.radiationView(),()=>scene.cleanupRadiation(),()=>scene.filterRadiation());
 const renderSurvivors=mountSurvivorPanel(document.querySelector<HTMLElement>('#survivor-panel')!,(id,room)=>scene.assignSurvivor(id,room),id=>scene.releaseSurvivor(id));
 const renderResearch = mountResearchPanel(document.querySelector<HTMLElement>('#research-panel')!,id=>scene.startResearch(id));
-const renderWater = mountWaterPanel(document.querySelector<HTMLElement>('#water-panel')!, () => scene.collectWater(), id => scene.toggleWater(id));
+const renderWater = mountWaterPanel(document.querySelector<HTMLElement>('#water-panel')!, () => scene.collectWater(), id => scene.toggleWater(id), (a, b) => scene.toggleLifeSupportLink(a, b));
 const renderAir = mountAirPanel(document.querySelector<HTMLElement>('#air-panel')!, id => scene.toggleVent(id), id => scene.repairVent(id));
 const renderAirHud = mountAirHud(document);
 const renderKitchen = mountKitchenPanel(document.querySelector<HTMLElement>('#kitchen-panel')!,
