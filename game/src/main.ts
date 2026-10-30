@@ -16,6 +16,7 @@ import './fullscreen.css';
 import './gameHud.css';
 import './gameMenu.css';
 import './achievements.css';
+import './bunkerUi.css';
 import { createIcon } from './ui/icons';
 import { enhanceIcons, setButtonLabel, setPressed } from './ui/components';
 import { createGame } from './app/createGame';
