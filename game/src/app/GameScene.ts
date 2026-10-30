@@ -16,7 +16,7 @@ import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, roomArtCandidates } from './roomArt';
 import { SURVIVOR_ART, survivorGeometry, survivorFrame, hitSurvivor } from './survivorArt';
 import { AssetManager } from './assets/assetManager';
-import { TWO_CELL_CONSTRUCTION_ART_ASSET, CONSTRUCTION_FRAMES, TwoCellConstructionAnimation } from './twoCellConstruction';
+import { TWO_CELL_CONSTRUCTION_ART_ASSET, TwoCellConstructionAnimation } from './twoCellConstruction';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
 import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
