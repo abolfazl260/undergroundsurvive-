@@ -7,6 +7,7 @@ import { RadiationField, type RadiationSnapshot, type RadiationOccupant } from '
 import { ResearchScheduler, type ResearchSnapshot } from '../research/research';
 import { ELEVATOR_DEFINITION } from '../world/elevators';
 import { WaterProductionProcessor, type WaterSnapshot } from '../water/water';
+import { AirSystem, ROOM_AIR_EMISSIONS, type AirSystemState } from '../air/air';
 import { BuildingLayout, type BaseSnapshot } from '../building/layout';
 import { Wallet, type WalletSnapshot } from './wallet';
 import { ResourceEngine, type ResourceSnapshot } from './resources';
@@ -21,7 +22,8 @@ import { AchievementTracker, type AchievementSnapshot } from '../achievements/ac
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 11;
+  schemaVersion: 12;
+  air: AirSystemState;
   kitchen: CookingSnapshot;
   laboratories:LaboratoryFacility[];
   researchFacility:ReturnType<typeof researchFacility>;
@@ -109,6 +111,16 @@ export class GameSession {
   startResearch(id:string,operationId:string):boolean {
     return this.researchState.start(id,operationId,this.researchFacility(),this.wallet.balance,n=>this.purse.spend(n,'research'));
   }
+  private airState = new AirSystem();
+  get air(): AirSystem { return this.airState; }
+  toggleVent(id: string, operationId: string): boolean {
+    this.airState.sync(this.world.rooms);
+    return this.airState.toggle(id, operationId);
+  }
+  repairVent(id: string, operationId: string): boolean {
+    this.airState.sync(this.world.rooms);
+    return this.airState.repair(id, operationId, coins => this.purse.spend(coins, 'air'));
+  }
   private waterState = new WaterProductionProcessor();
   get water(): WaterProductionProcessor { return this.waterState; }
   private powerAdapter() { return { available: () => this.resources.snapshot().stock.power, spend: (n: number) => this.resources.spendPower(n) }; }
@@ -141,7 +153,7 @@ export class GameSession {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
     const version=value.schemaVersion;
-    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>11||typeof value.demoBonusClaimed!=='boolean')return null;
+    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>12||typeof value.demoBonusClaimed!=='boolean')return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
     const resources = (version>=3)
@@ -187,6 +199,16 @@ export class GameSession {
       if (kitchen.snapshot().cycles.some(c => !world.rooms.some(r => r.id === c.roomId && r.type === 'kitchen'))) return null;
       session.kitchenState = kitchen;
     }
+    if (version === 12) {
+      const air = AirSystem.restore(value.air);
+      if (!air || air.snapshot().nowMs !== resources.tickCount * 5000) return null;
+      session.airState = air;
+    } else {
+      // Migrate pre-air saves without replaying offline ticks or charging power.
+      const seed = {...session.airState.snapshot(), nowMs: resources.tickCount * 5000};
+      session.airState = AirSystem.restore(seed)!;
+    }
+    session.airState.sync(world.rooms);
     session.kitchenState.sync(world.rooms);
     session.survivors.reconcile(session.resources.snapshot().stock.power);
     session.commandStatus();
@@ -218,6 +240,9 @@ export class GameSession {
         this.waterState.advance(5000, this.world.rooms, this.powerAdapter());
         this.kitchenState.advance(5000, this.cookingContext());
         this.researchState.advanceTo(this.resources.tickCount*5000,this.researchFacility());
+        // Keep existing water/kitchen/research power priority.
+        this.airState.advanceTo(this.resources.tickCount * 5000, this.world.rooms,
+          this.survivors.survivors.length, ROOM_AIR_EMISSIONS.emissions(this.world.rooms), this.powerAdapter());
         this.radiationState.advanceTo(this.resources.tickCount*5000,this.radiationState.world(this.world.terrain,this.world.rooms),this.radiationOccupants);
         if(this.resources.tickCount%24===0)this.radiationState.triggerSurge('leaking-pipe');
       }
@@ -318,6 +343,7 @@ export class GameSession {
     this.researchState = new ResearchScheduler();
     this.waterState = new WaterProductionProcessor();
     this.kitchenState = new KitchenProcessor();
+    this.airState = new AirSystem();
     this.world = new BuildingLayout();
     this.survivors=new SurvivorRoster(this.world);
     this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,()=>this.resources.snapshot().stock.power);
@@ -332,6 +358,7 @@ export class GameSession {
     this.commandStatus();
     this.waterState.sync(this.world.rooms);
     this.kitchenState.sync(this.world.rooms);
+    this.airState.sync(this.world.rooms);
     this.radiationState.reconcileRooms(this.world.rooms);
     this.survivors.reconcile(this.resources.snapshot().stock.power);
     const base = this.world.snapshot();
@@ -339,7 +366,8 @@ export class GameSession {
     const resources = this.resourceState.snapshot();
     this.achievementState.evaluate({ base, wallet, resources });
     return {
-      schemaVersion: 11,
+      schemaVersion: 12,
+      air: this.airState.snapshot(),
       kitchen: this.kitchenState.snapshot(),
       laboratories:this.laboratories(),
       researchFacility:this.researchFacility(),

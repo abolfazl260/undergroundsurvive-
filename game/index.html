@@ -46,7 +46,7 @@
         </div>
         <div class="hud-tile">
           <span class="hud-icon" data-ui-icon="home" aria-hidden="true">⌂</span>
-          <div class="hud-tile-content"><span class="hud-label">اتاق‌های پناهگاه</span><strong id="hud-rooms">۴</strong></div>
+          <div class="hud-tile-content"><span class="hud-label">اتاق‌های پناهگاه</span><strong id="hud-rooms">۴</strong><small id="hud-air-status" role="status" aria-live="polite">هوا ۱۰۰٪</small></div>
         </div>
       </section>
       <section class="resource-panel" aria-label="منابع و چرخهٔ زمانی پناهگاه" data-expanded="false">
@@ -104,6 +104,7 @@
             <button class="room-button ui-button" type="button" data-room="hydroponics" aria-pressed="false"><span class="room-icon icon-hydroponics" data-ui-icon="sprout" aria-hidden="true">✿</span><span><strong>گلخانه</strong><small>Hydroponics · ۲ خانه</small></span><span class="room-arrow" data-ui-icon="arrow-left" aria-hidden="true">←</span></button>
             <button class="room-button ui-button" type="button" data-room="medbay" aria-pressed="false"><span class="room-icon icon-medbay" data-ui-icon="medical" aria-hidden="true">✚</span><span><strong>درمانگاه</strong><small>Medbay · ۲ خانه</small></span><span class="room-arrow" data-ui-icon="arrow-left" aria-hidden="true">←</span></button>
             <button class="room-button ui-button" type="button" data-room="kitchen" aria-pressed="false"><span class="room-icon" data-ui-icon="package" aria-hidden="true">♨</span><span><strong>آشپزخانه</strong><small>Kitchen · 2 cells</small></span></button>
+            <button class="room-button ui-button" type="button" data-room="ventilation" aria-pressed="false"><span class="room-icon" data-ui-icon="wind" aria-hidden="true">◎</span><span><strong>سیستم تهویه</strong><small>Ventilation · 2 cells</small></span></button>
             <button class="room-button ui-button" type="button" data-room="waterTreatment" aria-pressed="false"><span class="room-icon" data-ui-icon="bolt" aria-hidden="true">◇</span><span><strong>تصفیه آب</strong><small>Water · 2 cells</small></span></button>
             <button class="room-button ui-button" type="button" data-room="guardPost" aria-pressed="false"><span class="room-icon" data-ui-icon="home" aria-hidden="true"></span><span><strong>نگهبانی</strong><small>Guard post · 2 cells</small></span></button>
             <button class="room-button ui-button" type="button" data-room="laboratory" aria-pressed="false"><span class="room-icon" data-ui-icon="wrench" aria-hidden="true">◇</span><span><strong>آزمایشگاه</strong><small>Lab · 2 cells</small></span></button>
@@ -114,6 +115,7 @@
           <section id="survivor-panel" class="module-panel" data-no-i18n></section>
           <section id="research-panel" data-no-i18n></section>
           <section id="water-panel" data-no-i18n></section>
+          <section id="air-panel" class="module-panel" data-no-i18n aria-label="کیفیت هوا و تهویه"></section>
           <section id="kitchen-panel" class="module-panel" data-no-i18n></section>
           <div class="side-label">ابزارهای زمین و اتاق</div>
           <div class="tools-grid" role="group" aria-label="ابزارهای ویرایش">
