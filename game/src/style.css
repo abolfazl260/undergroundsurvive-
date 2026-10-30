@@ -43,3 +43,25 @@ button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3c
 
 
 .icon-workshop{color:#e9b978}.icon-storage{color:#d2af79}.icon-mine{color:#f2bd6a}
+
+/* Economy status: shared compact layout for web and narrow mobile widths. */
+.topbar-right{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:12px}
+.coin-balance{display:flex;align-items:center;gap:6px;border:1px solid #9b7d35;border-radius:12px;
+  background:#342a19;color:#ffe7a4;padding:8px 12px;direction:ltr;font-weight:bold}
+.coin-symbol{color:#f5c85a;text-shadow:0 0 7px #bd8521;font-size:18px}
+.coin-unit{font-size:10px;font-weight:normal;color:#e2d1aa;direction:rtl}
+.room-cost{margin-right:auto;white-space:nowrap;color:#ffd986;font-size:11px;font-weight:700;direction:ltr}
+.economy-notice{padding:10px 12px;border:1px solid #4d5545;background:#242e28;border-radius:10px;
+  color:#d5e4ce;font-size:12px;line-height:1.9}
+.bonus-button{margin-top:10px;width:100%;padding:12px 10px;border-radius:10px;border:1px solid #d2aa57;
+  background:#5a4626;color:#ffebbc;font-size:12px}
+.bonus-button:disabled{cursor:default;opacity:.52}
+.transaction-list{margin:4px 0 0;padding:0;list-style:none;border:1px solid #283f4c;border-radius:9px;overflow:hidden}
+.transaction-list li{display:flex;justify-content:space-between;gap:12px;padding:9px 11px;font-size:11px;
+  border-bottom:1px solid #273747;color:#bdcbd5}
+.transaction-list li:last-child{border-bottom:0}
+.transaction-list b{direction:ltr;font-weight:700}
+.transaction-list b.spent{color:#ffafaa}
+.transaction-list b.earned{color:#9de3b6}
+@media(max-width:640px){.topbar-right{gap:6px}.coin-balance{padding:6px;font-size:12px}.coin-unit{font-size:9px}
+  .room-cost{font-size:9px}.economy-notice{font-size:10px}.brand-name{font-size:12px}}
