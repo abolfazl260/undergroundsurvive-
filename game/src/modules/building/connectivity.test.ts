@@ -12,7 +12,7 @@ function middleShaft(): BuildingLayout {
     terrain: {
       ...snapshot.terrain,
       elevators: [{ x: 7, y: 0 }, { x: 7, y: -1 }, { x: 7, y: -2 }],
-      excavated: [...snapshot.terrain.excavated, { x: 7, y: -2 }, { x: 8, y: -2 }, { x: 9, y: -2 }]
+      excavated: [...snapshot.terrain.excavated, { x: 7, y: -2 }, { x: 8, y: -2 }, { x: 9, y: -2 }, { x: 13, y: -1 }]
         .filter((cell, index, all) =>
           all.findIndex((candidate) => candidate.x === cell.x && candidate.y === cell.y) === index)
     }
