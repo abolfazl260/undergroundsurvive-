@@ -148,6 +148,9 @@ export function mountStartupScreen(doc: Document = document): StartupScreen {
       overlay?.classList.add('startup-screen--done');
       const finishTransition = (): void => {
         overlay?.remove();
+        const app = doc.getElementById('app');
+        app?.removeAttribute('inert');
+        app?.removeAttribute('aria-hidden');
         onComplete();
       };
       // Respect reduced-motion settings and avoid blocking when no CSS transition fires.
