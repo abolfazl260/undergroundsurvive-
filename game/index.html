@@ -22,6 +22,7 @@
           </div>
           <span class="save-badge" id="hud-save-status" role="status" aria-live="polite">در انتظار ذخیره</span>
         </div>
+        <button id="menu-toggle" class="menu-open-button" type="button" aria-haspopup="dialog" aria-controls="game-menu-dialog" hidden>☰ منو</button>
       </header>
       <section class="hud-bar" aria-label="وضعیت منابع و پیشرفت پناهگاه">
         <div class="hud-tile hud-tile-coins">
@@ -118,6 +119,60 @@
         </aside>
       </main>
     </div>
+    <dialog id="game-menu-dialog" class="game-menu" aria-labelledby="menu-home-title" dir="rtl">
+      <section data-menu-screen="home" class="menu-screen">
+        <span class="menu-kicker">UNDERGROUND SURVIVE</span>
+        <h2 id="menu-home-title" tabindex="-1">پناهگاه زیرزمینی</h2>
+        <p class="menu-description">پناهگاه خود را روی زمین و زیر زمین توسعه دهید. پیشرفت بازی در همین مرورگر ذخیره می‌شود.</p>
+        <div class="menu-actions">
+          <button class="menu-primary" id="menu-continue" type="button" data-menu-action="continue">شروع بازی</button>
+          <button type="button" id="menu-new" data-menu-action="new" hidden>بازی جدید</button>
+          <button type="button" data-menu-action="settings">تنظیمات</button>
+        </div>
+      </section>
+      <section data-menu-screen="pause" class="menu-screen" hidden>
+        <span class="menu-kicker">GAME PAUSED</span>
+        <h2 id="menu-pause-title" tabindex="-1">بازی متوقف شده است</h2>
+        <p class="menu-description">زمان و حرکت‌های صحنه متوقف شده‌اند. پیشرفت شما به‌صورت محلی ذخیره می‌شود.</p>
+        <div class="menu-actions">
+          <button type="button" class="menu-primary" data-menu-action="resume">ادامهٔ بازی</button>
+          <button type="button" data-menu-action="settings">تنظیمات</button>
+          <button type="button" data-menu-action="new">بازی جدید</button>
+          <button type="button" data-menu-action="main">منوی اصلی</button>
+        </div>
+      </section>
+      <section data-menu-screen="settings" class="menu-screen" hidden>
+        <span class="menu-kicker">PREFERENCES</span>
+        <h2 id="menu-settings-title" tabindex="-1">تنظیمات بازی</h2>
+        <div class="menu-field menu-audio">
+          <button id="menu-audio-mute" type="button" class="menu-audio-mute" aria-pressed="false">قطع همهٔ صداها</button>
+          <label class="menu-audio-toggle" for="menu-music-enabled"><span>موسیقی</span><input id="menu-music-enabled" type="checkbox" /></label>
+          <label for="menu-music-volume">حجم موسیقی <output id="menu-music-volume-value" for="menu-music-volume">۳۰٪</output></label>
+          <input id="menu-music-volume" type="range" min="0" max="100" step="5" value="30" />
+          <label class="menu-audio-toggle" for="menu-effects-enabled"><span>افکت‌های صوتی</span><input id="menu-effects-enabled" type="checkbox" /></label>
+          <label for="menu-effects-volume">حجم افکت‌ها <output id="menu-effects-volume-value" for="menu-effects-volume">۶۵٪</output></label>
+          <input id="menu-effects-volume" type="range" min="0" max="100" step="5" value="65" />
+          <p class="menu-audio-note">تنظیمات صدا با کنترل‌های پنل بازی مشترک است.</p>
+        </div>
+        <label class="menu-check" for="menu-reduced-motion">
+          <input id="menu-reduced-motion" type="checkbox" />
+          <span>کاهش حرکت‌های تزئینی <small>انیمیشن آدمک آزمایشی متوقف می‌شود.</small></span>
+        </label>
+        <p class="menu-footnote">تنظیمات صدا و کاهش حرکت جدا از پیشرفت پناهگاه ذخیره می‌شوند.</p>
+        <div class="menu-actions">
+          <button class="menu-primary" type="button" data-menu-action="back">بازگشت</button>
+        </div>
+      </section>
+      <section data-menu-screen="confirm-new" class="menu-screen" hidden>
+        <span class="menu-kicker">NEW GAME</span>
+        <h2 id="menu-confirm-new-title" tabindex="-1">شروع بازی جدید؟</h2>
+        <p class="menu-description">این کار نقشه، سکه‌ها و پیشرفت ذخیره‌شده را به وضعیت اولیه برمی‌گرداند و قابل بازگشت نیست.</p>
+        <div class="menu-actions">
+          <button type="button" class="menu-danger" data-menu-action="confirm-new">بله، بازی جدید</button>
+          <button type="button" class="menu-primary" data-menu-action="back">انصراف</button>
+        </div>
+      </section>
+    </dialog>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -1,4 +1,5 @@
 import './style.css';
+import { setupGameMenu } from './app/gameMenu';
 import './audio.css';
 import './ui/ui.css';
 import { createIcon } from './ui/icons';
@@ -64,6 +65,7 @@ if (digButton) setButtonLabel(digButton, 'حفاری · ' + formatCoins(DIG_COST
 let activeRoom: BuildableRoomType = 'habitat';
 let activeTool: ToolMode = 'build';
 
+const savedGame = loadLocalBase();
 const scene = new GameScene((snapshot, message) => {
   const saved = saveLocalBase(snapshot);
   renderHud(snapshot, saved);
@@ -95,7 +97,7 @@ const scene = new GameScene((snapshot, message) => {
       : 'طبقهٔ +' + (snapshot.base.terrain.highestFloor + 1) + ' · ' +
         formatCoins(getFloorCost(snapshot.base.terrain.highestFloor)) + ' سکه', 'layers');
   }
-}, loadLocalBase(), (zoom) => {
+}, savedGame, (zoom) => {
   if (zoomLevel) zoomLevel.textContent = Math.round(zoom * 100) + '%';
   if (zoomIn) zoomIn.disabled = zoom >= ZOOM.max - 0.001;
   if (zoomOut) zoomOut.disabled = zoom <= ZOOM.min + 0.001;
@@ -103,6 +105,7 @@ const scene = new GameScene((snapshot, message) => {
 }, (cue) => audio.play(cue), () => audio.activate());
 
 createGame(scene);
+setupGameMenu(scene, savedGame !== null, audio, renderAudioControls);
 function renderAudioControls(): void {
   const settings = audio.getSettings();
   if (audioMute) {
