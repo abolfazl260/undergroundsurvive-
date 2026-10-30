@@ -1,5 +1,8 @@
 import './style.css';
 import './audio.css';
+import './ui/ui.css';
+import { createIcon } from './ui/icons';
+import { enhanceIcons, setButtonLabel, setPressed } from './ui/components';
 import { createGame } from './app/createGame';
 import { GameScene, type ToolMode } from './app/GameScene';
 import { ZOOM } from './app/viewport';
@@ -10,6 +13,8 @@ import type { BuildableRoomType } from './modules/building/catalog';
 import { loadLocalBase, saveLocalBase } from './platform/localSave';
 import { BUILD_COSTS, DIG_COST, DEMO_BONUS_COINS, getFloorCost } from './modules/economy/pricing';
 import type { TransactionKind } from './modules/economy/wallet';
+
+enhanceIcons();
 
 const audio = new AudioManager();
 const status = document.querySelector<HTMLElement>('#status');
@@ -48,11 +53,13 @@ roomButtons.forEach((button) => {
   const type = button.dataset.room as BuildableRoomType;
   const price = document.createElement('span');
   price.className = 'room-cost';
-  price.textContent = formatCoins(BUILD_COSTS[type]) + ' ●';
+  const amount = document.createElement('span');
+  amount.textContent = formatCoins(BUILD_COSTS[type]);
+  price.append(createIcon('coin'), amount);
   price.setAttribute('aria-label', 'هزینه: ' + formatCoins(BUILD_COSTS[type]) + ' سکه');
   button.append(price);
 });
-if (digButton) digButton.textContent = '⛏ حفاری · ' + formatCoins(DIG_COST) + ' سکه';
+if (digButton) setButtonLabel(digButton, 'حفاری · ' + formatCoins(DIG_COST) + ' سکه', 'pickaxe');
 
 let activeRoom: BuildableRoomType = 'habitat';
 let activeTool: ToolMode = 'build';
@@ -62,9 +69,9 @@ const scene = new GameScene((snapshot, message) => {
   renderHud(snapshot, saved);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
-    bonusButton.textContent = snapshot.demoBonusClaimed
+    setButtonLabel(bonusButton, snapshot.demoBonusClaimed
       ? 'کمک‌هزینهٔ آزمایشی دریافت شده'
-      : 'دریافت ' + formatCoins(DEMO_BONUS_COINS) + ' سکهٔ آزمایشی (یک‌بار)';
+      : 'دریافت ' + formatCoins(DEMO_BONUS_COINS) + ' سکهٔ آزمایشی (یک‌بار)', 'gift');
   }
   if (historyNode) {
     historyNode.replaceChildren();
@@ -83,10 +90,10 @@ const scene = new GameScene((snapshot, message) => {
   if (unlockButton) {
     const maxed = snapshot.base.terrain.highestFloor >= WORLD.maxY;
     unlockButton.disabled = maxed;
-    unlockButton.textContent = maxed
+    setButtonLabel(unlockButton, maxed
       ? 'تمام طبقات باز شده‌اند'
-      : '＋ طبقهٔ +' + (snapshot.base.terrain.highestFloor + 1) + ' · ' +
-        formatCoins(getFloorCost(snapshot.base.terrain.highestFloor)) + ' سکه';
+      : 'طبقهٔ +' + (snapshot.base.terrain.highestFloor + 1) + ' · ' +
+        formatCoins(getFloorCost(snapshot.base.terrain.highestFloor)) + ' سکه', 'layers');
   }
 }, loadLocalBase(), (zoom) => {
   if (zoomLevel) zoomLevel.textContent = Math.round(zoom * 100) + '%';
@@ -158,13 +165,11 @@ zoomReset?.addEventListener('click', () => scene.resetZoom());
 function updateSelectedButtons(): void {
   roomButtons.forEach((button) => {
     const active = activeTool === 'build' && button.dataset.room === activeRoom;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
+    setPressed(button, active);
   });
   toolButtons.forEach((button) => {
     const active = button.dataset.tool === activeTool;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
+    setPressed(button, active);
   });
 }
 
