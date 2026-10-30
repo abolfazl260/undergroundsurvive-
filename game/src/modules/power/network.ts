@@ -51,7 +51,7 @@ export function starterPower(): PowerSnapshot {
   // risers at x=1; an elevator at x=0 is deliberately NOT a conductor.
   return { schemaVersion: 1, mode: 'physical', overrides: [], cables: [
     { x: 1, y: -2, riser: true },
-    ...Array.from({ length: 7 }, (_, i) => ({ x: i + 1, y: -1, riser: i === 0 }))
+    ...Array.from({ length: 12 }, (_, i) => ({ x: i + 1, y: -1, riser: i === 0 }))
   ] };
 }
 export function legacyPower(): PowerSnapshot {
