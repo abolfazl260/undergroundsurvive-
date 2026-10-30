@@ -260,7 +260,7 @@ html[dir="ltr"] .achievements-filters button { text-align:left; }
   border-radius:10px;
   border:1px solid rgba(125,165,188,.7);
   background-color:#0a1d28;
-  background-image:url('/assets/achievements/milestone-scenes.webp');
+  background-image:url('/assets/achievements/milestone-scenes.svg');
   background-repeat:no-repeat;
   background-size:100% 1100%;
   background-position:50% 0%;
