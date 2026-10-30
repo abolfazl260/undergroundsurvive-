@@ -1,10 +1,16 @@
 /** Pure camera geometry shared by mouse, touch and UI controls. Phaser-independent. */
 export const ZOOM = { min: 0.75, max: 2.5, initial: 1, step: 0.25 } as const;
 
+/** One portrait screen and one unchanged 960×600 world on every device. */
+export const GAME_VIEW = { width: 480, height: 600, worldWidth: 960, worldHeight: 600 } as const;
+
 export interface Point { x: number; y: number }
 export interface Viewport {
   width: number;
   height: number;
+  /** World bounds are independent of the smaller portrait viewport. */
+  worldWidth?: number;
+  worldHeight?: number;
   zoom: number;
   scrollX: number;
   scrollY: number;
@@ -22,18 +28,19 @@ export function screenToWorld(view: Viewport, screen: Point): Point {
   };
 }
 
-function constrainAxis(scroll: number, size: number, zoom: number): number {
-  // Center the map when zoomed out; when zoomed in do not pan past its edges.
+function constrainAxis(scroll: number, size: number, zoom: number, worldSize: number): number {
+  // Camera scroll measures its unzoomed top-left. Clamp its visible region to
+  // the full world, not the narrower mobile screen.
   const visibleHalf = size / (2 * zoom);
-  if (visibleHalf >= size / 2) return 0;
+  if (visibleHalf >= worldSize / 2) return (worldSize - size) / 2;
   const center = scroll + size / 2;
-  return Math.max(visibleHalf, Math.min(size - visibleHalf, center)) - size / 2;
+  return Math.max(visibleHalf, Math.min(worldSize - visibleHalf, center)) - size / 2;
 }
 
 export function constrainScroll(view: Viewport): Pick<Viewport, 'scrollX' | 'scrollY'> {
   return {
-    scrollX: constrainAxis(view.scrollX, view.width, view.zoom),
-    scrollY: constrainAxis(view.scrollY, view.height, view.zoom)
+    scrollX: constrainAxis(view.scrollX, view.width, view.zoom, view.worldWidth ?? view.width),
+    scrollY: constrainAxis(view.scrollY, view.height, view.zoom, view.worldHeight ?? view.height)
   };
 }
 
