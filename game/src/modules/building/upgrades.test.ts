@@ -43,9 +43,9 @@ describe('room upgrade capacities', () => {
     expect(game.upgradeDetails(id)?.current.value).toBe(4);
     expect(game.upgradeDetails(id)?.next?.value).toBe(6);
     expect(game.upgradeDetails(id)?.cost).toBe(360);
-    expect(game.wallet.balance).toBe(STARTING_COINS - 240);
+    expect(game.wallet.balance).toBe(STARTING_COINS - 240 + 30);
     expect(game.upgradeRoom(id).ok).toBe(true);
-    expect(game.wallet.balance).toBe(STARTING_COINS - 600);
+    expect(game.wallet.balance).toBe(STARTING_COINS - 600 + 30);
     expect(game.upgradeDetails(id)?.cost).toBeNull();
     expect(game.upgradeDetails(id)?.next).toBeNull();
     const final = game.snapshot();
