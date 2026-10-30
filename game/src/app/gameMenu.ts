@@ -3,8 +3,9 @@ import type { AudioManager } from '../modules/audio/AudioManager';
 import type { AudioSettings } from '../modules/audio/settings';
 import { loadMenuSettings, saveMenuSettings, type MenuSettings } from './menuSettings';
 import { getLocale, setLocale, subscribeLocaleChange, t, formatNumber } from '../i18n';
+import { renderPolicyContent } from './policyContent';
 
-type MenuScreen = 'home' | 'pause' | 'settings' | 'confirm-new';
+type MenuScreen = 'home' | 'pause' | 'settings' | 'policies' | 'confirm-new';
 type ReturnScreen = 'home' | 'pause';
 
 /** The modal makes other DOM controls inert while the Phaser scene is paused. */
@@ -22,6 +23,7 @@ export function setupGameMenu(
   const newButton = document.querySelector<HTMLButtonElement>('#menu-new');
   const reducedMotion = document.querySelector<HTMLInputElement>('#menu-reduced-motion');
   const language = document.querySelector<HTMLSelectElement>('#menu-language');
+  const policyContent = document.querySelector<HTMLElement>('#menu-policy-content');
   const mute = document.querySelector<HTMLButtonElement>('#menu-audio-mute');
   const musicEnabled = document.querySelector<HTMLInputElement>('#menu-music-enabled');
   const effectsEnabled = document.querySelector<HTMLInputElement>('#menu-effects-enabled');
@@ -30,7 +32,7 @@ export function setupGameMenu(
   const musicValue = document.querySelector<HTMLOutputElement>('#menu-music-volume-value');
   const effectsValue = document.querySelector<HTMLOutputElement>('#menu-effects-volume-value');
   if (!dialog || !menuButton || !continueButton || !continueLabel || !pauseTitle || !newButton || !reducedMotion || !mute ||
-      !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue || !language) return;
+      !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue || !language || !policyContent) return;
 
   let playing = false;
   let hasSave = savedGameExists;
@@ -88,6 +90,8 @@ export function setupGameMenu(
     });
     dialog!.setAttribute('aria-labelledby', 'menu-' + next + '-title');
     if (next === 'settings') renderAudio();
+    if (next === 'policies') renderPolicyContent(policyContent!, getLocale());
+    dialog!.scrollTop = 0;
     dialog!.querySelector<HTMLElement>('#menu-' + next + '-title')?.focus();
   }
 
@@ -133,6 +137,7 @@ export function setupGameMenu(
     renderHome();
     renderPauseHeading();
     renderAudio();
+    if (screen === 'policies') renderPolicyContent(policyContent!, getLocale());
   });
   mute.addEventListener('click', () => changeAudio({ muted: !audio.getSettings().muted }));
   musicEnabled.addEventListener('change', () => changeAudio({ musicEnabled: musicEnabled.checked }));
@@ -163,6 +168,10 @@ export function setupGameMenu(
       case 'settings':
         returnScreen = screen === 'pause' ? 'pause' : 'home';
         showScreen('settings');
+        break;
+      case 'policies':
+        returnScreen = screen === 'pause' ? 'pause' : 'home';
+        showScreen('policies');
         break;
       case 'back':
         showScreen(returnScreen);
