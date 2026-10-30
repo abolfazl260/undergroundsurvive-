@@ -57,7 +57,7 @@ const fa: PolicyContent = {
       id: 'privacy', title: 'حریم خصوصی و مدیریت داده‌ها',
       description: 'چه چیزی ذخیره می‌شود و چگونه می‌توان آن را پاک کرد',
       items: [
-        { heading: 'اطلاعات نگهداری‌شده', description: 'پیشرفت پناهگاه، موقعیت اتاق‌ها و بازماندگان، منابع، سکه و تاریخچهٔ تراکنش‌های بازی در ذخیرهٔ محلی نگهداری می‌شوند. زبان، وضعیت صدا و گزینهٔ کاهش حرکت نیز جداگانه ذخیره می‌شوند.' },
+        { heading: 'اطلاعات نگهداری‌شده', description: 'پیشرفت پناهگاه، موقعیت اتاق‌ها و بازماندگان، منابع، سکه، تاریخچهٔ تراکنش‌های بازی و پیشرفت فصل‌های داستان در ذخیرهٔ محلی نگهداری می‌شوند. زبان، وضعیت صدا و گزینهٔ کاهش حرکت نیز جداگانه ذخیره می‌شوند.' },
         { heading: 'روش ذخیره‌سازی', description: 'این داده‌ها در فضای localStorage مرورگر یا WebView برنامه روی همان دستگاه ذخیره می‌شوند. بازی برای این قابلیت حساب کاربری، رمز عبور، نام واقعی یا شمارهٔ تلفن درخواست نمی‌کند.' },
         { heading: 'ارسال داده و میزبان وب', description: 'کد فعلی برای ذخیرهٔ پیشرفت، اطلاعات را به سرور حساب کاربری ارسال نمی‌کند و سامانهٔ تحلیل رفتار بازیکن در آن پیاده‌سازی نشده است. با این حال، میزبان وب یا ارائه‌دهندهٔ شبکه ممکن است مانند هر وب‌سایت دیگری اطلاعات فنی اتصال را طبق سیاست خود پردازش کند.' },
         { heading: 'بازیابی و نسخهٔ پشتیبان', description: 'اگر ذخیرهٔ محلی نامعتبر تشخیص داده شود، ممکن است نسخه‌ای از دادهٔ قبلی با کلید بازیابی محلی نگه داشته شود. این نسخهٔ پشتیبان ابری نیست و پاک‌سازی داده‌های سایت آن را نیز از بین می‌برد.' },
@@ -121,7 +121,7 @@ const en: PolicyContent = {
       id: 'privacy', title: 'Privacy and saved data',
       description: 'Stored information, retention and deletion',
       items: [
-        { heading: 'Stored game information', description: 'The local save may contain shelter progression, room and survivor positions, resources, coins and in-game transaction history. Language, audio preferences and reduced-motion preference are saved separately.' },
+        { heading: 'Stored game information', description: 'The local save may contain shelter progression, room and survivor positions, resources, coins, in-game transaction history and story chapter progress. Language, audio preferences and reduced-motion preference are saved separately.' },
         { heading: 'Where data is stored', description: 'Data is stored in localStorage inside your browser or app WebView on this device. Saving progress does not require an account, password, real name or phone number.' },
         { heading: 'Data transmission and hosting', description: 'The current game code does not upload saved progress to an account server and does not implement an in-game analytics service. Website hosts and network providers may separately process technical connection logs under their own policies.' },
         { heading: 'Recovery copies', description: 'When a malformed save is detected, an earlier version may be retained under a local recovery key. This is not a cloud backup; clearing website data removes it as well.' },
