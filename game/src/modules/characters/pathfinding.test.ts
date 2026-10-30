@@ -69,12 +69,12 @@ describe('room pathfinding', () => {
     const layout = new BuildingLayout();
     const resident = new ResidentNavigator(layout, { x: 6, y: -1 });
     expect(resident.goToRoom('initial-garden')).toBe(true);
-    expect(layout.move('initial-garden', 8, -1).ok).toBe(true);
+    expect(layout.move('initial-garden', 8, -1).ok).toBe(false);
     expect(resident.refresh()).toBe(true);
     const end = resident.remainingCells.at(-1)!;
     expect(layout.getRoomAt(end.x, end.y)?.id).toBe('initial-garden');
-    expect(layout.place('medbay', 10, -1).ok).toBe(true);
-    const id = layout.getRoomAt(10, -1)!.id;
+    expect(layout.place('medbay', 8, -1).ok).toBe(true);
+    const id = layout.getRoomAt(8, -1)!.id;
     expect(resident.goToRoom(id)).toBe(true);
     expect(layout.remove(id).ok).toBe(true);
     expect(resident.refresh()).toBe(false);

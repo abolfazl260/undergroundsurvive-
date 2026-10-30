@@ -146,6 +146,8 @@ export class GameScene extends Phaser.Scene {
     this.onZoomChange(this.cameras.main.zoom);
     this.onCycleProgress(Math.ceil(this.session.resources.remainingMs / 1000));
     if(this.recoveryFailed) this.notify('ذخیره قابل بازیابی نیست؛ نسخهٔ اصلی برای بازیابی نگهداری شد.');
+    else if (this.layout.disconnectedRoomIds.length)
+      this.notify('ذخیرهٔ قدیمی دارای اتاق‌های جداافتاده است؛ اتاق‌ها حفظ شده‌اند. برای اصلاح، آن‌ها را به شبکهٔ آسانسور منتقل کنید.');
     else this.notify('ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.');
     if (this.gameplayPaused) this.scene.pause();
   }
@@ -359,7 +361,7 @@ export class GameScene extends Phaser.Scene {
     this.paintPreview();
     const messages: Record<ToolMode, string> = {
       elevator: 'آسانسور را در خانهٔ مجاور شفت امتداد دهید.',
-      build: 'برای ساخت، یک خانهٔ خالی و آماده را انتخاب کنید.',
+      build: 'جایگاه‌های سبز کنار آسانسور یا اتاق‌های متصل را برای ساخت انتخاب کنید.',
       dig: 'برای حفاری روی زمین بستهٔ زیرزمینی مجاور فضای باز بزنید.',
       move: 'ابتدا اتاق را انتخاب کنید و سپس مکان جدید آن را لمس کنید.',
       remove: 'برای تخریب روی اتاق کلیک کنید. مجوزهای کسب‌شده حفظ می‌شوند.',
@@ -492,6 +494,8 @@ export class GameScene extends Phaser.Scene {
     if (this.mode === 'elevator') {
       const result=this.session.buildElevator(x,y);
       if(result.ok) { this.paintTerrain(); this.refreshResidentPath(); }
+      this.hovered = cell;
+      this.paintPreview();
       this.notify(result.ok ? 'آسانسور ساخته و طبقه آزاد شد.' : result.reason); return;
     }
     if (this.mode === 'navigate') {
@@ -806,6 +810,22 @@ export class GameScene extends Phaser.Scene {
     const g = this.preview;
     g.clear();
     this.previewReason?.setVisible(false);
+    // Show eligible anchors even before a touch; preview works identically on mobile and web.
+    if (this.mode === 'build' && this.session.canAfford(this.session.buildCost(this.selectedRoom))) {
+      const definition = ROOM_DEFINITIONS[this.selectedRoom];
+      for (let y = WORLD.minY; y < 0; y++) {
+        for (let x = 0; x <= WORLD.cols - definition.width; x++) {
+          if (!this.session.canBuild(this.selectedRoom, x, y).ok) continue;
+          const { left, top } = toPixels(x, y);
+          g.fillStyle(0x6acdad, 0.13);
+          g.fillRect(left + 3, top + 3,
+            definition.width * WORLD.cellSize - 6, definition.height * WORLD.cellSize - 6);
+          g.lineStyle(1, 0x89e5bd, 0.55);
+          g.strokeRect(left + 3, top + 3,
+            definition.width * WORLD.cellSize - 6, definition.height * WORLD.cellSize - 6);
+        }
+      }
+    }
     const selected = this.mode === 'upgrade'
       ? this.layout.rooms.find((room) => room.id === this.selectedUpgradeId)
       : undefined;
@@ -820,6 +840,7 @@ export class GameScene extends Phaser.Scene {
     if (y >= 0 && (this.mode === 'build' || this.mode === 'dig' || this.mode === 'move')) return;
     const room = this.layout.getRoomAt(x, y);
     let width = 1, height = 1, startX = x, startY = y, valid = false;
+    let rejection: string | null = null;
     if (this.mode === 'elevator') {
       const result=this.layout.canBuildElevator(x,y);
       valid=result.ok && this.session.canAfford(ELEVATOR_DEFINITION.cost);
@@ -831,26 +852,43 @@ export class GameScene extends Phaser.Scene {
     } else if (this.mode === 'build') {
       const d = ROOM_DEFINITIONS[this.selectedRoom];
       width = d.width; height = d.height;
-      valid = this.session.canBuild(this.selectedRoom, x, y).ok &&
-        this.session.canAfford(this.session.buildCost(this.selectedRoom));
+      const result = this.session.canBuild(this.selectedRoom, x, y);
+      valid = result.ok && this.session.canAfford(this.session.buildCost(this.selectedRoom));
+      if (!valid) rejection = result.ok ? 'سکهٔ کافی برای این عملیات ندارید.' : result.reason;
     } else if (this.mode === 'dig') {
       valid = this.layout.terrain.canDig(x, y).ok && this.session.canAfford(this.session.digCost());
     } else if (this.mode === 'move' && this.pendingMoveId) {
       const selected = this.layout.rooms.find((r) => r.id === this.pendingMoveId);
       if (!selected) return;
       width = selected.width; height = selected.height;
-      valid = this.layout.canMove(selected.id, x, y).ok;
+      const result = this.layout.canMove(selected.id, x, y);
+      valid = result.ok;
+      if (!result.ok) rejection = result.reason;
     } else if (room) {
       startX = room.x; startY = room.y;
       width = room.width; height = room.height;
-      valid = this.mode === 'upgrade' ?
+      valid = this.mode === 'remove' ? this.layout.canRemove(room.id).ok :
+        this.mode === 'upgrade' ?
         this.session.upgradeCostAt(x, y) !== null &&
         this.session.canAfford(this.session.upgradeCostAt(x, y)!) :
         this.mode === 'navigate' ?
           !!this.traffic?.getResident(this.selectedResidentId) &&
           findRoomPath(this.layout, this.traffic.getResident(this.selectedResidentId)!.cell, room.id) !== null :
           this.layout.canEditRoom(room);
+      if (this.mode === 'remove' && !valid) {
+        const result = this.layout.canRemove(room.id);
+        if (!result.ok) rejection = result.reason;
+      }
     } else return;
+    if (rejection) {
+      const point = toPixels(startX, startY);
+      this.previewReason ??= this.add.text(0, 0, '', {
+        fontSize: '12px', color: '#ffffff', backgroundColor: '#641c30',
+        wordWrap: { width: 190 }, padding: { x: 5, y: 5 }
+      }).setDepth(7).setResolution(3);
+      this.previewReason.setText(localizeGameMessage(rejection))
+        .setPosition(point.left + 10, point.top - 36).setVisible(true);
+    }
     const { left, top } = toPixels(startX, startY);
     const w = width * WORLD.cellSize - 4, h = height * WORLD.cellSize - 4;
     g.fillStyle(valid ? 0x6acdad : 0xe48384, 0.25);
