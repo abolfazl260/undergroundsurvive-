@@ -72,7 +72,7 @@ export class KitchenProcessor {
     this.state.cycles = rooms.filter(r => r.type === 'kitchen').map(room => {
       const previous = this.state.cycles.find(c => c.roomId === room.id);
       return previous ?? { roomId: room.id, status: 'idle', recipeId: null, level: room.level,
-        elapsedMs: 0, durationMs: 0, output: 0, enabled: true };
+        elapsedMs: 0, durationMs: 0, output: 0, enabled: true } as CookingCycle;
     }).sort((a, b) => a.roomId.localeCompare(b.roomId));
   }
 
