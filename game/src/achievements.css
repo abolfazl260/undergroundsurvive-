@@ -83,7 +83,7 @@
   display:flex; align-items:center; gap:9px; min-height:55px; width:100%;
   padding:9px 10px; flex:none; border:1px solid #234253; border-radius:11px;
   background:linear-gradient(115deg,#102d3d,#091c2a); color:#b5cbd6;
-  text-align:start; cursor:pointer; font:700 12px/1.4 inherit;
+  text-align:start; cursor:pointer; font-family:inherit; line-height:1.4;
   font-size:12px; font-weight:700; transition:background .15s,border-color .15s;
 }
 .achievements-filters button:hover { background:#173849; border-color:#648e9c; }
