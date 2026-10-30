@@ -4,6 +4,9 @@ import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/ca
 import { BuildingLayout, type BaseSnapshot } from '../modules/building/layout';
 import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ATLAS_KEY, ROOM_ATLAS_URL, ROOM_ATLAS_FRAME_WIDTH, ROOM_ATLAS_FRAME_HEIGHT, ROOM_FRAME_BY_TYPE } from './roomArt';
+import { panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
+
+type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 
 export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade';
 
@@ -16,8 +19,15 @@ export class GameScene extends Phaser.Scene {
   private roomLayer?: Phaser.GameObjects.Container;
   private preview?: Phaser.GameObjects.Graphics;
   private hovered: GridPosition | null = null;
+  private readonly contacts = new Map<number, Contact>();
+  private pinch?: { initialDistance: number; initialZoom: number; worldAnchor: Point };
+  private gestureUsed = false;
 
-  constructor(private readonly report: (snapshot: BaseSnapshot, message: string) => void, saved: unknown) {
+  constructor(
+    private readonly report: (snapshot: BaseSnapshot, message: string) => void,
+    saved: unknown,
+    private readonly onZoomChange: (zoom: number) => void = () => {}
+  ) {
     super({ key: 'UndergroundScene' });
     this.layout = BuildingLayout.restore(saved) ?? new BuildingLayout();
   }
@@ -39,19 +49,150 @@ export class GameScene extends Phaser.Scene {
     this.paintRooms();
     this.addResident();
 
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      this.hovered = toCell(pointer.x, pointer.y);
-      this.paintPreview();
-    });
+    this.input.addPointer(2); // Accept simultaneous touch contacts for pinch gestures.
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.startContact(pointer));
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => this.moveContact(pointer));
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => this.endContact(pointer, false));
+    this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => this.endContact(pointer, true));
     this.input.on('gameout', () => {
       this.hovered = null;
       this.paintPreview();
     });
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      const cell = toCell(pointer.x, pointer.y);
-      if (cell) this.actOnCell(cell);
+    this.input.on('wheel', (
+      pointer: Phaser.Input.Pointer,
+      _over: Phaser.GameObjects.GameObject[],
+      _dx: number,
+      dy: number,
+      _dz: number,
+      event: WheelEvent
+    ) => {
+      event.preventDefault();
+      if (dy !== 0) this.setZoomAt(this.cameras.main.zoom + (dy < 0 ? 0.15 : -0.15), { x: pointer.x, y: pointer.y });
     });
-    this.notify('ابزار ساخت را انتخاب کنید و روی خانهٔ مجاز بزنید.');
+    this.onZoomChange(this.cameras.main.zoom);
+    this.notify('ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.');
+  }
+
+  /** Exposed to the responsive HTML zoom controls. */
+  zoomBy(amount: number): void {
+    this.setZoomAt(this.cameras.main.zoom + amount, {
+      x: this.cameras.main.width / 2,
+      y: this.cameras.main.height / 2
+    });
+  }
+
+  resetZoom(): void {
+    this.applyView({ ...this.currentView(), zoom: ZOOM.initial, scrollX: 0, scrollY: 0 });
+  }
+
+  private currentView(): Viewport {
+    const camera = this.cameras.main;
+    return {
+      width: camera.width, height: camera.height,
+      zoom: camera.zoom, scrollX: camera.scrollX, scrollY: camera.scrollY
+    };
+  }
+
+  private applyView(view: Viewport): void {
+    const camera = this.cameras.main;
+    const changedZoom = camera.zoom !== view.zoom;
+    camera.setZoom(view.zoom);
+    camera.setScroll(view.scrollX, view.scrollY);
+    if (changedZoom) this.onZoomChange(view.zoom);
+    if (this.contacts.size === 0) this.updateHover(this.input.activePointer);
+    else {
+      this.hovered = null;
+      this.paintPreview();
+    }
+  }
+
+  private setZoomAt(zoom: number, screen: Point): void {
+    this.applyView(zoomAt(this.currentView(), zoom, screen));
+  }
+
+  private pointToCell(screen: Point): GridPosition | null {
+    const world = screenToWorld(this.currentView(), screen);
+    return toCell(world.x, world.y);
+  }
+
+  private updateHover(pointer: Phaser.Input.Pointer): void {
+    this.hovered = this.pointToCell({ x: pointer.x, y: pointer.y });
+    this.paintPreview();
+  }
+
+  private startContact(pointer: Phaser.Input.Pointer): void {
+    this.contacts.set(pointer.id, {
+      x: pointer.x, y: pointer.y,
+      startX: pointer.x, startY: pointer.y,
+      dragged: false
+    });
+    if (this.contacts.size >= 2) {
+      this.gestureUsed = true;
+      this.beginPinch();
+      this.hovered = null;
+      this.paintPreview();
+    }
+  }
+
+  private beginPinch(): void {
+    const [first, second] = [...this.contacts.values()];
+    if (!first || !second) return;
+    const midpoint = { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
+    this.pinch = {
+      initialDistance: Math.max(1, Math.hypot(first.x - second.x, first.y - second.y)),
+      initialZoom: this.cameras.main.zoom,
+      worldAnchor: screenToWorld(this.currentView(), midpoint)
+    };
+  }
+
+  private moveContact(pointer: Phaser.Input.Pointer): void {
+    const contact = this.contacts.get(pointer.id);
+    if (!contact) {
+      if (this.contacts.size === 0) this.updateHover(pointer);
+      return;
+    }
+    const dx = pointer.x - contact.x;
+    const dy = pointer.y - contact.y;
+    contact.x = pointer.x;
+    contact.y = pointer.y;
+
+    if (this.contacts.size >= 2) {
+      if (!this.pinch) this.beginPinch();
+      const [a, b] = [...this.contacts.values()];
+      if (!a || !b || !this.pinch) return;
+      const midpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const distance = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
+      const targetZoom = this.pinch.initialZoom * distance / this.pinch.initialDistance;
+      this.applyView(zoomToWorldAnchor(this.currentView(), targetZoom, this.pinch.worldAnchor, midpoint));
+      return;
+    }
+
+    if (Math.hypot(contact.x - contact.startX, contact.y - contact.startY) > 14) {
+      contact.dragged = true;
+    }
+    if (contact.dragged || this.gestureUsed) {
+      this.applyView(panBy(this.currentView(), { x: dx, y: dy }));
+      return;
+    }
+    this.updateHover(pointer);
+  }
+
+  private endContact(pointer: Phaser.Input.Pointer, outside: boolean): void {
+    const contact = this.contacts.get(pointer.id);
+    if (!contact) return;
+    this.contacts.delete(pointer.id);
+    if (this.contacts.size < 2) this.pinch = undefined;
+    const shouldAct = !outside && !this.gestureUsed && !contact.dragged && pointer.button === 0;
+    if (this.contacts.size === 0) this.gestureUsed = false;
+    if (shouldAct) {
+      const cell = this.pointToCell({ x: pointer.x, y: pointer.y });
+      if (cell) this.actOnCell(cell);
+    }
+    if (this.contacts.size === 0 && !outside) this.updateHover(pointer);
+    else {
+      this.hovered = null;
+      this.paintPreview();
+    }
   }
 
   selectRoom(type: BuildableRoomType): void {
@@ -149,10 +290,11 @@ export class GameScene extends Phaser.Scene {
 
   private drawBackdrop(): void {
     const g = this.add.graphics().setDepth(0);
-    g.fillStyle(0x111e2e).fillRect(0, 0, 960, 312);
-    g.fillStyle(0x24394b).fillRect(0, 246, 960, 66);
-    g.fillStyle(0x42392f).fillRect(0, 312, 960, 288);
-    g.fillStyle(0x7d8965).fillRect(0, 310, 960, 4);
+    // Oversized background keeps the sky and soil visible at 75% zoom.
+    g.fillStyle(0x111e2e).fillRect(-600, -400, 2160, 712);
+    g.fillStyle(0x24394b).fillRect(-600, 246, 2160, 66);
+    g.fillStyle(0x42392f).fillRect(-600, 312, 2160, 1000);
+    g.fillStyle(0x7d8965).fillRect(-600, 310, 2160, 4);
     g.fillStyle(0x9bbcc9, 0.38);
     for (let i = 0; i < 25; i++) {
       g.fillCircle(22 + i * 181 % 911, 18 + i * 67 % 150, 1.5);

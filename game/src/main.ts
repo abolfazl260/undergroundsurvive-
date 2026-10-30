@@ -1,6 +1,7 @@
 import './style.css';
 import { createGame } from './app/createGame';
 import { GameScene, type ToolMode } from './app/GameScene';
+import { ZOOM } from './app/viewport';
 import { WORLD } from './modules/world/grid';
 import type { BuildableRoomType } from './modules/building/catalog';
 import { loadLocalBase, saveLocalBase } from './platform/localSave';
@@ -10,6 +11,10 @@ const roomCount = document.querySelector<HTMLElement>('#room-count');
 const floorStatus = document.querySelector<HTMLElement>('#floor-status');
 const terrainCount = document.querySelector<HTMLElement>('#terrain-count');
 const unlockButton = document.querySelector<HTMLButtonElement>('#unlock-floor');
+const zoomIn = document.querySelector<HTMLButtonElement>('#zoom-in');
+const zoomOut = document.querySelector<HTMLButtonElement>('#zoom-out');
+const zoomReset = document.querySelector<HTMLButtonElement>('#zoom-reset');
+const zoomLevel = document.querySelector<HTMLOutputElement>('#zoom-level');
 const roomButtons = document.querySelectorAll<HTMLButtonElement>('[data-room]');
 const toolButtons = document.querySelectorAll<HTMLButtonElement>('[data-tool]');
 
@@ -29,9 +34,17 @@ const scene = new GameScene((snapshot, message) => {
       ? 'تمام طبقات باز شده‌اند'
       : '＋ بازکردن طبقهٔ +' + (snapshot.terrain.highestFloor + 1);
   }
-}, loadLocalBase());
+}, loadLocalBase(), (zoom) => {
+  if (zoomLevel) zoomLevel.textContent = Math.round(zoom * 100) + '%';
+  if (zoomIn) zoomIn.disabled = zoom >= ZOOM.max - 0.001;
+  if (zoomOut) zoomOut.disabled = zoom <= ZOOM.min + 0.001;
+  if (zoomReset) zoomReset.disabled = Math.abs(zoom - ZOOM.initial) < 0.001;
+});
 
 createGame(scene);
+zoomIn?.addEventListener('click', () => scene.zoomBy(ZOOM.step));
+zoomOut?.addEventListener('click', () => scene.zoomBy(-ZOOM.step));
+zoomReset?.addEventListener('click', () => scene.resetZoom());
 
 function updateSelectedButtons(): void {
   roomButtons.forEach((button) => {
