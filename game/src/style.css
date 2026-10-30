@@ -117,3 +117,38 @@ button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3c
   .hud-tile-content strong{font-size:13px}
   .player-details small{font-size:9px}
 }
+
+/* Game menu: modal on all form factors; separate from the world editor. */
+[hidden]{display:none!important}
+.menu-open-button{border:1px solid #4c826e;border-radius:10px;background:#1a4037;color:#ddfff1;padding:9px 12px;font-size:13px;font-weight:700;white-space:nowrap}
+.menu-open-button:hover{background:#24624f}
+.game-menu{width:min(440px,calc(100vw - 28px));max-height:calc(100dvh - 28px);margin:auto;padding:0;border:1px solid #4d6b74;border-radius:18px;background:#101f2b;color:#eef7fa;box-shadow:0 25px 85px #02080ed9;overflow:auto}
+.game-menu::backdrop{background:rgba(1,7,14,.83);backdrop-filter:blur(5px)}
+.menu-screen{padding:30px 28px;direction:rtl;text-align:right}
+.menu-kicker{font:700 11px system-ui,Arial,sans-serif;letter-spacing:2px;color:#8ce1bf;direction:ltr;display:block;text-align:right}
+.menu-screen h2{margin:12px 0 8px;font-size:26px;line-height:1.5;outline:0}
+.menu-description{color:#acc4d0;font-size:13px;line-height:2;margin:8px 0 22px}
+.menu-actions{display:grid;gap:10px}
+.menu-actions button{width:100%;padding:13px 14px;border:1px solid #416074;border-radius:11px;background:#223647;color:#e9f3fb;font-weight:700;font-size:13px;text-align:center;touch-action:manipulation}
+.menu-actions button:hover{background:#2c4c5d}
+.menu-actions .menu-primary{background:#21614d;border-color:#65b69a;color:#f4fff9}
+.menu-actions .menu-primary:hover{background:#2b7961}
+.menu-actions .menu-danger{background:#63322f;border-color:#b7756e;color:#ffe4e1}
+.menu-actions .menu-danger:hover{background:#82433d}
+.menu-field{margin:22px 0 18px}
+.menu-field label{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;font-weight:700}
+.menu-field output{color:#9bdfc5;direction:ltr}
+.menu-field input{width:100%;margin:14px 0 0;accent-color:#7bd6b8;cursor:pointer;min-height:26px}
+.menu-check{display:flex;align-items:flex-start;gap:12px;font-size:13px;line-height:1.8;padding:14px 0;border-top:1px solid #34505f;cursor:pointer}
+.menu-check input{width:18px;height:18px;flex:none;margin:4px 0;accent-color:#69cba8}
+.menu-check small{display:block;font-size:11px;color:#93afbf}
+.menu-footnote{color:#9eb4bf;font-size:11px;line-height:1.9;margin:8px 0 20px}
+@media(max-width:640px){.menu-screen{padding:24px 18px}.menu-screen h2{font-size:22px}.menu-open-button{font-size:12px;padding:7px 9px}}
+@media(prefers-reduced-motion:reduce){.game-menu::backdrop{backdrop-filter:none}}
+
+.menu-audio-mute{width:100%;border:1px solid #477b76;border-radius:9px;background:#1c413d;color:#e2fff5;padding:10px 12px;margin-bottom:12px}
+.menu-audio-mute[aria-pressed="true"]{border-color:#a96b61;background:#503936;color:#ffe2da}
+.menu-field .menu-audio-toggle{margin-top:12px;margin-bottom:8px;cursor:pointer}
+.menu-audio-toggle input{width:19px;height:19px;accent-color:#7bd6b8}
+.menu-audio-note{margin:8px 0;color:#9eb5c1;font-size:11px;line-height:1.8}
+.menu-audio button:disabled,.menu-audio input:disabled{opacity:.5;cursor:not-allowed}

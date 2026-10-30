@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
+import type { MenuSettings } from './menuSettings';
 import type { AudioCue } from '../modules/audio/AudioManager';
 import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/grid';
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
 import { BuildingLayout } from '../modules/building/layout';
 import { GameSession, type GameSnapshot } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
-import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE } from './roomArt';
+import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE } from './roomArt';
 import { AssetManager } from './assets/assetManager';
 import { panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
@@ -16,7 +17,7 @@ export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade';
 export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
   private readonly assets = new AssetManager(
-    [ROOM_ART_ASSET], import.meta.env.BASE_URL,
+    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET], import.meta.env.BASE_URL,
     Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
   );
   private get layout(): BuildingLayout { return this.session.layout; }
@@ -31,6 +32,10 @@ export class GameScene extends Phaser.Scene {
   private readonly contacts = new Map<number, Contact>();
   private pinch?: { initialDistance: number; initialZoom: number; worldAnchor: Point };
   private gestureUsed = false;
+  private gameplayPaused = true;
+  private sceneReady = false;
+  private menuSettings: MenuSettings = { reducedMotion: false };
+  private residentTween?: Phaser.Tweens.Tween;
 
   constructor(
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
@@ -59,6 +64,8 @@ export class GameScene extends Phaser.Scene {
     this.paintTerrain();
     this.paintRooms();
     this.addResident();
+    this.sceneReady = true;
+    this.applyMenuSettings(this.menuSettings);
 
     this.input.addPointer(2); // Accept simultaneous touch contacts for pinch gestures.
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -85,6 +92,30 @@ export class GameScene extends Phaser.Scene {
     });
     this.onZoomChange(this.cameras.main.zoom);
     this.notify('ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.');
+    if (this.gameplayPaused) this.scene.pause();
+  }
+
+  /** Pause scene updates, resident animations and world interactions. */
+  pauseGameplay(): void {
+    this.gameplayPaused = true;
+    this.contacts.clear();
+    this.pinch = undefined;
+    this.gestureUsed = false;
+    this.hovered = null;
+    this.paintPreview();
+    if (this.sceneReady && this.scene.isActive()) this.scene.pause();
+  }
+
+  resumeGameplay(): void {
+    this.gameplayPaused = false;
+    if (this.sceneReady && this.scene.isPaused()) this.scene.resume();
+  }
+
+  applyMenuSettings(settings: MenuSettings): void {
+    this.menuSettings = { ...settings };
+    if (!this.sceneReady || !this.residentTween) return;
+    if (settings.reducedMotion) this.residentTween.pause();
+    else this.residentTween.resume();
   }
 
   /** Exposed to the responsive HTML zoom controls. */
@@ -259,6 +290,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private actOnCell(cell: GridPosition): void {
+    if (this.gameplayPaused) return;
     const { x, y } = cell;
     let result: PlacementResult = { ok: false, reason: 'دستور نامعتبر است.' };
     let successMessage = '';
@@ -386,10 +418,12 @@ export class GameScene extends Phaser.Scene {
       const { left, top } = toPixels(room.x, room.y);
       const width = room.width * WORLD.cellSize - 4;
       const height = room.height * WORLD.cellSize - 4;
-      const frame = ROOM_FRAME_BY_TYPE[room.type];
+      const specialFrame = GARDEN_MEDBAY_FRAME_BY_TYPE[room.type];
+      const frame = specialFrame ?? ROOM_FRAME_BY_TYPE[room.type];
+      const assetKey = specialFrame === undefined ? ROOM_ART_ASSET.key : GARDEN_MEDBAY_ART_ASSET.key;
 
       const texture = frame === undefined ? null : this.assets.resolve(
-        ROOM_ART_ASSET.key, this.textures, frame
+        assetKey, this.textures, frame
       );
       if (texture) {
         const sprite = this.add.image(left + 2, top + 2, texture.key, texture.frame)
@@ -444,7 +478,7 @@ export class GameScene extends Phaser.Scene {
       this.add.rectangle(-4, 10, 3, 10, 0x1a2638),
       this.add.rectangle(4, 10, 3, 10, 0x1a2638)
     ]);
-    this.tweens.add({ targets: person, x: left + 126, duration: 2300, yoyo: true, repeat: -1 });
+    this.residentTween = this.tweens.add({ targets: person, x: left + 126, duration: 2300, yoyo: true, repeat: -1 });
   }
 
   private paintPreview(): void {

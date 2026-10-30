@@ -11,24 +11,25 @@
     <div id="app">
       <header class="topbar">
         <div class="brand">
-          <span class="brand-mark" aria-hidden="true">◆</span>
+          <span class="brand-mark" data-ui-icon="bunker" aria-hidden="true">◆</span>
           <div><div class="brand-name">UNDERGROUND <span>SURVIVE</span></div><div class="eyebrow">نمونهٔ قابل‌بازی ساخت‌وساز</div></div>
         </div>
         <div class="player-profile" aria-label="اطلاعات بازیکن">
-          <span class="player-avatar" aria-hidden="true">◇</span>
+          <span class="player-avatar" data-ui-icon="home" aria-hidden="true">◇</span>
           <div class="player-details">
             <strong>بازیکن محلی</strong>
             <small>حساب آنلاین متصل نیست</small>
           </div>
           <span class="save-badge" id="hud-save-status" role="status" aria-live="polite">در انتظار ذخیره</span>
         </div>
+        <button id="menu-toggle" class="menu-open-button" type="button" aria-haspopup="dialog" aria-controls="game-menu-dialog" hidden>☰ منو</button>
       </header>
       <nav class="story-navigation" aria-label="روایت بازی">
         <button type="button" id="story-open" class="story-open">داستان تصویری</button>
       </nav>
       <section class="hud-bar" aria-label="وضعیت منابع و پیشرفت پناهگاه">
         <div class="hud-tile hud-tile-coins">
-          <span class="hud-icon" aria-hidden="true">●</span>
+          <span class="hud-icon" data-ui-icon="coin" aria-hidden="true">●</span>
           <div class="hud-tile-content">
             <span class="hud-label">سکه</span>
             <div class="hud-values">
@@ -38,15 +39,15 @@
           </div>
         </div>
         <div class="hud-tile">
-          <span class="hud-icon" aria-hidden="true">⌂</span>
+          <span class="hud-icon" data-ui-icon="home" aria-hidden="true">⌂</span>
           <div class="hud-tile-content"><span class="hud-label">اتاق‌های پناهگاه</span><strong id="hud-rooms">۴</strong></div>
         </div>
         <div class="hud-tile">
-          <span class="hud-icon" aria-hidden="true">▤</span>
+          <span class="hud-icon" data-ui-icon="layers" aria-hidden="true">▤</span>
           <div class="hud-tile-content"><span class="hud-label">طبقات بالایی باز</span><strong id="hud-floors">۰ / ۲</strong></div>
         </div>
         <div class="hud-tile">
-          <span class="hud-icon" aria-hidden="true">⛏</span>
+          <span class="hud-icon" data-ui-icon="pickaxe" aria-hidden="true">⛏</span>
           <div class="hud-tile-content"><span class="hud-label">خانه‌های حفاری‌شده</span><strong id="hud-excavated">۱۹</strong></div>
         </div>
       </section>
@@ -56,10 +57,10 @@
           <div class="canvas-shell">
             <div id="game-canvas"></div>
             <div class="zoom-controls" role="group" aria-label="کنترل بزرگ‌نمایی نقشه">
-              <button type="button" id="zoom-out" aria-label="کوچک‌نمایی نقشه" title="کوچک‌نمایی">−</button>
+              <button type="button" id="zoom-out" class="ui-icon-button" aria-label="کوچک‌نمایی نقشه" title="کوچک‌نمایی"><span data-ui-icon="zoom-out" aria-hidden="true">−</span></button>
               <output id="zoom-level" aria-label="مقیاس فعلی نقشه">100%</output>
-              <button type="button" id="zoom-in" aria-label="بزرگ‌نمایی نقشه" title="بزرگ‌نمایی">+</button>
-              <button type="button" id="zoom-reset" aria-label="بازگشت به بزرگ‌نمایی پیش‌فرض" title="بازگشت به ۱۰۰ درصد">۱:۱</button>
+              <button type="button" id="zoom-in" class="ui-icon-button" aria-label="بزرگ‌نمایی نقشه" title="بزرگ‌نمایی"><span data-ui-icon="zoom-in" aria-hidden="true">+</span></button>
+              <button type="button" id="zoom-reset" class="ui-icon-button" aria-label="بازگشت به بزرگ‌نمایی پیش‌فرض" title="بازگشت به ۱۰۰ درصد"><span data-ui-icon="reset" aria-hidden="true">۱:۱</span></button>
             </div>
           </div>
           <div class="scene-footer">
@@ -75,23 +76,23 @@
           <div class="economy-notice">موجودی شروع: ۱٬۵۰۰ سکه. هزینه‌ها آزمایشی‌اند و برای ساخت، حفاری، آزادسازی طبقه و ارتقا پرداخت می‌شوند.</div>
           <div class="side-label">اتاق‌ها و قیمت ساخت</div>
           <div class="room-list" role="group" aria-label="انتخاب نوع اتاق">
-            <button class="room-button active" type="button" data-room="habitat" aria-pressed="true"><span class="room-icon icon-habitat">⌂</span><span><strong>اتاق مسکونی</strong><small>Habitat · ۲ خانه</small></span><span class="room-arrow">←</span></button>
-            <button class="room-button" type="button" data-room="generator" aria-pressed="false"><span class="room-icon icon-generator">ϟ</span><span><strong>نیروگاه</strong><small>Generator · ۲ خانه</small></span><span class="room-arrow">←</span></button>
-            <button class="room-button" type="button" data-room="workshop" aria-pressed="false"><span class="room-icon icon-workshop">⚒</span><span><strong>کارگاه</strong><small>Workshop · ۲ خانه</small></span><span class="room-arrow">←</span></button>
-            <button class="room-button" type="button" data-room="storage" aria-pressed="false"><span class="room-icon icon-storage">▣</span><span><strong>انبار</strong><small>Storage · ۲ خانه</small></span><span class="room-arrow">←</span></button>
-            <button class="room-button" type="button" data-room="mine" aria-pressed="false"><span class="room-icon icon-mine">⛏</span><span><strong>اتاق معدن</strong><small>Mine · ۲ خانه</small></span><span class="room-arrow">←</span></button>
-            <button class="room-button" type="button" data-room="hydroponics" aria-pressed="false"><span class="room-icon icon-hydroponics">✿</span><span><strong>گلخانه</strong><small>Hydroponics · ۲ خانه</small></span><span class="room-arrow">←</span></button>
-            <button class="room-button" type="button" data-room="medbay" aria-pressed="false"><span class="room-icon icon-medbay">✚</span><span><strong>درمانگاه</strong><small>Medbay · ۲ خانه</small></span><span class="room-arrow">←</span></button>
+            <button class="room-button ui-button active" type="button" data-room="habitat" aria-pressed="true"><span class="room-icon icon-habitat" data-ui-icon="home" aria-hidden="true">⌂</span><span><strong>اتاق مسکونی</strong><small>Habitat · ۲ خانه</small></span><span class="room-arrow" data-ui-icon="arrow-left" aria-hidden="true">←</span></button>
+            <button class="room-button ui-button" type="button" data-room="generator" aria-pressed="false"><span class="room-icon icon-generator" data-ui-icon="bolt" aria-hidden="true">ϟ</span><span><strong>نیروگاه</strong><small>Generator · ۲ خانه</small></span><span class="room-arrow" data-ui-icon="arrow-left" aria-hidden="true">←</span></button>
+            <button class="room-button ui-button" type="button" data-room="workshop" aria-pressed="false"><span class="room-icon icon-workshop" data-ui-icon="wrench" aria-hidden="true">⚒</span><span><strong>کارگاه</strong><small>Workshop · ۲ خانه</small></span><span class="room-arrow" data-ui-icon="arrow-left" aria-hidden="true">←</span></button>
+            <button class="room-button ui-button" type="button" data-room="storage" aria-pressed="false"><span class="room-icon icon-storage" data-ui-icon="package" aria-hidden="true">▣</span><span><strong>انبار</strong><small>Storage · ۲ خانه</small></span><span class="room-arrow" data-ui-icon="arrow-left" aria-hidden="true">←</span></button>
+            <button class="room-button ui-button" type="button" data-room="mine" aria-pressed="false"><span class="room-icon icon-mine" data-ui-icon="pickaxe" aria-hidden="true">⛏</span><span><strong>اتاق معدن</strong><small>Mine · ۲ خانه</small></span><span class="room-arrow" data-ui-icon="arrow-left" aria-hidden="true">←</span></button>
+            <button class="room-button ui-button" type="button" data-room="hydroponics" aria-pressed="false"><span class="room-icon icon-hydroponics" data-ui-icon="sprout" aria-hidden="true">✿</span><span><strong>گلخانه</strong><small>Hydroponics · ۲ خانه</small></span><span class="room-arrow" data-ui-icon="arrow-left" aria-hidden="true">←</span></button>
+            <button class="room-button ui-button" type="button" data-room="medbay" aria-pressed="false"><span class="room-icon icon-medbay" data-ui-icon="medical" aria-hidden="true">✚</span><span><strong>درمانگاه</strong><small>Medbay · ۲ خانه</small></span><span class="room-arrow" data-ui-icon="arrow-left" aria-hidden="true">←</span></button>
           </div>
           <div class="side-label">ابزارهای زمین و اتاق</div>
           <div class="tools-grid" role="group" aria-label="ابزارهای ویرایش">
-            <button type="button" class="tool-button" data-tool="dig" aria-pressed="false">⛏ حفاری</button>
-            <button type="button" class="tool-button" data-tool="move" aria-pressed="false">↔ جابه‌جایی</button>
-            <button type="button" class="tool-button" data-tool="upgrade" aria-pressed="false">↑ ارتقا</button>
-            <button type="button" class="tool-button" data-tool="remove" aria-pressed="false">× تخریب</button>
+            <button type="button" class="tool-button ui-button" data-tool="dig" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="pickaxe" aria-hidden="true">⛏</span><span class="ui-control-label">حفاری</span></button>
+            <button type="button" class="tool-button ui-button" data-tool="move" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="move" aria-hidden="true">↔</span><span class="ui-control-label">جابه‌جایی</span></button>
+            <button type="button" class="tool-button ui-button" data-tool="upgrade" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="arrow-up" aria-hidden="true">↑</span><span class="ui-control-label">ارتقا</span></button>
+            <button type="button" class="tool-button ui-button" data-tool="remove" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="trash" aria-hidden="true">×</span><span class="ui-control-label">تخریب</span></button>
           </div>
-          <button type="button" id="unlock-floor" class="floor-button">＋ بازکردن طبقهٔ +۱</button>
-          <button type="button" id="demo-bonus" class="bonus-button">دریافت ۵۰۰ سکهٔ آزمایشی (یک‌بار)</button>
+          <button type="button" id="unlock-floor" class="floor-button ui-button"><span class="ui-control-icon" data-ui-icon="layers" aria-hidden="true">＋</span><span class="ui-control-label">بازکردن طبقهٔ +۱</span></button>
+          <button type="button" id="demo-bonus" class="bonus-button ui-button"><span class="ui-control-icon" data-ui-icon="gift" aria-hidden="true">+</span><span class="ui-control-label">دریافت ۵۰۰ سکهٔ آزمایشی (یک‌بار)</span></button>
           <section class="audio-panel" aria-labelledby="audio-heading">
             <div class="audio-heading">
               <strong id="audio-heading">صدا و موسیقی</strong>
@@ -112,7 +113,7 @@
           </section>
           <div class="side-label">آخرین تراکنش‌ها</div>
           <ul class="transaction-list" id="transaction-list" aria-label="تاریخچهٔ سکه"><li>هنوز تراکنشی ثبت نشده است.</li></ul>
-          <button type="button" id="reset-layout" class="reset-button">بازنشانی تمام تغییرات آزمایشی</button>
+          <button type="button" id="reset-layout" class="reset-button ui-button"><span class="ui-control-icon" data-ui-icon="reset" aria-hidden="true">↺</span><span class="ui-control-label">بازنشانی تمام تغییرات آزمایشی</span></button>
           <div class="info-panel">
             <strong>قوانین این نسخه</strong>
             <p>حفاری از خانه‌های باز مجاور انجام می‌شود. برای ساخت طبقهٔ بالا، خانه‌های زیر اتاق باید تکیه‌گاه باشند. حذف تکیه‌گاه مجاز نیست. ارتقا تا سطح ۳ است و به سکه نیاز دارد.</p>
@@ -121,6 +122,60 @@
         </aside>
       </main>
     </div>
+    <dialog id="game-menu-dialog" class="game-menu" aria-labelledby="menu-home-title" dir="rtl">
+      <section data-menu-screen="home" class="menu-screen">
+        <span class="menu-kicker">UNDERGROUND SURVIVE</span>
+        <h2 id="menu-home-title" tabindex="-1">پناهگاه زیرزمینی</h2>
+        <p class="menu-description">پناهگاه خود را روی زمین و زیر زمین توسعه دهید. پیشرفت بازی در همین مرورگر ذخیره می‌شود.</p>
+        <div class="menu-actions">
+          <button class="menu-primary" id="menu-continue" type="button" data-menu-action="continue">شروع بازی</button>
+          <button type="button" id="menu-new" data-menu-action="new" hidden>بازی جدید</button>
+          <button type="button" data-menu-action="settings">تنظیمات</button>
+        </div>
+      </section>
+      <section data-menu-screen="pause" class="menu-screen" hidden>
+        <span class="menu-kicker">GAME PAUSED</span>
+        <h2 id="menu-pause-title" tabindex="-1">بازی متوقف شده است</h2>
+        <p class="menu-description">زمان و حرکت‌های صحنه متوقف شده‌اند. پیشرفت شما به‌صورت محلی ذخیره می‌شود.</p>
+        <div class="menu-actions">
+          <button type="button" class="menu-primary" data-menu-action="resume">ادامهٔ بازی</button>
+          <button type="button" data-menu-action="settings">تنظیمات</button>
+          <button type="button" data-menu-action="new">بازی جدید</button>
+          <button type="button" data-menu-action="main">منوی اصلی</button>
+        </div>
+      </section>
+      <section data-menu-screen="settings" class="menu-screen" hidden>
+        <span class="menu-kicker">PREFERENCES</span>
+        <h2 id="menu-settings-title" tabindex="-1">تنظیمات بازی</h2>
+        <div class="menu-field menu-audio">
+          <button id="menu-audio-mute" type="button" class="menu-audio-mute" aria-pressed="false">قطع همهٔ صداها</button>
+          <label class="menu-audio-toggle" for="menu-music-enabled"><span>موسیقی</span><input id="menu-music-enabled" type="checkbox" /></label>
+          <label for="menu-music-volume">حجم موسیقی <output id="menu-music-volume-value" for="menu-music-volume">۳۰٪</output></label>
+          <input id="menu-music-volume" type="range" min="0" max="100" step="5" value="30" />
+          <label class="menu-audio-toggle" for="menu-effects-enabled"><span>افکت‌های صوتی</span><input id="menu-effects-enabled" type="checkbox" /></label>
+          <label for="menu-effects-volume">حجم افکت‌ها <output id="menu-effects-volume-value" for="menu-effects-volume">۶۵٪</output></label>
+          <input id="menu-effects-volume" type="range" min="0" max="100" step="5" value="65" />
+          <p class="menu-audio-note">تنظیمات صدا با کنترل‌های پنل بازی مشترک است.</p>
+        </div>
+        <label class="menu-check" for="menu-reduced-motion">
+          <input id="menu-reduced-motion" type="checkbox" />
+          <span>کاهش حرکت‌های تزئینی <small>انیمیشن آدمک آزمایشی متوقف می‌شود.</small></span>
+        </label>
+        <p class="menu-footnote">تنظیمات صدا و کاهش حرکت جدا از پیشرفت پناهگاه ذخیره می‌شوند.</p>
+        <div class="menu-actions">
+          <button class="menu-primary" type="button" data-menu-action="back">بازگشت</button>
+        </div>
+      </section>
+      <section data-menu-screen="confirm-new" class="menu-screen" hidden>
+        <span class="menu-kicker">NEW GAME</span>
+        <h2 id="menu-confirm-new-title" tabindex="-1">شروع بازی جدید؟</h2>
+        <p class="menu-description">این کار نقشه، سکه‌ها و پیشرفت ذخیره‌شده را به وضعیت اولیه برمی‌گرداند و قابل بازگشت نیست.</p>
+        <div class="menu-actions">
+          <button type="button" class="menu-danger" data-menu-action="confirm-new">بله، بازی جدید</button>
+          <button type="button" class="menu-primary" data-menu-action="back">انصراف</button>
+        </div>
+      </section>
+    </dialog>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

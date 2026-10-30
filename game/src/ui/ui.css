@@ -1,0 +1,49 @@
+/* Shared UI tokens and components, independent of Phaser. */
+:root {
+  --ui-bg:#0f1b29; --ui-surface:#162537; --ui-surface-hover:#1d3845;
+  --ui-border:#355064; --ui-text:#e9f0f5; --ui-muted:#a9becb;
+  --ui-accent:#83d9bc; --ui-accent-bg:#1b493c; --ui-gold:#f5cf79;
+  --ui-danger:#f0a6a5; --ui-radius:11px; --ui-touch-target:44px;
+}
+.ui-icon { display:block; width:1.25em; height:1.25em; flex:none; }
+.ui-icon-slot { display:inline-flex; align-items:center; justify-content:center; flex:none; }
+.ui-button { min-height:var(--ui-touch-target); touch-action:manipulation; user-select:none;
+  display:flex; align-items:center; justify-content:center; gap:8px; transition:background-color .15s,border-color .15s; }
+.ui-button:focus-visible,.ui-icon-button:focus-visible { outline:3px solid var(--ui-accent); outline-offset:2px; }
+.ui-button:disabled,.ui-icon-button:disabled { cursor:not-allowed; opacity:.48; }
+.ui-button--primary { background:var(--ui-accent-bg); border:1px solid var(--ui-accent); border-radius:var(--ui-radius); color:#e5fff5; padding:10px 14px; }
+.ui-button--secondary { background:var(--ui-surface); border:1px solid var(--ui-border); border-radius:var(--ui-radius); color:var(--ui-text); padding:10px 14px; }
+.ui-button--ghost { background:transparent; border:1px solid var(--ui-border); border-radius:var(--ui-radius); color:var(--ui-text); padding:10px 14px; }
+.ui-button--danger { background:#472e37; border:1px solid #a16d74; border-radius:var(--ui-radius); color:#ffdbdb; padding:10px 14px; }
+.ui-button--primary:hover:not(:disabled),.ui-button--secondary:hover:not(:disabled),.ui-button--ghost:hover:not(:disabled) { background:var(--ui-surface-hover); }
+.ui-button--danger:hover:not(:disabled) { background:#63404a; }
+.ui-control-icon { display:inline-flex; align-items:center; justify-content:center; flex:none; font-size:17px; }
+.ui-control-label { min-width:0; }
+.ui-badge { display:inline-flex; align-items:center; gap:5px; border:1px solid var(--ui-border); background:var(--ui-surface);
+  color:var(--ui-muted); padding:5px 9px; border-radius:999px; font-size:11px; }
+.ui-badge--success { border-color:#437765; background:#183d33; color:#adf0d5; }
+.ui-badge--warning { border-color:#a17d43; background:#43331f; color:#ffe2a2; }
+.ui-panel { background:var(--ui-bg); border:1px solid var(--ui-border); border-radius:var(--ui-radius); padding:14px; }
+.ui-panel-title { margin:0 0 8px; font-size:14px; color:var(--ui-text); }
+.ui-panel-description { margin:0; font-size:12px; line-height:1.8; color:var(--ui-muted); }
+/* Scope existing HUD integration; do not move the Phaser canvas. */
+.brand-mark { width:32px; height:32px; }
+.brand-mark .ui-icon { font-size:30px; }
+.coin-symbol .ui-icon { font-size:18px; }
+.room-button.ui-button { justify-content:flex-start; }
+.room-icon .ui-icon { font-size:22px; }
+.room-arrow .ui-icon { font-size:15px; }
+.room-cost { display:inline-flex; align-items:center; gap:4px; }
+.room-cost .ui-icon { font-size:12px; color:var(--ui-gold); }
+.tool-button.ui-button { gap:7px; }
+.floor-button.ui-button,.bonus-button.ui-button,.reset-button.ui-button { justify-content:center; }
+.zoom-controls .ui-icon-button,.zoom-controls .ui-icon-button:last-child {
+  width:var(--ui-touch-target); min-height:var(--ui-touch-target);
+}
+.zoom-controls .ui-icon-button .ui-icon { font-size:17px; }
+@media(max-width:640px) {
+  .room-icon .ui-icon { font-size:19px; }
+  .brand-mark { width:24px; height:24px; }
+  .brand-mark .ui-icon { font-size:23px; }
+}
+@media(prefers-reduced-motion:reduce) { .ui-button { transition:none; } }
