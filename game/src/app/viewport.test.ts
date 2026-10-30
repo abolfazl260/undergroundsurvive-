@@ -40,7 +40,7 @@ describe('camera zoom and pan', () => {
   });
 
   it('uses the same portrait geometry on phones, tablets, and desktop', () => {
-    expect(GAME_VIEW).toMatchObject({ width: 480, height: 600, worldWidth: 960, worldHeight: 600 });
+    expect(GAME_VIEW).toMatchObject({ width: 480, height: 600, worldWidth: 960, worldHeight: 720 });
     const portrait: Viewport = {
       width: GAME_VIEW.width, height: GAME_VIEW.height,
       worldWidth: GAME_VIEW.worldWidth, worldHeight: GAME_VIEW.worldHeight,
@@ -48,7 +48,7 @@ describe('camera zoom and pan', () => {
     };
     expect(screenToWorld(portrait, { x: 240, y: 300 })).toEqual({ x: 480, y: 300 });
     expect(constrainScroll(portrait)).toEqual({ scrollX: 240, scrollY: 0 });
-    expect(panBy(portrait, { x: -5000, y: -5000 })).toMatchObject({ scrollX: 480, scrollY: 0 });
+    expect(panBy(portrait, { x: -5000, y: -5000 })).toMatchObject({ scrollX: 480, scrollY: 120 });
     expect(panBy(portrait, { x: 5000, y: 5000 })).toMatchObject({ scrollX: 0, scrollY: 0 });
     const zoomed = zoomAt(portrait, 2, { x: 240, y: 300 });
     expect(screenToWorld(zoomed, { x: 240, y: 300 })).toEqual({ x: 480, y: 300 });
