@@ -1,4 +1,6 @@
-# Life-support MVP — Issue #30
+# Life support (Issue #30)
+
+The implementation uses the existing 5-second economy tick and the existing clean-water processor as the authoritative stock. A per-room allocation ledger records the **location** of that stock, not a second balance. Water-production ledger entries carry the originating room ID; on migration, pre-existing unallocated water is allocated to a valid tank or treatment room. Kitchen and other pre-existing water debits are reconciled once per tick. Oxygen has a single service-owned stock backed by physical room-held lots. Splitting a network does not magically transfer stored units between zones.
 
 ## Boundaries and integrations
 
@@ -16,9 +18,9 @@ The network models built-in side-facing pipe/duct fittings between adjacent room
 - HUD shows water/oxygen stocks, capacity, and rates; water panel shows connection valves and actionable status. All status text is descriptive rather than using color alone.
 - The snapshot migrates game schema v13 → v14 and preserves all pre-existing resources, rooms, and coins. Corrupt life-support snapshots are rejected. Paused games do not tick.
 
-## MVP limitation / next iteration
+## Operational boundaries
 
-The v1 network enforces connectivity and availability for consumer *access*, while water and oxygen inventories are centrally accounted. Independent **per-zone tanks and transport flow capacities** are not yet modeled; storage balances are not physically partitioned when a network splits. That requires a later persistence migration and will be needed for complete issue acceptance criteria. The existing environmental air-quality penalties remain separate from oxygen shortage events.
+The network has explicit physical side-fitting edges, separate water/oxygen per-tick flow capacity, deterministic shortage priorities, and per-room zone inventories. It does not simulate hydraulic pressure or atmospheric mixing. The 36-cycle legacy grace period prevents an unrecoverable sudden shortage on existing saves.
 
 ## Tests
 
