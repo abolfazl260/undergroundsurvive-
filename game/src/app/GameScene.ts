@@ -1,3 +1,4 @@
+import { contaminationState } from '../modules/radiation/radiation';
 import { ELEVATOR_DEFINITION } from '../modules/world/elevators';
 import Phaser from 'phaser';
 import type { MenuSettings } from './menuSettings';
@@ -39,6 +40,9 @@ export class GameScene extends Phaser.Scene {
   private roomLayer?: Phaser.GameObjects.Container;
   private roomBadges: Phaser.GameObjects.Container[] = [];
   private preview?: Phaser.GameObjects.Graphics;
+  private radiationOverlay=false;
+  private radiationSelection:GridPosition={x:12,y:-1};
+  private radiationLayer?:Phaser.GameObjects.Graphics;
   private previewReason?: Phaser.GameObjects.Text;
   private readonly recoveryFailed: boolean;
   private hovered: GridPosition | null = null;
@@ -104,6 +108,7 @@ export class GameScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', resizeView));
     this.drawBackdrop();
     this.terrainLayer = this.add.graphics().setDepth(1);
+    this.radiationLayer=this.add.graphics().setDepth(5);
     this.roomLayer = this.add.container(0, 0).setDepth(3);
     this.residentPathLayer = this.add.graphics().setDepth(3.5);
     this.preview = this.add.graphics().setDepth(6);
@@ -171,6 +176,7 @@ export class GameScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     if (this.gameplayPaused) return;
+    this.session.setRadiationOccupants((this.traffic?.residents??[]).map(r=>({id:r.id,x:r.cell.x,y:r.cell.y,protection:0})));
     const researchBefore=this.session.research.snapshot().activeResearchId;
     const completed = this.session.advanceTime(delta);
     const seconds = Math.ceil(this.session.resources.remainingMs / 1000);
@@ -179,6 +185,7 @@ export class GameScene extends Phaser.Scene {
       this.onCycleProgress(seconds);
     }
     if (completed > 0) {
+      this.paintRadiation();
       const result = this.session.resources.snapshot();
       this.notify(researchBefore && !this.session.research.snapshot().activeResearchId ? 'پژوهش تکمیل شد.' : result.lastShortages.length
         ? 'چرخهٔ منابع انجام شد؛ برخی اتاق‌ها به‌علت کمبود منابع متوقف شدند.'
@@ -342,6 +349,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   setTool(tool: ToolMode): void {
+    this.radiationOverlay=false;this.paintRadiation();
     this.mode = tool;
     this.pendingMoveId = null;
     this.selectedUpgradeId = null;
@@ -373,6 +381,27 @@ export class GameScene extends Phaser.Scene {
     this.notify(result.ok ? 'طبقهٔ جدید با پرداخت ' + cost + ' سکه آزاد شد؛ برای ساخت تکیه‌گاه لازم است.' : result.reason);
   }
 
+  toggleRadiation():void {this.radiationOverlay=!this.radiationOverlay;this.paintRadiation();}
+  radiationView() {return {enabled:this.radiationOverlay,cell:{...this.radiationSelection}};}
+  cleanupRadiation():void {
+    if(this.gameplayPaused)return;
+    const {x,y}=this.radiationSelection;
+    const ok=this.session.cleanupRadiation(x,y,crypto.randomUUID());this.paintRadiation();this.notify(ok?'پاکسازی انجام شد.':'پاکسازی ممکن نیست؛ موجودی را بررسی کنید.');
+  }
+  filterRadiation():void {
+    if(this.gameplayPaused)return;
+    const r=this.layout.getRoomAt(this.radiationSelection.x,this.radiationSelection.y);
+    const ok=r&&this.session.installRadiationFilter(r.id,crypto.randomUUID());this.paintRadiation();this.notify(ok?'فیلتر نصب شد.':'ابتدا اتاق بدون فیلتر انتخاب کنید و موجودی را بررسی کنید.');
+  }
+  private paintRadiation():void {
+    const g=this.radiationLayer;if(!g)return;g.clear();if(!this.radiationOverlay)return;
+    const colors={low:0x43c9a5,medium:0xffbf55,high:0xf35572};
+    for(let y:number=WORLD.minY;y<=WORLD.maxY;y++)for(let x=0;x<WORLD.cols;x++) {
+      const {left,top}=toPixels(x,y),risk=this.session.radiation.getRiskForLocation(x,y);
+      g.fillStyle(colors[contaminationState(risk)],0.28).fillRect(left+1,top+1,WORLD.cellSize-2,WORLD.cellSize-2);
+    }
+    const p=toPixels(this.radiationSelection.x,this.radiationSelection.y);g.lineStyle(3,0xffffff).strokeRect(p.left+2,p.top+2,50,50);
+  }
   startResearch(id:string):void {
     if(this.gameplayPaused)return;
     const ok=this.session.startResearch(id,crypto.randomUUID());
@@ -403,6 +432,7 @@ export class GameScene extends Phaser.Scene {
     this.selectedUpgradeId = null;
     this.onUpgradeSelection(null);
     this.paintTerrain();
+    this.paintRadiation();
     this.paintRooms();
     this.resetResident();
     this.paintPreview();
@@ -437,6 +467,9 @@ export class GameScene extends Phaser.Scene {
   private actOnCell(cell: GridPosition, worldPoint?: Point): void {
     if (this.gameplayPaused) return;
     const { x, y } = cell;
+    if(this.radiationOverlay) {
+      this.radiationSelection={x,y};this.paintRadiation();this.notify('منطقهٔ تشعشع انتخاب شد.');return;
+    }
     if (this.mode === 'elevator') {
       const result=this.session.buildElevator(x,y);
       if(result.ok) { this.paintTerrain(); this.refreshResidentPath(); }

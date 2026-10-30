@@ -3,6 +3,12 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
+  "کاهش تشعشع": "Radiation mitigation",
+  "منطقهٔ تشعشع انتخاب شد.": "Radiation cell selected.",
+  "پاکسازی انجام شد.": "Decontamination completed.",
+  "پاکسازی ممکن نیست؛ موجودی را بررسی کنید.": "Cannot decontaminate: check coins.",
+  "فیلتر نصب شد.": "Filter installed.",
+  "ابتدا اتاق بدون فیلتر انتخاب کنید و موجودی را بررسی کنید.": "Select an unfiltered room and check coins.",
   "آزمایشگاه": "Laboratory",
   "پژوهش": "Research",
   "سطح پژوهش": "Research level",
