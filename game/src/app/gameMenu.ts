@@ -18,6 +18,7 @@ export function setupGameMenu(
 ): void {
   const dialog = document.querySelector<HTMLDialogElement>('#game-menu-dialog');
   const menuButton = document.querySelector<HTMLButtonElement>('#menu-toggle');
+  const toolsPolicyButton = document.querySelector<HTMLButtonElement>('#menu-policies-from-tools');
   const continueButton = document.querySelector<HTMLButtonElement>('#menu-continue');
   const continueLabel = document.querySelector<HTMLElement>('[data-menu-continue-label]');
   const pauseTitle = document.querySelector<HTMLElement>('#menu-pause-title');
@@ -176,6 +177,13 @@ export function setupGameMenu(
   showScreen('home');
   dialog.showModal();
   menuButton.addEventListener('click', openPauseMenu);
+  toolsPolicyButton?.addEventListener('click', () => {
+    if (!playing || dialog!.open) return;
+    scene.pauseGameplay();
+    policyReturnScreen = 'pause';
+    showScreen('policies');
+    dialog!.showModal();
+  });
 
   language.addEventListener('change', () => setLocale(language.value));
   subscribeLocaleChange(() => {
