@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ROOM_DEFINITIONS, type RoomType } from '../building/catalog';
 import type { Room } from '../building/placement';
 import { GameSession } from '../economy/session';
-import { LifeSupportGraph, LifeSupportService, lifeSupportDemands, oxygenCapacity, linkKey } from './lifeSupport';
+import { LifeSupportGraph, LifeSupportService, lifeSupportDemands, oxygenCapacity, linkKey, findLifeSupportRoute } from './lifeSupport';
 
 function room(type: RoomType, id: string, x: number, level = 1): Room {
   return { id, type, x, y: -3, width: ROOM_DEFINITIONS[type].width,
@@ -28,6 +28,14 @@ describe('life-support graph and deterministic distribution', () => {
     const b = new LifeSupportGraph(rooms, ['home::water']);
     expect(b.zones).toHaveLength(2);
     expect(b.zones.find(z=>z.ids.includes('water'))?.hasOxygen).toBe(false);
+  });
+  it('reserves bounded per-tick transport with reproducible routes', () => {
+    const graph = new LifeSupportGraph(rooms);
+    const cap = new Map(graph.links.map(l => [linkKey(l.a,l.b),l.capacity] as const));
+    expect(findLifeSupportRoute(graph,['water'],'vent',2,cap)).toEqual(['home::vent','home::water']);
+    expect(findLifeSupportRoute(graph,['water'],'vent',9,cap)).toBeNull();
+    cap.set('home::water',1);
+    expect(findLifeSupportRoute(graph,['water'],'vent',2,cap)).toBeNull();
   });
   it('sorts resident demand once, before medical and secondary demand', () => {
     const input = [room('hydroponics','garden', 6),room('medbay','med',8),room('habitat','b',2),
