@@ -29,6 +29,9 @@
       </header>
       <nav class="story-navigation" aria-label="روایت بازی">
         <button type="button" id="story-open" class="story-open">داستان تصویری</button>
+        <button type="button" id="achievements-open" class="achievements-open" aria-haspopup="dialog" aria-controls="achievements-dialog">
+          <span aria-hidden="true">★</span><span>دستاوردها</span><output id="achievement-count">۰ / ۱۱</output>
+        </button>
       </nav>
       <section class="hud-bar" aria-label="وضعیت منابع و پیشرفت پناهگاه">
         <div class="hud-tile hud-tile-coins">
@@ -154,6 +157,15 @@
       <div id="sheet-scrim" hidden></div>
       <nav id="action-dock" aria-label="ابزارهای اصلی بازی"></nav>
     </div>
+    <dialog id="achievements-dialog" class="achievements-dialog" aria-labelledby="achievements-heading">
+      <div class="achievements-header">
+        <div><span class="eyebrow">SHELTER MILESTONES</span><h2 id="achievements-heading">دستاوردهای پناهگاه</h2>
+          <p id="achievements-summary">۰ از ۱۱ دستاورد باز شده</p></div>
+        <button type="button" id="achievements-close" aria-label="بستن دستاوردها">بستن</button>
+      </div>
+      <ul id="achievements-list" class="achievements-list" aria-label="فهرست دستاوردها"></ul>
+    </dialog>
+    <div id="achievement-toast" class="achievement-toast" role="status" aria-live="polite" hidden></div>
     <dialog id="game-menu-dialog" class="game-menu" aria-labelledby="menu-home-title">
       <section data-menu-screen="home" class="menu-screen">
         <span class="menu-kicker">UNDERGROUND SURVIVE</span>
