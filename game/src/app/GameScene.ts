@@ -400,7 +400,7 @@ export class GameScene extends Phaser.Scene {
     if (!details || details.cost === null) {
       this.onUpgradeSelection(details);
       this.onAudioCue('error');
-      this.notify(details ? 'این اتاق در بالاترین سطح قرار دارد.' : 'اتاق انتخاب‌شده وجود ندارد.');
+      this.notify(details ? details.blockedReason ?? 'این اتاق در بالاترین سطح قرار دارد.' : 'اتاق انتخاب‌شده وجود ندارد.');
       return;
     }
     const result = this.session.upgradeRoom(id);
