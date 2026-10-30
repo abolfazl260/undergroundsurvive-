@@ -27,19 +27,19 @@ const categoryById = new Map<AchievementId, Exclude<AchievementCategory, 'all'>>
   ACHIEVEMENTS.map((definition) => [definition.id, categoryForAchievement(definition.metric)] as const)
 );
 
-// Every illustration is sourced from room art already shipped with the game.
-const artworkById: Record<AchievementId, string> = {
-  'first-room': 'habitat',
-  builder: 'workshop',
-  'first-dig': 'mine',
-  excavator: 'mine',
-  'first-upgrade': 'workshop',
-  upgrader: 'command',
-  'upper-floor': 'command',
-  skyline: 'command',
-  'first-cycles': 'generator',
-  'steady-shelter': 'generator',
-  'diverse-shelter': 'garden'
+/** Frame of the per-achievement color storyboard (one independent scene per milestone). */
+export const ACHIEVEMENT_ARTWORK: Readonly<Record<AchievementId, number>> = {
+  'first-room': 0,
+  builder: 1,
+  'first-dig': 2,
+  excavator: 3,
+  'first-upgrade': 4,
+  upgrader: 5,
+  'upper-floor': 6,
+  skyline: 7,
+  'first-cycles': 8,
+  'steady-shelter': 9,
+  'diverse-shelter': 10
 };
 
 /** Responsive, keyboard-accessible dialog; badges never award coins or resources. */
@@ -125,7 +125,7 @@ export function mountAchievements(root: Document): (snapshot: GameSnapshot) => v
 
       const art = root.createElement('span');
       art.className = 'achievement-art';
-      art.dataset.art = artworkById[view.id];
+      art.dataset.scene = String(ACHIEVEMENT_ARTWORK[view.id]);
       art.setAttribute('aria-hidden', 'true');
       item.append(medal, detail, art);
       return item;

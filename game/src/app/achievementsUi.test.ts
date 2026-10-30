@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS } from '../modules/achievements/achievements';
-import { categoryForAchievement } from './achievementsUi';
+import { ACHIEVEMENT_ARTWORK, categoryForAchievement } from './achievementsUi';
 
 describe('achievement presentation categories', () => {
   it('assigns every achievement to a single existing category', () => {
@@ -9,6 +9,12 @@ describe('achievement presentation categories', () => {
     expect(groups.every((category) =>
       ['construction', 'exploration', 'production', 'community'].includes(category)
     )).toBe(true);
+  });
+
+  it('assigns a distinct, in-range illustrated scene to all eleven achievements', () => {
+    const frames = ACHIEVEMENTS.map((entry) => ACHIEVEMENT_ARTWORK[entry.id]);
+    expect(frames).toEqual(Array.from({ length: ACHIEVEMENTS.length }, (_, index) => index));
+    expect(new Set(frames).size).toBe(ACHIEVEMENTS.length);
   });
 
   it('keeps catalog-derived filter totals consistent', () => {
