@@ -4,37 +4,59 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0b1422" />
-    <meta name="description" content="Underground Survive — نمونهٔ اولیهٔ بازی ساخت پناهگاه دوبعدی" />
-    <title>Underground Survive — Prototype</title>
+    <meta name="description" content="Underground Survive — ساخت زمین، طبقات و اتاق‌های دوبعدی" />
+    <title>Underground Survive — Building Prototype</title>
   </head>
   <body>
     <div id="app">
       <header class="topbar">
         <div class="brand">
           <span class="brand-mark" aria-hidden="true">◆</span>
-          <div><div class="brand-name">UNDERGROUND <span>SURVIVE</span></div><div class="eyebrow">نمونهٔ اولیهٔ توسعهٔ پناهگاه</div></div>
+          <div><div class="brand-name">UNDERGROUND <span>SURVIVE</span></div><div class="eyebrow">نمونهٔ قابل‌بازی ساخت‌وساز</div></div>
         </div>
-        <div class="prototype-tag">WEB PROTOTYPE · v0.1</div>
+        <div class="prototype-tag">WEB PROTOTYPE · v0.2</div>
       </header>
       <main class="workspace">
         <section class="play-area" aria-label="نمای دوبعدی پناهگاه">
-          <div class="scene-header"><span>نمای برشی ساختمان / پناهگاه</span><span class="live-dot">LOCAL DEMO</span></div>
+          <div class="scene-header"><span>ساخت طبقات روی زمین و حفاری زیرزمین</span><span class="live-dot">LOCAL SAVE</span></div>
           <div id="game-canvas"></div>
           <div class="scene-footer">
-            <span id="status" role="status" aria-live="polite">یک اتاق انتخاب کنید و روی خانهٔ خالی کلیک کنید.</span>
+            <span id="status" role="status" aria-live="polite">ابزار موردنظر را انتخاب کنید.</span>
             <span id="room-count">اتاق‌ها: ۰</span>
+          </div>
+          <div class="stats-row" aria-live="polite">
+            <span id="floor-status">طبقات بالا: ۰ از ۲</span>
+            <span id="terrain-count">خانه‌های حفاری‌شده: ۰</span>
+            <span>ذخیره: روی همین مرورگر</span>
           </div>
         </section>
         <aside class="sidebar">
-          <div class="sidebar-heading"><span class="eyebrow">BUILD MENU</span><h1>ساخت‌وساز</h1><p>نوع اتاق را انتخاب کنید، سپس روی شبکه بزنید.</p></div>
+          <div class="sidebar-heading">
+            <span class="eyebrow">WORLD EDITOR · P1</span>
+            <h1>ساخت‌وساز</h1>
+            <p>اتاق موردنظر را انتخاب کنید و روی خانه‌های باز شبکه بزنید.</p>
+          </div>
+          <div class="side-label">اتاق‌ها</div>
           <div class="room-list" role="group" aria-label="انتخاب نوع اتاق">
             <button class="room-button active" type="button" data-room="habitat" aria-pressed="true"><span class="room-icon icon-habitat">⌂</span><span><strong>اتاق مسکونی</strong><small>Habitat · ۲ خانه</small></span><span class="room-arrow">←</span></button>
             <button class="room-button" type="button" data-room="generator" aria-pressed="false"><span class="room-icon icon-generator">ϟ</span><span><strong>نیروگاه</strong><small>Generator · ۲ خانه</small></span><span class="room-arrow">←</span></button>
             <button class="room-button" type="button" data-room="hydroponics" aria-pressed="false"><span class="room-icon icon-hydroponics">✿</span><span><strong>گلخانه</strong><small>Hydroponics · ۲ خانه</small></span><span class="room-arrow">←</span></button>
             <button class="room-button" type="button" data-room="medbay" aria-pressed="false"><span class="room-icon icon-medbay">✚</span><span><strong>درمانگاه</strong><small>Medbay · ۲ خانه</small></span><span class="room-arrow">←</span></button>
           </div>
-          <button type="button" id="reset-layout" class="reset-button">بازنشانی نقشهٔ آزمایشی</button>
-          <div class="info-panel"><strong>دربارهٔ این نسخه</strong><p>ساخت اتاق‌ها فعلاً فقط در حافظهٔ مرورگر انجام می‌شود و بعد از بارگذاری مجدد صفحه از بین می‌رود. ذخیره‌سازی آنلاین، سکه و ارتقا در مراحل بعدی اضافه می‌شوند.</p></div>
+          <div class="side-label">ابزارهای زمین و اتاق</div>
+          <div class="tools-grid" role="group" aria-label="ابزارهای ویرایش">
+            <button type="button" class="tool-button" data-tool="dig" aria-pressed="false">⛏ حفاری</button>
+            <button type="button" class="tool-button" data-tool="move" aria-pressed="false">↔ جابه‌جایی</button>
+            <button type="button" class="tool-button" data-tool="upgrade" aria-pressed="false">↑ ارتقا</button>
+            <button type="button" class="tool-button" data-tool="remove" aria-pressed="false">× تخریب</button>
+          </div>
+          <button type="button" id="unlock-floor" class="floor-button">＋ بازکردن طبقهٔ +۱</button>
+          <button type="button" id="reset-layout" class="reset-button">بازنشانی تمام تغییرات آزمایشی</button>
+          <div class="info-panel">
+            <strong>قوانین این نسخه</strong>
+            <p>حفاری از خانه‌های باز مجاور انجام می‌شود. برای ساخت طبقهٔ بالا، خانه‌های زیر اتاق باید تکیه‌گاه باشند. حذف تکیه‌گاه مجاز نیست. ارتقا تا سطح ۳ و بدون سکه است.</p>
+            <p>تغییرات در همین مرورگر ذخیره می‌شوند؛ فعلاً سرور، حساب کاربری و اقتصاد واقعی وجود ندارد.</p>
+          </div>
         </aside>
       </main>
     </div>
