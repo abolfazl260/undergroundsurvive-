@@ -267,6 +267,12 @@ function updateSelectedButtons(): void {
     const active = button.dataset.tool === activeTool;
     setPressed(button, active);
   });
+  const selected = document.querySelector<HTMLElement>('#selected-room-summary');
+  if (selected) {
+    const title = Array.from(roomButtons).find((button) => button.dataset.room === activeRoom)
+      ?.querySelector<HTMLElement>('strong')?.textContent ?? t('انتخاب اتاق');
+    selected.textContent = title + ' · ' + formatCoins(BUILD_COSTS[activeRoom]) + ' ' + t('سکه');
+  }
   renderUpgradePanel();
 }
 
@@ -278,8 +284,14 @@ roomButtons.forEach((button) => {
     activeTool = 'build';
     scene.selectRoom(type);
     updateSelectedButtons();
-    gameDock.showSheet(null);
+    // Picking an illustrated card updates the preview. The explicit action below
+    // closes the gallery and makes room placement available on the world.
   });
+});
+
+document.querySelector<HTMLButtonElement>('#confirm-room-placement')?.addEventListener('click', () => {
+  scene.selectRoom(activeRoom);
+  gameDock.showSheet(null);
 });
 
 toolButtons.forEach((button) => {
@@ -320,7 +332,7 @@ subscribeLocaleChange(() => {
     if (cost) cost.setAttribute('aria-label', t('هزینه: {value} سکه', { value: formatCoins(BUILD_COSTS[type]) }));
   });
   renderDigLabel();
-  renderUpgradePanel();
+  updateSelectedButtons();
   renderAudioControls();
   scene.refreshLanguage();
 });
