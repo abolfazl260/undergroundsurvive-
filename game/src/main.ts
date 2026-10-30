@@ -48,7 +48,11 @@ const renderPower = mountPowerPanel(document,
   () => scene.activatePowerNetwork(),
   (id,priority) => scene.prioritizePower(id,priority));
 const powerOverlayButton = document.querySelector<HTMLButtonElement>('#power-overlay-toggle');
-const renderAchievements = mountAchievements(document);
+const savedGame = loadLocalBase();
+const announceMigrationRewards = savedGame !== null &&
+  !(typeof savedGame === 'object' && 'schemaVersion' in savedGame &&
+    typeof savedGame.schemaVersion === 'number' && savedGame.schemaVersion >= 14);
+const renderAchievements = mountAchievements(document, announceMigrationRewards);
 const bonusButton = document.querySelector<HTMLButtonElement>('#demo-bonus');
 const historyNode = document.querySelector<HTMLElement>('#transaction-list');
 const digButton = document.querySelector<HTMLButtonElement>('[data-tool="dig"]');
@@ -62,7 +66,8 @@ const kindTitles: Record<TransactionKind, string> = {
   research: 'پژوهش',
   radiation: 'کاهش تشعشع',
   air: 'تعمیر تهویه',
-  'demo-bonus': 'کمک‌هزینهٔ آزمایشی'
+  'demo-bonus': 'کمک‌هزینهٔ آزمایشی',
+  'achievement-reward': 'پاداش دستاورد'
 };
 const audioMute = document.querySelector<HTMLButtonElement>('#audio-mute');
 const musicEnabled = document.querySelector<HTMLInputElement>('#music-enabled');
@@ -136,8 +141,6 @@ renderDigLabel();
 
 let activeRoom: BuildableRoomType = 'habitat';
 let activeTool: ToolMode = 'build';
-
-const savedGame = loadLocalBase();
 let lastSnapshot: GameSnapshot | null = null;
 let lastSaved = false;
 let lastMessage = '';
