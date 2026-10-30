@@ -177,10 +177,10 @@ export function roomArtCandidates(type: RoomType, level: number): RoomArtCandida
     return [{ key: LEVEL_TWO_ROOM_ART_ASSET.key, frame: upgradedFrame }, ...dedicated, ...legacy];
   }
   if (additionalFrame !== undefined) {
-    return [{ key: LEVEL_TWO_ADDITIONAL_ART_ASSET.key, frame: additionalFrame }, ...legacy];
+    return [{ key: LEVEL_TWO_ADDITIONAL_ART_ASSET.key, frame: additionalFrame }, ...dedicated, ...legacy];
   }
   if (commandFrame !== undefined) {
-    return [{ key: LEVEL_TWO_COMMAND_ART_ASSET.key, frame: commandFrame }, ...legacy];
+    return [{ key: LEVEL_TWO_COMMAND_ART_ASSET.key, frame: commandFrame }, ...dedicated, ...legacy];
   }
   return [...dedicated, ...legacy];
 }
