@@ -12,9 +12,17 @@ for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
   await page.locator('#game-canvas canvas').waitFor();
   await page.waitForTimeout(800);
   await page.screenshot({path:`${output}/${mode}-${width}x${height}-scene.png`});
-  // Both the current view and the baseline may hide tools in the mobile dock.
+  // The historical base may have a different responsive toolbar. Open the
+  // tools dock where available, and never fail a current PR because the old
+  // reference UI hides its upgrade button at one viewport size.
+  const toolsDock = page.locator('#dock-tools');
+  if (await toolsDock.isVisible()) await toolsDock.click();
   const upgradeTool = page.locator('[data-tool="upgrade"]');
-  if (!(await upgradeTool.isVisible())) await page.locator('#dock-tools').click();
+  if (mode === 'before' && !(await upgradeTool.isVisible())) {
+    await page.screenshot({path:`${output}/${mode}-${width}x${height}-panel.png`});
+    await page.close();
+    continue;
+  }
   await upgradeTool.click();
   await page.locator('#upgrade-panel').waitFor({state:'visible'});
   if(mode==='after') {
