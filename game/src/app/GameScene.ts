@@ -21,7 +21,7 @@ import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomA
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
   guardPost:'نگهبانی', command: 'فرمان', habitat: 'مسکونی', generator: 'برق', hydroponics: 'گلخانه',
-  laboratory: 'آزمایشگاه', waterTreatment: 'تصفیه آب', medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
+  laboratory: 'آزمایشگاه', kitchen: 'آشپزخانه', waterTreatment: 'تصفیه آب', medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
 };
 
 export type ToolMode = 'elevator' | 'build' | 'dig' | 'move' | 'remove' | 'upgrade' | 'navigate';
