@@ -1,4 +1,5 @@
 import './style.css';
+import { mountStoryViewer } from './modules/narrative/viewer';
 import { setupGameMenu } from './app/gameMenu';
 import './audio.css';
 import './ui/ui.css';
@@ -203,3 +204,5 @@ document.querySelector<HTMLButtonElement>('#reset-layout')?.addEventListener('cl
   scene.resetLayout();
 });
 
+const storyButton = document.querySelector<HTMLButtonElement>('#story-open');
+if (storyButton) mountStoryViewer(storyButton);
