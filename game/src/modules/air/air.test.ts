@@ -69,7 +69,7 @@ describe('air simulation', () => {
     expect(a.repairVent(id,'repair')).toBe(false);
     const after = a.snapshot();
     expect(GameSession.restore(after)?.snapshot()).toEqual(after);
-    const old = {...after,schemaVersion:10,air:undefined};
+    const old = {...after,schemaVersion:11,air:undefined};
     expect(GameSession.restore(old)?.air.snapshot().nowMs).toBe(after.resources.tickCount * AIR_CONFIG.tickMs);
   });
 });
