@@ -24,8 +24,8 @@ For a future online version, authoritative balance, wiring, spending and request
 
 ## Save migration and controls
 
-Session snapshot schema is now **14**, with `power: { schemaVersion:1, mode, cables, overrides }`.
-Older schema versions 2–13 restore into explicit `legacy` virtual-network mode, keeping their former resource behavior. They can add cables while in legacy mode and switch voluntarily to physical mode only after **every room is online** (preventing a save migration from destroying existing shelter utility). Fresh shelters start in physical mode with a seed cable trunk to the original four rooms.
+Session snapshot schema is now **15**, with `power: { schemaVersion:1, mode, cables, overrides }`.
+Older schema versions 2–14 restore into explicit `legacy` virtual-network mode, keeping their former resource behavior. They can add cables while in legacy mode and switch voluntarily to physical mode only after **every room is online** (preventing a save migration from destroying existing shelter utility). Fresh shelters start in physical mode with a seed cable trunk to the original four rooms.
 
 Save validation rejects duplicate wires, wires in blocked cells, out-of-bounds positions, unknown room IDs, duplicate overrides and priority changes outside the permitted tier. Network IDs and allocations are always recomputed rather than saved.
 
