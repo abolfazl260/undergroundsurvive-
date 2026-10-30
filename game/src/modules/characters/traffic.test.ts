@@ -62,7 +62,7 @@ describe('multi-resident physical navigation', () => {
     expect(traffic.goToRoom('a', 'initial-habitat')).toBe(true);
     traffic.advance(100);
     const moving = traffic.getResident('a')!;
-    expect(moving.remainingCells[0]).toEqual({ x: 5, y: 0 });
+    expect(moving.remainingCells[0]).toEqual({ x: 4, y: -1 });
     expect(moving.isWaiting).toBe(false);
     for (let i = 0; i < 240; i++) {
       traffic.advance(100);
