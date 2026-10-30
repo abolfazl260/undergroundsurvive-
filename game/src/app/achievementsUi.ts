@@ -24,7 +24,7 @@ const categories = [
 ] as const satisfies readonly { id: AchievementCategory; title: string; icon: string }[];
 
 const categoryById = new Map<AchievementId, Exclude<AchievementCategory, 'all'>>(
-  ACHIEVEMENTS.map((definition) => [definition.id, categoryForAchievement(definition.metric)])
+  ACHIEVEMENTS.map((definition) => [definition.id, categoryForAchievement(definition.metric)] as const)
 );
 
 // Every illustration is sourced from room art already shipped with the game.
