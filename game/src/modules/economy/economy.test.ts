@@ -41,7 +41,7 @@ describe('local wallet and transactional commands', () => {
     expect(game.dig(5, -2).ok).toBe(true);
     expect(game.wallet.balance).toBe(before - DIG_COST + 25);
     expect(game.dig(5, -2).ok).toBe(false);
-    expect(game.wallet.balance).toBe(before - DIG_COST);
+    expect(game.wallet.balance).toBe(before - DIG_COST + 25);
   });
 
   it('blocks the legacy upward floor command without charging or changing saved state', () => {
