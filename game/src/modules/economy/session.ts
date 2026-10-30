@@ -207,9 +207,10 @@ export class GameSession {
       ticks += completed;
       if (completed) {
         this.waterState.advance(5000, this.world.rooms, this.powerAdapter());
+        this.researchState.advanceTo(this.resources.tickCount*5000,this.researchFacility());
+        // Research checks its reserved facility budget before air draws remaining power.
         this.airState.advanceTo(this.resources.tickCount * 5000, this.world.rooms,
           this.survivors.survivors.length, ROOM_AIR_EMISSIONS.emissions(this.world.rooms), this.powerAdapter());
-        this.researchState.advanceTo(this.resources.tickCount*5000,this.researchFacility());
         this.radiationState.advanceTo(this.resources.tickCount*5000,this.radiationState.world(this.world.terrain,this.world.rooms),this.radiationOccupants);
         if(this.resources.tickCount%24===0)this.radiationState.triggerSurge('leaking-pipe');
       }
