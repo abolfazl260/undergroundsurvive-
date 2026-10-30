@@ -12,8 +12,8 @@ The interface does not switch to a desktop sidebar or four-column HUD.
   tall. Zoom buttons remain at least 44px.
 - Audio controls, history and reset are available under the same expandable
   “More settings and information” section everywhere.
-- Phaser FIT scales the 480×600 logical viewport; rendering resolution respects
-  device pixel ratio (capped at 2), not the browser window width.
+- Phaser FIT scales the 480×600 logical viewport; the asset manager continues
+  selecting high-resolution room and background textures for dense screens.
 - Camera pan bounds use the **full world dimensions**. The initial position and
   reset are centered on the same world point, so the portrait crop doesn't
   relocate rooms or distort the 1920×1200 background texture.
