@@ -9,7 +9,7 @@ const STARTER_ROOMS: Room[] = [
   { id: 'initial-command', type: 'command', x: 5, y: -1, width: 3, height: 1, level: 1 },
   { id: 'initial-power', type: 'generator', x: 1, y: -2, width: 2, height: 1, level: 1 },
   { id: 'initial-habitat', type: 'habitat', x: 10, y: -2, width: 2, height: 1, level: 1 },
-  { id: 'initial-garden', type: 'hydroponics', x: 2, y: -1, width: 2, height: 1, level: 1 }
+  { id: 'initial-garden', type: 'hydroponics', x: 11, y: -1, width: 2, height: 1, level: 1 }
 ];
 export interface BaseSnapshot {
   schemaVersion: 1;
