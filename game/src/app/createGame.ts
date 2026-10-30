@@ -10,7 +10,7 @@ export function createGame(scene: GameScene): Phaser.Game {
     height: GAME_VIEW.height,
     backgroundColor: '#101d2d',
     render: { pixelArt: false, antialias: true },
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.NO_CENTER },
     scene: [scene]
   });
 }
