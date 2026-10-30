@@ -11,6 +11,20 @@ const reasons = {
   overload: ['Population exceeds air coverage', 'جمعیت از ظرفیت تهویه بیشتر است'],
   emissions: ['Pollution is greater than purification', 'آلودگی از توان پاک‌سازی بیشتر است'],
 } as const;
+/** Tiny HUD status shares the existing compact room tile on portrait screens. */
+export function mountAirHud(root: ParentNode) {
+  const node = root.querySelector<HTMLElement>('#hud-air-status');
+  return (snapshot: GameSnapshot): void => {
+    if (!node) return;
+    const a = snapshot.air, en = getLocale() === 'en';
+    node.dataset.status = airStatus(a.quality);
+    node.textContent = (en ? 'Air ' : 'هوا ') + Math.round(a.quality) + '%';
+    node.title = reasons[a.reason][en ? 0 : 1];
+    node.setAttribute('aria-label', (en ? 'Air quality: ' : 'کیفیت هوا: ') +
+      Math.round(a.quality) + (en ? ' percent, ' : ' درصد، ') + reasons[a.reason][en ? 0 : 1]);
+  };
+}
+
 export function mountAirPanel(root: HTMLElement, toggle: (id: string) => void, repair: (id: string) => void) {
   return (snapshot: GameSnapshot): void => {
     const en = getLocale() === 'en', a = snapshot.air;
