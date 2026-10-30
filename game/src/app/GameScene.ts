@@ -21,7 +21,7 @@ import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomA
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
   recreation:'تفریح', guardPost:'نگهبانی', command: 'فرمان', habitat: 'مسکونی', generator: 'برق', hydroponics: 'گلخانه',
-  laboratory: 'آزمایشگاه', kitchen:'آشپزخانه', waterTreatment: 'تصفیه آب', medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
+  laboratory: 'آزمایشگاه', kitchen:'آشپزخانه', waterTreatment: 'تصفیه آب', ventilation: 'تهویه', medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
 };
 
 export type ToolMode = 'elevator' | 'build' | 'dig' | 'move' | 'remove' | 'upgrade' | 'navigate';
@@ -40,6 +40,7 @@ export class GameScene extends Phaser.Scene {
   private terrainLayer?: Phaser.GameObjects.Graphics;
   private roomLayer?: Phaser.GameObjects.Container;
   private roomBadges: Phaser.GameObjects.Container[] = [];
+  private airBadges: {id: string; label: Phaser.GameObjects.Text}[] = [];
   private preview?: Phaser.GameObjects.Graphics;
   private radiationOverlay=false;
   private radiationSelection:GridPosition={x:12,y:-1};
@@ -188,6 +189,7 @@ export class GameScene extends Phaser.Scene {
       this.onCycleProgress(seconds);
     }
     if (completed > 0) {
+      this.updateAirBadges();
       this.paintRadiation();
       if (this.layout.rooms.some(r=>r.type==='kitchen')) this.paintRooms();
       const result = this.session.resources.snapshot();
@@ -453,6 +455,18 @@ export class GameScene extends Phaser.Scene {
     if (this.gameplayPaused) return;
     this.session.toggleWater(id); this.notify('تصفیه آب');
   }
+  toggleVent(id: string): void {
+    if (this.gameplayPaused) return;
+    const ok = this.session.toggleVent(id, crypto.randomUUID());
+    this.updateAirBadges();
+    this.notify(ok ? 'وضعیت تهویه تغییر کرد.' : 'تغییر وضعیت تهویه ممکن نیست.');
+  }
+  repairVent(id: string): void {
+    if (this.gameplayPaused) return;
+    const ok = this.session.repairVent(id, crypto.randomUUID());
+    this.updateAirBadges();
+    this.notify(ok ? 'تجهیزات تهویه تعمیر شد.' : 'تعمیر تهویه ممکن نیست؛ موجودی را بررسی کنید.');
+  }
   claimDemoBonus(): void {
     const result = this.session.claimDemoBonus();
     this.onAudioCue(result.ok ? 'reward' : 'error');
@@ -668,6 +682,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.roomLayer) return;
     this.roomLayer.removeAll(true);
     this.roomBadges = [];
+    this.airBadges = [];
     for (const room of this.layout.rooms) {
       const definition = ROOM_DEFINITIONS[room.type];
       const { left, top } = toPixels(room.x, room.y);
@@ -693,6 +708,14 @@ export class GameScene extends Phaser.Scene {
         // Keep legacy room types and failed asset requests playable.
         graphics.fillStyle(definition.color).fillRoundedRect(left + 2, top + 2, width, height, 4);
         graphics.fillStyle(definition.accent, 0.21).fillRect(left + 10, top + 9, width - 16, 8);
+        if (room.type === 'ventilation') {
+          const cx = left + width / 2, cy = top + height / 2 + 3;
+          graphics.lineStyle(2, 0xbafbf2, 0.85).strokeCircle(cx, cy, 13);
+          graphics.fillStyle(0x0b2932, 0.9).fillCircle(cx, cy, 3);
+          for (let angle = 0; angle < Math.PI * 2; angle += Math.PI * 2 / 3) {
+            graphics.fillStyle(0x7fe6d5, 0.65).fillEllipse(cx + Math.cos(angle) * 7, cy + Math.sin(angle) * 7, 11, 5);
+          }
+        }
       }
       graphics.lineStyle(1.5 + (room.level - 1) * 0.6, definition.accent, 0.9)
         .strokeRoundedRect(left + 2, top + 2, width, height, 4);
@@ -714,6 +737,14 @@ export class GameScene extends Phaser.Scene {
       badge.add([plate, name, level]);
       this.roomBadges.push(badge);
       this.roomLayer.add(badge);
+      if (room.type === 'ventilation') {
+        const airLabel = this.add.text(left + 7, top + height - 14, '', {
+          fontSize: '10px', color: '#a8fff0', fontFamily: 'Arial', fontStyle: 'bold',
+          backgroundColor: '#09202bd9', padding: {x:3,y:1},
+        }).setResolution(3);
+        this.airBadges.push({id: room.id, label: airLabel});
+        this.roomLayer.add(airLabel);
+      }
       if (room.type === 'kitchen') {
         const cycle = this.session.kitchen.snapshot().cycles.find(c => c.roomId === room.id);
         if (cycle && cycle.status !== 'idle') {
@@ -726,6 +757,21 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.updateBadgeScale();
+    this.updateAirBadges();
+  }
+
+  private updateAirBadges(): void {
+    if (!this.airBadges.length) return;
+    const vents = this.session.air.snapshot().vents;
+    const en = getLocale() === 'en';
+    for (const badge of this.airBadges) {
+      const state = vents.find(vent => vent.id === badge.id);
+      const active = !!state?.powered && !!state.enabled && state.health > 0;
+      badge.label.setText(active ? (en ? 'ACTIVE' : 'فعال')
+        : !state?.enabled ? (en ? 'OFF' : 'خاموش') :
+          !state || state.health <= 0 ? (en ? 'BROKEN' : 'خراب') : (en ? 'NO POWER' : 'بدون برق'));
+      badge.label.setColor(active ? '#a8fff0' : '#ffca88');
+    }
   }
 
   private updateBadgeScale(): void {

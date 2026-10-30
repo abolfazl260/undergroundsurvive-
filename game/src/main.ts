@@ -3,6 +3,7 @@ import { mountCommandPanel } from './app/ui/commandPanel';
 import { mountRadiationPanel } from './app/ui/radiationPanel';
 import { mountResearchPanel } from './app/ui/researchPanel';
 import { mountWaterPanel } from './app/ui/waterPanel';
+import { mountAirPanel, mountAirHud } from './app/ui/airPanel';
 import { mountKitchenPanel } from './app/ui/kitchenPanel';
 import './kitchen.css';
 import './style.css';
@@ -55,6 +56,7 @@ const kindTitles: Record<TransactionKind, string> = {
   upgrade: 'ارتقای اتاق',
   research: 'پژوهش',
   radiation: 'کاهش تشعشع',
+  air: 'تعمیر تهویه',
   'demo-bonus': 'کمک‌هزینهٔ آزمایشی'
 };
 const audioMute = document.querySelector<HTMLButtonElement>('#audio-mute');
@@ -142,6 +144,8 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   renderAchievements(snapshot);
   resourcePanel.render(snapshot);
   renderWater(snapshot);
+  renderAir(snapshot);
+  renderAirHud(snapshot);
   renderKitchen(snapshot);
   renderResearch(snapshot);
   renderRadiation(snapshot);
@@ -173,6 +177,8 @@ const renderRadiation = mountRadiationPanel(document.querySelector<HTMLElement>(
 const renderSurvivors=mountSurvivorPanel(document.querySelector<HTMLElement>('#survivor-panel')!,(id,room)=>scene.assignSurvivor(id,room),id=>scene.releaseSurvivor(id));
 const renderResearch = mountResearchPanel(document.querySelector<HTMLElement>('#research-panel')!,id=>scene.startResearch(id));
 const renderWater = mountWaterPanel(document.querySelector<HTMLElement>('#water-panel')!, () => scene.collectWater(), id => scene.toggleWater(id));
+const renderAir = mountAirPanel(document.querySelector<HTMLElement>('#air-panel')!, id => scene.toggleVent(id), id => scene.repairVent(id));
+const renderAirHud = mountAirHud(document);
 const renderKitchen = mountKitchenPanel(document.querySelector<HTMLElement>('#kitchen-panel')!,
   (room, recipe) => scene.startCooking(room, recipe), room => scene.toggleCooking(room), room => scene.cancelCooking(room));
 const scene = new GameScene((snapshot, message) => {
