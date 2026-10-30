@@ -132,10 +132,11 @@ export class KitchenProcessor {
     return true;
   }
 
-  advance(deltaMs: number, ctx: CookingContext): void {
+  advance(deltaMs: number, ctx: CookingContext, poweredRooms?: ReadonlySet<string>): void {
     if (!Number.isFinite(deltaMs) || deltaMs <= 0) return;
     this.sync(ctx.rooms);
     for (const cycle of this.state.cycles) {
+      if (poweredRooms && !poweredRooms.has(cycle.roomId)) { if (cycle.status !== 'idle' && cycle.status !== 'completed') cycle.status='blocked'; continue; }
       if (!['running', 'paused', 'blocked'].includes(cycle.status)) continue;
       if (!cycle.enabled) { cycle.status = 'paused'; continue; }
       const staffed = ctx.roster.assignments.some(a => a.roomId === cycle.roomId && a.kind === 'cook' && a.state === 'active');

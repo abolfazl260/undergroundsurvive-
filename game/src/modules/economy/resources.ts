@@ -1,6 +1,7 @@
 import { RESEARCH_CONFIG, type TechnologyModifiers } from '../research/research';
 import type { Room } from '../building/placement';
 import { getRoomPerformance } from '../building/upgrades';
+import type { PowerAllocation } from '../power/network';
 
 export const RESOURCE_TYPES = ['power', 'food', 'meal', 'ore', 'supplies'] as const;
 export type ResourceType = typeof RESOURCE_TYPES[number];
@@ -28,6 +29,23 @@ export function getResourceCapacity(rooms: readonly Room[]): number {
   return BASE_CAPACITY + rooms
     .filter((room) => room.type === 'storage')
     .reduce((total, room) => total + getRoomPerformance(room.type, room.level).value, 0);
+}
+
+/** This is the only definition of power recipes, shared by accounting and the grid. */
+export function getRoomPowerFlow(room: Room, modifiers: TechnologyModifiers = { powerProduction:1, foodProduction:1 }):
+  { readonly production: number; readonly demand: number } {
+  const value = getRoomPerformance(room.type, room.level).value;
+  switch (room.type) {
+    case 'generator': return { production: Math.floor(value * modifiers.powerProduction), demand: 0 };
+    case 'command':
+    case 'medbay': return { production: 0, demand: value };
+    case 'habitat':
+    case 'hydroponics':
+    case 'mine':
+    case 'workshop': return { production: 0, demand: Math.ceil(value / 2) };
+    case 'laboratory': return { production: 0, demand: RESEARCH_CONFIG.labPower };
+    default: return { production: 0, demand: 0 }; // Separate processors own other recipes.
+  }
 }
 
 /** Deterministic local simulation. No real-time clock or wall-time catch-up. */
@@ -110,7 +128,7 @@ export class ResourceEngine {
   }
 
   /** Returns the number of complete simulation ticks. Call only while playing. */
-  advance(deltaMs: number, rooms: readonly Room[], modifiers: TechnologyModifiers = {powerProduction:1,foodProduction:1}): number {
+  advance(deltaMs: number, rooms: readonly Room[], modifiers: TechnologyModifiers = {powerProduction:1,foodProduction:1}, power?: PowerAllocation): number {
     if (![modifiers.powerProduction,modifiers.foodProduction].every(n=>Number.isFinite(n)&&n>=1&&n<=27))return 0;
     if (!Number.isFinite(deltaMs) || deltaMs <= 0) return 0;
     // Large suspended-tab or device-sleep deltas must not cause offline farming.
@@ -118,14 +136,14 @@ export class ResourceEngine {
     let processed = 0;
     while (this.elapsedMs >= RESOURCE_TICK_MS) {
       this.elapsedMs -= RESOURCE_TICK_MS;
-      this.runTick(rooms,modifiers);
+      this.runTick(rooms,modifiers,power);
       this.ticks++;
       processed++;
     }
     return processed;
   }
 
-  private runTick(rooms: readonly Room[], modifiers: TechnologyModifiers): void {
+  private runTick(rooms: readonly Room[], modifiers: TechnologyModifiers, power?: PowerAllocation): void {
     this.reconcileCapacity(rooms);
     const capacity = getResourceCapacity(rooms);
     const missing = new Set<ResourceType>();
@@ -147,20 +165,30 @@ export class ResourceEngine {
       'mine', 'workshop', 'medbay', 'storage', 'waterTreatment', 'laboratory', 'guardPost', 'recreation', 'kitchen', 'ventilation'] as const;
     const ordered = [...rooms].sort((a, b) =>
       priority.indexOf(a.type) - priority.indexOf(b.type) || a.id.localeCompare(b.id));
+    const permitted = power ? new Set(power.activeRoomIds) : null;
     for (const room of ordered) {
       const value = getRoomPerformance(room.type, room.level).value;
+      const flow = getRoomPowerFlow(room, modifiers);
+      // An unpowered recipe is skipped BEFORE spending any inputs (atomic).
+      // The legacy virtual network passes no allocation and preserves old saves.
+      if (permitted && !permitted.has(room.id)) {
+        if (flow.demand > 0 || flow.production > 0) {
+          if (flow.demand > 0) { missing.add('power'); inactive++; }
+        }
+        continue;
+      }
       switch (room.type) {
-        case 'generator': recipe({}, { type: 'power', amount: Math.floor(value * modifiers.powerProduction) }); break;
-        case 'command': recipe({ power: value }); break;
-        case 'habitat': recipe({ power: Math.ceil(value / 2), meal: value }); break;
-        case 'hydroponics': recipe({ power: Math.ceil(value / 2) },
+        case 'generator': recipe({}, { type: 'power', amount: flow.production }); break;
+        case 'command': recipe({ power: flow.demand }); break;
+        case 'habitat': recipe({ power: flow.demand, meal: value }); break;
+        case 'hydroponics': recipe({ power: flow.demand },
           { type: 'food', amount: Math.floor(value * modifiers.foodProduction) }); break;
-        case 'mine': recipe({ power: Math.ceil(value / 2) },
+        case 'mine': recipe({ power: flow.demand },
           { type: 'ore', amount: value }); break;
-        case 'workshop': recipe({ power: Math.ceil(value / 2), ore: Math.ceil(value / 2) },
+        case 'workshop': recipe({ power: flow.demand, ore: Math.ceil(value / 2) },
           { type: 'supplies', amount: value }); break;
-        case 'medbay': recipe({ power: value, supplies: 1 }); break;
-        case 'laboratory': recipe({power:RESEARCH_CONFIG.labPower}); break;
+        case 'medbay': recipe({ power: flow.demand, supplies: 1 }); break;
+        case 'laboratory': recipe({power:flow.demand}); break;
         case 'kitchen': break; // Dedicated cooking processor owns its cycles.
         case 'storage': break;
       }
