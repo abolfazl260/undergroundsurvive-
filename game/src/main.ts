@@ -3,6 +3,7 @@ import { mountCommandPanel } from './app/ui/commandPanel';
 import { mountRadiationPanel } from './app/ui/radiationPanel';
 import { mountResearchPanel } from './app/ui/researchPanel';
 import { mountWaterPanel } from './app/ui/waterPanel';
+import { mountAirPanel, mountAirHud } from './app/ui/airPanel';
 import './style.css';
 import { mountGameDock } from './app/gameDock';
 import { mountStoryViewer } from './modules/narrative/viewer';
@@ -53,6 +54,7 @@ const kindTitles: Record<TransactionKind, string> = {
   upgrade: 'ارتقای اتاق',
   research: 'پژوهش',
   radiation: 'کاهش تشعشع',
+  air: 'تعمیر تهویه',
   'demo-bonus': 'کمک‌هزینهٔ آزمایشی'
 };
 const audioMute = document.querySelector<HTMLButtonElement>('#audio-mute');
@@ -140,6 +142,8 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   renderAchievements(snapshot);
   resourcePanel.render(snapshot);
   renderWater(snapshot);
+  renderAir(snapshot);
+  renderAirHud(snapshot);
   renderResearch(snapshot);
   renderRadiation(snapshot);
   renderCommand(snapshot);
@@ -170,6 +174,8 @@ const renderRadiation = mountRadiationPanel(document.querySelector<HTMLElement>(
 const renderSurvivors=mountSurvivorPanel(document.querySelector<HTMLElement>('#survivor-panel')!,(id,room)=>scene.assignSurvivor(id,room),id=>scene.releaseSurvivor(id));
 const renderResearch = mountResearchPanel(document.querySelector<HTMLElement>('#research-panel')!,id=>scene.startResearch(id));
 const renderWater = mountWaterPanel(document.querySelector<HTMLElement>('#water-panel')!, () => scene.collectWater(), id => scene.toggleWater(id));
+const renderAir = mountAirPanel(document.querySelector<HTMLElement>('#air-panel')!, id => scene.toggleVent(id), id => scene.repairVent(id));
+const renderAirHud = mountAirHud(document);
 const scene = new GameScene((snapshot, message) => {
   const saved = saveLocalBase(snapshot);
   lastSnapshot = snapshot;
