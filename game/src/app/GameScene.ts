@@ -50,6 +50,7 @@ export class GameScene extends Phaser.Scene {
   private navigator?: ResidentNavigator;
   private residentWaitMs = 1400;
   private patrolCursor = 0;
+  private viewportSize = { width: GAME_VIEW.width, height: GAME_VIEW.height };
 
   constructor(
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
@@ -77,6 +78,23 @@ export class GameScene extends Phaser.Scene {
       (GAME_VIEW.worldWidth - this.cameras.main.width) / 2,
       (GAME_VIEW.worldHeight - this.cameras.main.height) / 2
     );
+    this.viewportSize = { width: this.cameras.main.width, height: this.cameras.main.height };
+    // RESIZE updates canvas and camera in CSS pixels; preserve the same world center.
+    const resizeView = (size: Phaser.Structs.Size): void => {
+      const camera = this.cameras.main;
+      const centerX = camera.scrollX + this.viewportSize.width / 2;
+      const centerY = camera.scrollY + this.viewportSize.height / 2;
+      camera.setSize(size.width, size.height);
+      this.viewportSize = { width: size.width, height: size.height };
+      const view = {
+        ...this.currentView(),
+        scrollX: centerX - size.width / 2,
+        scrollY: centerY - size.height / 2
+      };
+      this.applyView({ ...view, ...constrainScroll(view) });
+    };
+    this.scale.on('resize', resizeView);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', resizeView));
     this.drawBackdrop();
     this.terrainLayer = this.add.graphics().setDepth(1);
     this.roomLayer = this.add.container(0, 0).setDepth(3);

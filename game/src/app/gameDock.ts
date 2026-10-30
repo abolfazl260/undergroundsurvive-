@@ -1,3 +1,5 @@
+import { subscribeLocaleChange, t } from '../i18n';
+
 /** Interactive fullscreen HUD layers; only presentation state lives here. */
 export type GameSheet = 'rooms' | 'more' | null;
 export function nextGameSheet(current: GameSheet, requested: Exclude<GameSheet, null>): GameSheet {
@@ -24,17 +26,22 @@ export function mountGameDock(root: Document = document): {
 
   // Move the existing controls rather than cloning them; IDs, listeners and tool state stay intact.
   dock.append(toolGrid);
+  // Upgrade confirmations remain visible while selecting a room in the map.
+  const upgradePanel = sheet.querySelector<HTMLElement>('#upgrade-panel');
+  const playArea = root.querySelector<HTMLElement>('.play-area');
+  if (upgradePanel && playArea) playArea.append(upgradePanel);
   let current: GameSheet = null;
   const showSheet = (next: GameSheet) => {
     current = next;
     sheet.hidden = next === null;
     sheet.dataset.sheet = next ?? '';
-    title.textContent = next === 'more' ? 'امکانات پناهگاه' : 'انتخاب اتاق';
+    title.textContent = t(next === 'more' ? 'امکانات پناهگاه' : 'انتخاب اتاق');
     moreButton.setAttribute('aria-expanded', String(next === 'more'));
     dock.setAttribute('data-sheet-open', String(next !== null));
   };
 
   const toggleSheet = (next: Exclude<GameSheet, null>) => showSheet(nextGameSheet(current, next));
+  subscribeLocaleChange(() => showSheet(current));
   moreButton.addEventListener('click', () => toggleSheet('more'));
   closeButton.addEventListener('click', () => showSheet(null));
   root.addEventListener('keydown', (event) => {
@@ -55,10 +62,10 @@ export function mountGameDock(root: Document = document): {
   };
   fullscreen?.addEventListener('click', () => {
     if (root.fullscreenElement) {
-      void root.exitFullscreen?.().catch(() => {});
+      if (root.exitFullscreen) void root.exitFullscreen().catch(() => {});
     } else {
       // Browser fullscreen requires a user gesture and is unsupported on some iPhones.
-      const target = root.querySelector<HTMLElement>('#app');
+      const target = root.documentElement;
       if (target?.requestFullscreen) void target.requestFullscreen().catch(() => {});
     }
   });

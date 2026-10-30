@@ -1,4 +1,6 @@
 import './style.css';
+import './fullscreen.css';
+import { mountGameDock } from './app/gameDock';
 import { mountStoryViewer } from './modules/narrative/viewer';
 import { setupGameMenu } from './app/gameMenu';
 import './audio.css';
@@ -24,6 +26,7 @@ import { formatNumber, loadLocale, localizeGameMessage, mountStaticTranslations,
 setLocale(loadLocale());
 mountStaticTranslations(document);
 enhanceIcons();
+const gameDock = mountGameDock();
 
 const audio = new AudioManager();
 const status = document.querySelector<HTMLElement>('#status');
@@ -252,6 +255,7 @@ roomButtons.forEach((button) => {
     activeTool = 'build';
     scene.selectRoom(type);
     updateSelectedButtons();
+    gameDock.showSheet(null);
   });
 });
 
@@ -259,8 +263,17 @@ toolButtons.forEach((button) => {
   button.addEventListener('click', () => {
     const tool = button.dataset.tool as ToolMode | undefined;
     if (!tool) return;
-    activeTool = tool;
-    scene.setTool(tool);
+    if (tool === 'build') {
+      const alreadyBuilding = activeTool === 'build';
+      activeTool = 'build';
+      scene.selectRoom(activeRoom);
+      if (alreadyBuilding) gameDock.toggleSheet('rooms');
+      else gameDock.showSheet('rooms');
+    } else {
+      activeTool = tool;
+      scene.setTool(tool);
+      gameDock.showSheet(null);
+    }
     updateSelectedButtons();
   });
 });
