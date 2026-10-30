@@ -16,6 +16,7 @@ import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, roomArtCandidates } from './roomArt';
 import { SURVIVOR_ART, survivorGeometry, survivorFrame, hitSurvivor } from './survivorArt';
 import { AssetManager } from './assets/assetManager';
+import { TWO_CELL_CONSTRUCTION_ART_ASSET, CONSTRUCTION_FRAMES, TwoCellConstructionAnimation } from './twoCellConstruction';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
 import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
@@ -29,8 +30,10 @@ export type ToolMode = 'elevator' | 'build' | 'dig' | 'move' | 'remove' | 'upgra
 
 export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
+  // Transient presentation state; constructed rooms remain saved immediately.
+  private readonly construction = new TwoCellConstructionAnimation();
   private readonly assets = new AssetManager(
-    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET], import.meta.env.BASE_URL,
+    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, TWO_CELL_CONSTRUCTION_ART_ASSET], import.meta.env.BASE_URL,
     Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
   );
   private get layout(): BuildingLayout { return this.session.layout; }
@@ -174,6 +177,11 @@ export class GameScene extends Phaser.Scene {
 
   applyMenuSettings(settings: MenuSettings): void {
     this.menuSettings = { ...settings };
+    // Respect accessibility when reduced motion is toggled mid-construction.
+    if (settings.reducedMotion && this.construction.active) {
+      this.construction.clear();
+      if (this.sceneReady) this.paintRooms();
+    }
     this.session.survivors.setReducedMotion(settings.reducedMotion);
     // Reduced motion resolves one reserved edge per update rather than
     // teleporting residents through other bodies or solid terrain.
@@ -184,6 +192,8 @@ export class GameScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     if (this.gameplayPaused) return;
+    // Phaser's scene update automatically pauses animation with the game.
+    if (this.construction.advance(delta)) this.paintRooms();
     this.session.setRadiationOccupants((this.traffic?.residents??[]).map(r=>({id:r.id,x:r.cell.x,y:r.cell.y,protection:0})));
     const researchBefore=this.session.research.snapshot().activeResearchId;
     const completed = this.session.advanceTime(delta);
@@ -480,6 +490,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   resetLayout(): void {
+    this.construction.clear();
     this.session.reset();
     this.lastCycleCountdown = -1;
     this.onCycleProgress(5);
@@ -620,6 +631,17 @@ export class GameScene extends Phaser.Scene {
       successMessage = 'اتاق تخریب شد.';
     }
     if (result.ok) {
+      if (this.mode === 'build') {
+        const newRoom = this.layout.getRoomAt(x, y);
+        // Keep the purchase/save transaction unchanged. Animate only fresh
+        // two-cell rooms, never restored, moved or upgraded rooms.
+        if (newRoom?.width === 2 && newRoom.height === 1 &&
+          this.assets.resolve(TWO_CELL_CONSTRUCTION_ART_ASSET.key, this.textures, 0)) {
+          this.construction.start(
+            newRoom.id, newRoom.width, newRoom.height, this.menuSettings.reducedMotion
+          );
+        }
+      }
       this.paintTerrain();
       this.paintRooms();
       this.refreshResidentPath();
@@ -689,6 +711,25 @@ export class GameScene extends Phaser.Scene {
       const { left, top } = toPixels(room.x, room.y);
       const width = room.width * WORLD.cellSize - 4;
       const height = room.height * WORLD.cellSize - 4;
+      const constructionFrame = this.construction.frame(room.id);
+      const constructionArt = constructionFrame === null ? null : this.assets.resolve(
+        TWO_CELL_CONSTRUCTION_ART_ASSET.key, this.textures, constructionFrame
+      );
+      if (constructionArt) {
+        // In-progress art *replaces* the finished interior until frame eight.
+        // Every frame uses exactly the same two-cell footprint.
+        const constructionSprite = this.add.image(left + 2, top + 2, constructionArt.key, constructionArt.frame)
+          .setOrigin(0, 0).setDisplaySize(width, height);
+        this.roomLayer.add(constructionSprite);
+        const progress = this.add.graphics();
+        progress.fillStyle(0x09131f, 0.72).fillRect(left + 5, top + height - 5, width - 6, 3);
+        progress.fillStyle(0xffbe4a, 0.96).fillRect(
+          left + 5, top + height - 5, (width - 6) * (constructionFrame! + 1) / CONSTRUCTION_FRAMES, 3
+        );
+        this.roomLayer.add(progress);
+        continue; // Do not reveal the completed artwork or its badge early.
+      }
+      if (constructionFrame !== null) this.construction.cancel(room.id);
       // Level 2 receives its own illustrated interior; missing assets safely
       // fall back to the original Level 1 sheet (or basic room graphics).
       const texture = roomArtCandidates(room.type, room.level)
