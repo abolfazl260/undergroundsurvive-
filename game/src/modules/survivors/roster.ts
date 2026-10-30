@@ -34,6 +34,9 @@ export class SurvivorRoster {
   private events:RosterEvent[]=[];
   private remainderMs=0;
   private nowMs=0;
+  private reducedMotion=false;
+  /** Visual accessibility preference; never persisted with game progress. */
+  setReducedMotion(value:boolean):void {this.reducedMotion=value;}
   constructor(private layout:BuildingLayout) {
     const candidates=[{x:5,y:-1},{x:6,y:-1},{x:7,y:-1},
       ...Array.from({length:WORLD.cols*(WORLD.maxY-WORLD.minY+1)},(_,i)=>({x:i%WORLD.cols,y:WORLD.minY+Math.floor(i/WORLD.cols)}))];
@@ -101,7 +104,7 @@ export class SurvivorRoster {
           if(job.elapsedMs>=RECREATION_CONFIG.durationMs||person.morale>=SURVIVOR_STATS_CONFIG.maxMorale){this.event('completed',job);this.release(person.id);}
         } else changeMorale(person,-SURVIVOR_STATS_CONFIG.moraleDecayPerMinute*50/60000);
       }
-      this.traffic.advance(50);this.nowMs+=50;this.reconcile(power);this.remainderMs-=50;
+      this.traffic.advance(50,this.reducedMotion);this.nowMs+=50;this.reconcile(power);this.remainderMs-=50;
     }
   }
   snapshot():SurvivorSnapshot {
