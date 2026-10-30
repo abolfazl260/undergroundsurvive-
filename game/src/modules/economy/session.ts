@@ -1,3 +1,5 @@
+import { Dormitories } from '../dormitory/dormitory';
+import type { GridPosition } from '../world/grid';
 import { RECREATION_CONFIG } from '../recreation/recreation';
 import type { AssignmentBlock } from '../survivors/roster';
 import { laboratoryFacilities, researchFacility, type LaboratoryFacility } from '../laboratory/laboratory';
@@ -24,7 +26,8 @@ import { AchievementTracker, type AchievementSnapshot } from '../achievements/ac
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 13;
+  schemaVersion: 14;
+  dormitory:ReturnType<Dormitories['snapshot']>;
   air: AirSystemState;
   kitchen: CookingSnapshot;
   laboratories:LaboratoryFacility[];
@@ -55,6 +58,9 @@ export interface UpgradeDetails {
 type SpendKind = 'build' | 'dig' | 'floor' | 'upgrade';
 
 export class GameSession {
+  dormitory:Dormitories;
+  startRest(id:string,roomId:string,op:string):AssignmentBlock|null {return this.dormitory.startRest(id,roomId,op);}
+  admitSurvivor(id:string,name:string,cell:GridPosition):boolean {return this.survivors.admit(id,name,cell,this.dormitory.populationCapacity);}
   survivors:SurvivorRoster;
   guardPosts:GuardPosts;
   private kitchenState = new KitchenProcessor();
@@ -144,6 +150,7 @@ export class GameSession {
                       resources = ResourceEngine.create(), achievements = new AchievementTracker()) {
     this.world = layout;
     this.survivors=new SurvivorRoster(layout);
+    this.dormitory=new Dormitories(()=>this.world.rooms,this.survivors);
     this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,()=>this.resources.snapshot().stock.power);
     this.purse = wallet;
     this.bonusClaimed = claimed;
@@ -161,7 +168,7 @@ export class GameSession {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
     const version=value.schemaVersion;
-    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>13||typeof value.demoBonusClaimed!=='boolean')return null;
+    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>14||typeof value.demoBonusClaimed!=='boolean')return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
     const resources = (version>=3)
@@ -210,7 +217,7 @@ export class GameSession {
       if (kitchen.snapshot().cycles.some(c => !world.rooms.some(r => r.id === c.roomId && r.type === 'kitchen'))) return null;
       session.kitchenState = kitchen;
     }
-    if (version === 13) {
+    if (version >= 13) {
       const air = AirSystem.restore(value.air);
       if (!air || air.snapshot().nowMs !== resources.tickCount * 5000) return null;
       session.airState = air;
@@ -220,6 +227,8 @@ export class GameSession {
     }
     session.airState.sync(world.rooms);
     session.kitchenState.sync(world.rooms);
+    session.dormitory=new Dormitories(()=>session.world.rooms,session.survivors);
+    if(version>=14&&!session.dormitory.restore(value.dormitory))return null;
     session.survivors.reconcile(session.resources.snapshot().stock.power);
     session.commandStatus();
     session.waterState.sync(world.rooms);
@@ -356,6 +365,7 @@ export class GameSession {
     this.airState = new AirSystem();
     this.world = new BuildingLayout();
     this.survivors=new SurvivorRoster(this.world);
+    this.dormitory=new Dormitories(()=>this.world.rooms,this.survivors);
     this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,()=>this.resources.snapshot().stock.power);
     this.purse = Wallet.create(STARTING_COINS);
     this.bonusClaimed = false;
@@ -370,13 +380,15 @@ export class GameSession {
     this.kitchenState.sync(this.world.rooms);
     this.airState.sync(this.world.rooms);
     this.radiationState.reconcileRooms(this.world.rooms);
+    this.dormitory.sync();
     this.survivors.reconcile(this.resources.snapshot().stock.power);
     const base = this.world.snapshot();
     const wallet = this.purse.snapshot();
     const resources = this.resourceState.snapshot();
     this.achievementState.evaluate({ base, wallet, resources });
     return {
-      schemaVersion: 13,
+      schemaVersion: 14,
+      dormitory:this.dormitory.snapshot(),
       air: this.airState.snapshot(),
       kitchen: this.kitchenState.snapshot(),
       laboratories:this.laboratories(),

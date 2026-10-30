@@ -4,6 +4,8 @@ export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
   'تفریح':'Recreation',
+  'بازمانده خسته نیست.':'Survivor is fully rested.',
+  'تخت آزاد شد.':'Bed released.',
   'بازیابی روحیه':'Morale recovery',
   'در ثانیه':'per second',
   'ظرفیت تفریح':'Recreation capacity',

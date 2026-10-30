@@ -39,6 +39,19 @@ for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
     await page.screenshot({path:`${output}/${mode}-guard-assigned.png`});
     await page.locator('[data-release]').first().click();
     await page.waitForFunction(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).survivors.assignments.length===0);
+    if(await page.locator('[data-assign-room="initial-habitat"]').count()) {
+      await page.locator('[data-assign-room="initial-habitat"]').first().click();
+      await page.waitForFunction(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).dormitory.beds.length===1);
+      await page.screenshot({path:`${output}/${mode}-rest-assigned.png`});
+      await page.locator('[data-release-bed]').first().click();
+      await page.waitForFunction(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).dormitory.beds.length===0);
+    }
+  }
+  if(mode==='after') {
+    await page.locator('#close-game-sheet').evaluate(el=>{if(!el.closest('[hidden]'))el.click();});
+    await page.locator('[data-tool="navigate"]').click();
+    for(let step=0;step<5;step++)await page.locator('#zoom-in').click();
+    await page.screenshot({path:`${output}/${mode}-${width}x${height}-zoom225.png`});
   }
   await page.close();
 }

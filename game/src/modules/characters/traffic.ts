@@ -213,6 +213,14 @@ export class ResidentTraffic {
     return arrivals;
   }
 
+  addResident(id:string,cell:GridPosition):boolean {
+    if(!id||this.agents.some(a=>a.id===id)||!isWalkableCell(this.layout,cell)||this.heldCells(id).has(key(cell)))return false;
+    this.agents.push({id,cell:{...cell},position:walkPoint(cell),next:null,route:[],destinationId:null,waiting:false});return true;
+  }
+  removeResident(id:string):boolean {
+    const index=this.agents.findIndex(a=>a.id===id);if(index<0)return false;
+    this.agents.splice(index,1);this.priority%=Math.max(1,this.agents.length);return true;
+  }
   snapshot(): {schemaVersion:1; agents:ResidentState[]; priority:number} {
     return {schemaVersion:1,agents:structuredClone(this.agents),priority:this.priority};
   }
