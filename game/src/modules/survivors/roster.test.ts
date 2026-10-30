@@ -59,6 +59,8 @@ describe('guard assignments and defense adapter',()=>{
   const restored=SurvivorRoster.restore(s.layout,raw)!;
   expect(restored.assignments).toHaveLength(0);
   const old = new BuildingLayout().snapshot();
+  // Keep x9-10 excavated, but close the vertical access through empty x11-12.
+  old.terrain.excavated = old.terrain.excavated.filter(p => p.y !== -2 || (p.x !== 11 && p.x !== 12));
   old.rooms.push({ id:'orphan-guard', type:'guardPost', x:9, y:-2, width:2, height:1, level:1 });
   const isolated = BuildingLayout.restore(old)!;
   const roster=new SurvivorRoster(isolated);
