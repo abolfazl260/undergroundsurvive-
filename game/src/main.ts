@@ -43,7 +43,11 @@ const audio = new AudioManager();
 const status = document.querySelector<HTMLElement>('#status');
 const renderHud = mountHud(document);
 const resourcePanel = mountResourcePanel(document);
-const renderAchievements = mountAchievements(document);
+const savedGame = loadLocalBase();
+const announceMigrationRewards = savedGame !== null &&
+  !(typeof savedGame === 'object' && 'schemaVersion' in savedGame &&
+    savedGame.schemaVersion === 14);
+const renderAchievements = mountAchievements(document, announceMigrationRewards);
 const bonusButton = document.querySelector<HTMLButtonElement>('#demo-bonus');
 const historyNode = document.querySelector<HTMLElement>('#transaction-list');
 const digButton = document.querySelector<HTMLButtonElement>('[data-tool="dig"]');
@@ -133,7 +137,6 @@ renderDigLabel();
 let activeRoom: BuildableRoomType = 'habitat';
 let activeTool: ToolMode = 'build';
 
-const savedGame = loadLocalBase();
 let lastSnapshot: GameSnapshot | null = null;
 let lastSaved = false;
 let lastMessage = '';
