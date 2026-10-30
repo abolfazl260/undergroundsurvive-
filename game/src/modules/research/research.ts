@@ -26,9 +26,9 @@ export function validateResearchGraph(graph: readonly ResearchDefinition[]): boo
   }
   return true;
 }
-export interface ResearchFacilityProvider { level: number; powered: boolean }
+export interface ResearchFacilityProvider { level: number; powered: boolean; staffed?:boolean; speedMultiplier?:number }
 export interface TechnologyModifiers { powerProduction: number; foodProduction: number }
-export type ResearchBlock = 'facility'|'power'|'prerequisites'|'busy'|'balance'|'completed'|'level'|'unknown';
+export type ResearchBlock = 'facility'|'power'|'prerequisites'|'busy'|'balance'|'completed'|'level'|'unknown'|'staff';
 export interface ResearchSnapshot {
  schemaVersion: 1; graphVersion: 1; unlockedTechnologyIds: string[]; activeResearchId: string|null;
  startedAt: number|null; completeAt: number|null; nowMs: number; operations: string[];
@@ -42,7 +42,7 @@ export class ResearchScheduler {
   const node=this.graph.find(n=>n.id===id);if(!node)return 'unknown';
   if(this.state.unlockedTechnologyIds.includes(id))return 'completed';
   if(this.state.activeResearchId)return 'busy';
-  if(!facility.level)return 'facility';if(!facility.powered)return 'power';
+  if(!facility.level)return 'facility';if(!facility.powered)return 'power';if(facility.staffed===false)return 'staff';
   if(facility.level<node.facilityLevel)return 'level';
   if(!node.prerequisites.every(p=>this.state.unlockedTechnologyIds.includes(p)))return 'prerequisites';
   if(coins<node.cost)return 'balance';return null;
@@ -58,7 +58,9 @@ export class ResearchScheduler {
   if(!Number.isSafeInteger(nowMs)||nowMs<this.state.nowMs||nowMs-this.state.nowMs>60000)return null;
   const delta=nowMs-this.state.nowMs;this.state.nowMs=nowMs;
   const node=this.graph.find(n=>n.id===this.state.activeResearchId);if(!node)return null;
-  if(!facility.powered||facility.level<node.facilityLevel){this.state.completeAt!+=delta;return null;}
+  if(!facility.powered||facility.staffed===false||facility.level<node.facilityLevel){this.state.completeAt!+=delta;return null;}
+  const speed=facility.speedMultiplier??1;
+  if(Number.isFinite(speed)&&speed>=1&&speed<=2)this.state.completeAt!-=Math.round(delta*(speed-1));
   if(nowMs<this.state.completeAt!)return null;
   this.state.unlockedTechnologyIds.push(node.id);this.state.activeResearchId=null;
   this.state.startedAt=null;this.state.completeAt=null;return node.id;

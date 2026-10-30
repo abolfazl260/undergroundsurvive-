@@ -384,7 +384,9 @@ export class GameScene extends Phaser.Scene {
 
   assignSurvivor(id:string,roomId:string):void {
     if(this.gameplayPaused)return;
-    const reason=this.session.assignGuard(id,roomId,crypto.randomUUID());
+    const room=this.layout.rooms.find(r=>r.id===roomId);
+    const block=room?.type==='laboratory'?this.session.assignScientist(id,roomId,crypto.randomUUID()):null;
+    const reason=room?.type==='laboratory'?(block?({survivor:'بازمانده وجود ندارد.',room:'اتاق معتبر نیست.',busy:'نیرو شغل دیگری دارد؛ ابتدا آزاد کنید.',capacity:'ظرفیت اتاق پر است.',path:'مسیر قابل‌عبور نیست.',duplicate:'درخواست تکراری است.'}[block]):null):this.session.assignGuard(id,roomId,crypto.randomUUID());
     this.syncResidents();this.notify(reason??'تخصیص انجام شد؛ نیرو در مسیر است.');
   }
   releaseSurvivor(id:string):void {
