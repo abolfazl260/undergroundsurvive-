@@ -16,11 +16,12 @@ export function mountGameDock(root: Document = document): {
   const toolGrid = sheet?.querySelector<HTMLElement>('.tools-grid');
   const moreButton = root.querySelector<HTMLButtonElement>('#open-more');
   const closeButton = root.querySelector<HTMLButtonElement>('#close-game-sheet');
+  const scrim = root.querySelector<HTMLElement>('#sheet-scrim');
   const title = root.querySelector<HTMLElement>('#sheet-title');
   const resourcePanel = root.querySelector<HTMLElement>('.resource-panel');
   const resourceToggle = root.querySelector<HTMLButtonElement>('#resource-details-toggle');
   const fullscreen = root.querySelector<HTMLButtonElement>('#screen-fullscreen');
-  if (!sheet || !dock || !toolGrid || !moreButton || !closeButton || !title || !resourcePanel || !resourceToggle) {
+  if (!sheet || !dock || !toolGrid || !moreButton || !closeButton || !scrim || !title || !resourcePanel || !resourceToggle) {
     throw new Error('Fullscreen game controls are missing required elements');
   }
 
@@ -38,6 +39,7 @@ export function mountGameDock(root: Document = document): {
   const showSheet = (next: GameSheet) => {
     current = next;
     sheet.hidden = next === null;
+    scrim.hidden = next === null;
     sheet.dataset.sheet = next ?? '';
     title.textContent = t(next === 'more' ? 'امکانات پناهگاه' : 'انتخاب اتاق');
     moreButton.setAttribute('aria-expanded', String(next === 'more'));
@@ -48,6 +50,7 @@ export function mountGameDock(root: Document = document): {
   subscribeLocaleChange(() => showSheet(current));
   moreButton.addEventListener('click', () => toggleSheet('more'));
   closeButton.addEventListener('click', () => showSheet(null));
+  scrim.addEventListener('click', () => showSheet(null));
   root.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && current !== null) {
       event.preventDefault();

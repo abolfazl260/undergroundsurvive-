@@ -142,3 +142,6 @@ html[dir="ltr"] .resource-panel-header span { text-align:end; }
   .resource-panel { top:calc(110px + var(--game-safe-top)); }
   .resource-panel:not([data-expanded="true"]) .resource-grid { display:none; }
 }
+
+#sheet-scrim { position:absolute; z-index:30; inset:0; background:#020b13a0; pointer-events:auto; }
+#sheet-scrim[hidden] { display:none!important; }
