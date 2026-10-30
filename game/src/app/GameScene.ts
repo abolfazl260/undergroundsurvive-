@@ -187,6 +187,7 @@ export class GameScene extends Phaser.Scene {
     }
     if (completed > 0) {
       this.paintRadiation();
+      if (this.layout.rooms.some(r=>r.type==='kitchen')) this.paintRooms();
       const result = this.session.resources.snapshot();
       this.notify(researchBefore && !this.session.research.snapshot().activeResearchId ? 'پژوهش تکمیل شد.' : result.lastShortages.length
         ? 'چرخهٔ منابع انجام شد؛ برخی اتاق‌ها به‌علت کمبود منابع متوقف شدند.'
@@ -386,7 +387,7 @@ export class GameScene extends Phaser.Scene {
     if(this.gameplayPaused)return;
     const room=this.layout.rooms.find(r=>r.id===roomId);
     const block=room?.type==='laboratory'?this.session.assignScientist(id,roomId,crypto.randomUUID()):null;
-    const reason=room?.type==='laboratory'?(block?({survivor:'بازمانده وجود ندارد.',room:'اتاق معتبر نیست.',busy:'نیرو شغل دیگری دارد؛ ابتدا آزاد کنید.',capacity:'ظرفیت اتاق پر است.',path:'مسیر قابل‌عبور نیست.',duplicate:'درخواست تکراری است.'}[block]):null):this.session.assignGuard(id,roomId,crypto.randomUUID());
+    const reason=room?.type==='laboratory'?(block?({survivor:'بازمانده وجود ندارد.',room:'اتاق معتبر نیست.',busy:'نیرو شغل دیگری دارد؛ ابتدا آزاد کنید.',capacity:'ظرفیت اتاق پر است.',path:'مسیر قابل‌عبور نیست.',duplicate:'درخواست تکراری است.'}[block]):null):room?.type==='kitchen'?this.session.assignCook(id,roomId,crypto.randomUUID()):this.session.assignGuard(id,roomId,crypto.randomUUID());
     this.syncResidents();this.notify(reason??'تخصیص انجام شد؛ نیرو در مسیر است.');
   }
   releaseSurvivor(id:string):void {
@@ -425,6 +426,21 @@ export class GameScene extends Phaser.Scene {
     if(this.gameplayPaused)return;
     const ok=this.session.startResearch(id,crypto.randomUUID());
     this.notify(ok ? 'پژوهش آغاز شد.' : 'پژوهش قابل شروع نیست؛ پیش‌نیازها را بررسی کنید.');
+  }
+  startCooking(roomId: string, recipeId: string): void {
+    if (this.gameplayPaused) return;
+    const reason = this.session.startCooking(roomId, recipeId, crypto.randomUUID());
+    this.paintRooms(); this.notify(reason ? 'شروع پخت ممکن نیست: ' + reason : 'پخت جیره آغاز شد.');
+  }
+  toggleCooking(roomId: string): void {
+    if (this.gameplayPaused) return;
+    this.session.toggleCooking(roomId);
+    this.paintRooms(); this.notify('وضعیت پخت تغییر کرد.');
+  }
+  cancelCooking(roomId: string): void {
+    if (this.gameplayPaused) return;
+    this.session.cancelCooking(roomId);
+    this.paintRooms(); this.notify('پخت لغو شد؛ مواد مصرف‌شده بازگردانده نمی‌شوند.');
   }
   collectWater(): void {
     if (this.gameplayPaused) return;
@@ -694,6 +710,16 @@ export class GameScene extends Phaser.Scene {
       badge.add([plate, name, level]);
       this.roomBadges.push(badge);
       this.roomLayer.add(badge);
+      if (room.type === 'kitchen') {
+        const cycle = this.session.kitchen.snapshot().cycles.find(c => c.roomId === room.id);
+        if (cycle && cycle.status !== 'idle') {
+          const pct = cycle.durationMs ? Math.round(100 * cycle.elapsedMs / cycle.durationMs) : 100;
+          const cooking = this.add.text(left + 8, top + height - 14,
+            (cycle.status === 'completed' ? '✓' : cycle.status === 'running' ? '♨' : 'Ⅱ') + ' ' + pct + '%',
+            { fontSize: '10px', fontFamily: 'Arial', color: '#fff5d5', backgroundColor: '#222222aa' }).setResolution(3);
+          this.roomLayer.add(cooking);
+        }
+      }
     }
     this.updateBadgeScale();
   }
