@@ -114,9 +114,15 @@ export function lifeSupportDemands(rooms: readonly Room[], population: number): 
   }
   if (remaining) {
     const fallback = [...rooms].sort((a, b) => a.id.localeCompare(b.id))[0];
-    if (fallback) result.push({ id: fallback.id, priority: 'vital',
-      water: remaining * LIFE_SUPPORT_CONFIG.waterPerResident,
-      oxygen: remaining * LIFE_SUPPORT_CONFIG.oxygenPerResident });
+    if (fallback) {
+      const existing = result.find(d => d.id === fallback.id && d.priority === 'vital');
+      if (existing) {
+        existing.water += remaining * LIFE_SUPPORT_CONFIG.waterPerResident;
+        existing.oxygen += remaining * LIFE_SUPPORT_CONFIG.oxygenPerResident;
+      } else result.push({ id: fallback.id, priority: 'vital',
+        water: remaining * LIFE_SUPPORT_CONFIG.waterPerResident,
+        oxygen: remaining * LIFE_SUPPORT_CONFIG.oxygenPerResident });
+    }
   }
   for (const room of rooms) {
     if (room.type === 'medbay') result.push({ id: room.id, priority: 'medical',
