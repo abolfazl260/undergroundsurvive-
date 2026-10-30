@@ -26,6 +26,10 @@ export function mountGameDock(root: Document = document): {
 
   // Move the existing controls rather than cloning them; IDs, listeners and tool state stay intact.
   dock.append(toolGrid);
+  // The save indicator remains visible as a small status dot in the compact header.
+  const saveBadge = root.querySelector<HTMLElement>('#hud-save-status');
+  const topbar = root.querySelector<HTMLElement>('.topbar');
+  if (saveBadge && topbar) topbar.append(saveBadge);
   // Upgrade confirmations remain visible while selecting a room in the map.
   const upgradePanel = sheet.querySelector<HTMLElement>('#upgrade-panel');
   const playArea = root.querySelector<HTMLElement>('.play-area');
