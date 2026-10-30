@@ -13,6 +13,9 @@ import { AirSystem, ROOM_AIR_EMISSIONS, type AirSystemState } from '../air/air';
 import { BuildingLayout, type BaseSnapshot } from '../building/layout';
 import { Wallet, type WalletSnapshot } from './wallet';
 import { ResourceEngine, type ResourceSnapshot } from './resources';
+import { POWER_BALANCE, allocatePower, canActivateNetwork, canWire, installWire, legacyPower, removeWire,
+  restorePower, setRoomPriority, starterPower, type PowerAllocation, type PowerPriority,
+  type PowerSnapshot } from '../power/network';
 import {
   STARTING_COINS, DEMO_BONUS_COINS, DIG_COST,
   getBuildCost, getFloorCost, getUpgradeCost
@@ -24,7 +27,8 @@ import { AchievementTracker, type AchievementSnapshot } from '../achievements/ac
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 13;
+  schemaVersion: 14;
+  power: PowerSnapshot;
   air: AirSystemState;
   kitchen: CookingSnapshot;
   laboratories:LaboratoryFacility[];
@@ -94,7 +98,7 @@ export class GameSession {
     return block?{ok:false,reason:CAPABILITY_REASONS[block]}:{ok:true};
   }
   moveRoom(id:string,x:number,y:number):CommandResult {this.commandStatus();const result=this.world.move(id,x,y);this.survivors.setLayout(this.world);this.kitchenState.sync(this.world.rooms);this.commandStatus();return result;}
-  removeRoom(id:string):CommandResult {this.commandStatus();const result=this.world.remove(id);this.survivors.setLayout(this.world);this.commandStatus();return result;}
+  removeRoom(id:string):CommandResult {this.commandStatus();const result=this.world.remove(id);if(result.ok)this.powerState={...this.powerState,overrides:this.powerState.overrides.filter(o=>o.roomId!==id)};this.survivors.setLayout(this.world);this.commandStatus();return result;}
   private radiationState = new RadiationField();
   private radiationOccupants: readonly RadiationOccupant[] = [];
   get radiation():RadiationField {return this.radiationState;}
@@ -139,9 +143,10 @@ export class GameSession {
   private bonusClaimed = false;
   private resourceState: ResourceEngine;
   private achievementState: AchievementTracker;
+  private powerState: PowerSnapshot;
 
   private constructor(layout: BuildingLayout, wallet: Wallet, claimed = false,
-                      resources = ResourceEngine.create(), achievements = new AchievementTracker()) {
+                      resources = ResourceEngine.create(), achievements = new AchievementTracker(), power = starterPower()) {
     this.world = layout;
     this.survivors=new SurvivorRoster(layout);
     this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,()=>this.resources.snapshot().stock.power);
@@ -150,6 +155,7 @@ export class GameSession {
     this.resourceState = resources;
     this.kitchenState.sync(layout.rooms);
     this.achievementState = achievements;
+    this.powerState = power;
     this.commandStatus();
   }
 
@@ -161,7 +167,7 @@ export class GameSession {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
     const version=value.schemaVersion;
-    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>13||typeof value.demoBonusClaimed!=='boolean')return null;
+    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>14||typeof value.demoBonusClaimed!=='boolean')return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
     const resources = (version>=3)
@@ -173,7 +179,9 @@ export class GameSession {
     const bonusCount = wallet.transactions.filter((t) => t.kind === 'demo-bonus').length;
     if ((value.demoBonusClaimed && bonusCount !== 1) ||
         (!value.demoBonusClaimed && bonusCount !== 0)) return null;
-    const session = new GameSession(world, wallet, value.demoBonusClaimed, resources, achievements);
+    const power = version >= 14 ? restorePower(value.power, world.rooms, world.terrain) : legacyPower();
+    if (!power) return null;
+    const session = new GameSession(world, wallet, value.demoBonusClaimed, resources, achievements, power);
     if (version>=5) {
       const water = WaterProductionProcessor.restore(value.water);
       if (!water) return null;
@@ -210,7 +218,7 @@ export class GameSession {
       if (kitchen.snapshot().cycles.some(c => !world.rooms.some(r => r.id === c.roomId && r.type === 'kitchen'))) return null;
       session.kitchenState = kitchen;
     }
-    if (version === 13) {
+    if (version >= 13) {
       const air = AirSystem.restore(value.air);
       if (!air || air.snapshot().nowMs !== resources.tickCount * 5000) return null;
       session.airState = air;
@@ -229,13 +237,53 @@ export class GameSession {
   // Existing v1 browser saves contain only a layout; migrate without losing rooms.
   static fromSave(raw: unknown): GameSession {
     return GameSession.restore(raw) ??
-      new GameSession(BuildingLayout.restore(raw) ?? new BuildingLayout(), Wallet.create(STARTING_COINS));
+      new GameSession(BuildingLayout.restore(raw) ?? new BuildingLayout(), Wallet.create(STARTING_COINS),
+        false, ResourceEngine.create(), new AchievementTracker(),
+        BuildingLayout.restore(raw) ? legacyPower() : starterPower());
   }
 
   get layout(): BuildingLayout { return this.world; }
   get wallet(): Wallet { return this.purse; }
   get resources(): ResourceEngine { return this.resourceState; }
   get demoBonusClaimed(): boolean { return this.bonusClaimed; }
+  get power(): PowerSnapshot { return { ...this.powerState,
+    cables: this.powerState.cables.map(c => ({...c})),
+    overrides: this.powerState.overrides.map(o => ({...o})) }; }
+  powerStatus(): PowerAllocation {
+    return allocatePower(this.powerState, this.world.rooms, this.researchState.modifiers());
+  }
+  /** Cable operations validate geometry and funds before mutating anything. */
+  installCable(x: number, y: number, riser = false): CommandResult {
+    const reason = canWire(this.powerState, this.world.terrain, x, y, riser);
+    if (reason) return { ok:false, reason };
+    const cost = riser ? POWER_BALANCE.riserCost : POWER_BALANCE.cableCost;
+    if (!this.purse.canAfford(cost)) return {ok:false,reason:'سکهٔ کافی برای کابل ندارید.'};
+    const next = installWire(this.powerState, this.world.terrain, x, y, riser);
+    if (!next || !this.purse.spend(cost,'build')) return {ok:false,reason:'نصب کابل ممکن نیست.'};
+    this.powerState = next;
+    return {ok:true};
+  }
+  removeCable(x: number, y: number): CommandResult {
+    const next = removeWire(this.powerState,x,y);
+    if (!next) return {ok:false,reason:'در این خانه کابل وجود ندارد.'};
+    this.powerState = next;
+    return {ok:true};
+  }
+  prioritizeRoom(id: string, priority: PowerPriority): CommandResult {
+    const room = this.world.rooms.find(r => r.id === id);
+    if (!room) return {ok:false,reason:'اتاق موردنظر وجود ندارد.'};
+    const next = setRoomPriority(this.powerState, room, priority);
+    if (!next) return {ok:false,reason:'تغییر اولویت بیش از یک سطح مجاز نیست.'};
+    this.powerState = next;
+    return {ok:true};
+  }
+  activatePowerNetwork(): CommandResult {
+    if (this.powerState.mode === 'physical') return {ok:false,reason:'شبکهٔ فیزیکی فعال است.'};
+    if (!canActivateNetwork(this.powerState,this.world.rooms,this.researchState.modifiers()))
+      return {ok:false,reason:'ابتدا تمام اتاق‌ها را با کابل به نیروگاه متصل کنید.'};
+    this.powerState = {...this.powerState,mode:'physical'};
+    return {ok:true};
+  }
 
   /** Simulation advances only when the Phaser scene is active (not paused/offline). */
   advanceTime(deltaMs: number): number {
@@ -244,7 +292,7 @@ export class GameSession {
     while (remaining > 0) {
       const step = Math.min(remaining, this.resources.remainingMs);
       this.survivors.advance(step,this.resources.snapshot().stock.power);
-      const completed = this.resourceState.advance(step, this.world.rooms,this.researchState.modifiers());
+      const completed = this.resourceState.advance(step, this.world.rooms,this.researchState.modifiers(),this.powerStatus());
       ticks += completed;
       if (completed) {
         this.waterState.advance(5000, this.world.rooms, this.powerAdapter());
@@ -361,6 +409,7 @@ export class GameSession {
     this.bonusClaimed = false;
     this.resourceState = ResourceEngine.create();
     this.achievementState = new AchievementTracker();
+    this.powerState = starterPower();
   }
 
   snapshot(): GameSnapshot {
@@ -376,7 +425,8 @@ export class GameSession {
     const resources = this.resourceState.snapshot();
     this.achievementState.evaluate({ base, wallet, resources });
     return {
-      schemaVersion: 13,
+      schemaVersion: 14,
+      power: this.power,
       air: this.airState.snapshot(),
       kitchen: this.kitchenState.snapshot(),
       laboratories:this.laboratories(),
