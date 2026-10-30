@@ -907,13 +907,13 @@ export class GameScene extends Phaser.Scene {
       for (let y = WORLD.minY; y < 0; y++) {
         for (let x = 0; x <= WORLD.cols - definition.width; x++) {
           if (!this.session.canBuild(this.selectedRoom, x, y).ok) continue;
-          const { left, top } = toPixels(x, y);
+          const { left, top, width, height } = roomShellBounds({
+            x, y, width: definition.width, height: definition.height
+          });
           g.fillStyle(0x6acdad, 0.13);
-          g.fillRect(left + 3, top + 3,
-            definition.width * WORLD.cellSize - 6, definition.height * WORLD.cellSize - 6);
+          g.fillRect(left, top, width, height);
           g.lineStyle(1, 0x89e5bd, 0.55);
-          g.strokeRect(left + 3, top + 3,
-            definition.width * WORLD.cellSize - 6, definition.height * WORLD.cellSize - 6);
+          g.strokeRect(left, top, width, height);
         }
       }
     }
