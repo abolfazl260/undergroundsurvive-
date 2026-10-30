@@ -1,3 +1,4 @@
+import { LABORATORY_CONFIG } from '../laboratory/laboratory';
 import { ResidentTraffic } from '../characters/traffic';
 import { WORLD } from '../world/grid';
 import { isWalkableCell, findRoomPath } from '../characters/pathfinding';
@@ -5,7 +6,7 @@ import type { BuildingLayout } from '../building/layout';
 import type { Room } from '../building/placement';
 
 export const GUARD_CONFIG = {schemaVersion:1,typeId:'guardPost',capacity:[1,2,3],health:[100,150,200],defenseBonus:[1,1.15,1.3],power:1} as const;
-export type ActivityKind = 'guard';
+export type ActivityKind = 'guard'|'scientist';
 export interface Survivor { id:string; name:string }
 export interface GuardAssignment {
   id:string; survivorId:string; roomId:string; kind:ActivityKind;
@@ -19,7 +20,7 @@ export interface SurvivorSnapshot {
 export type AssignmentBlock = 'survivor'|'room'|'busy'|'capacity'|'path'|'duplicate';
 const footprint=(r:Room)=>`${r.x}:${r.y}:${r.width}:${r.height}`;
 export function activityCapacity(room:Room,kind:ActivityKind):number {
-  return kind==='guard'&&room.type==='guardPost'?GUARD_CONFIG.capacity[room.level-1]:0;
+  return kind==='guard'&&room.type==='guardPost'?GUARD_CONFIG.capacity[room.level-1]:kind==='scientist'&&room.type==='laboratory'?LABORATORY_CONFIG.scientistCapacity[room.level-1]:0;
 }
 export class SurvivorRoster {
   readonly traffic:ResidentTraffic;
@@ -60,7 +61,7 @@ export class SurvivorRoster {
     this.jobs=this.jobs.filter(a=>a!==job);this.traffic.cancel(survivorId);this.event('released',job);return true;
   }
   setLayout(layout:BuildingLayout):void {this.layout=layout;this.traffic.setLayout(layout);this.reconcile();}
-  reconcile(powered=true):void {
+  reconcile(power=Infinity):void {
     const counts=new Map<string,number>();
     for(const job of [...this.jobs]) {
       const room=this.layout.rooms.find(r=>r.id===job.roomId),view=this.traffic.getResident(job.survivorId);
@@ -69,14 +70,14 @@ export class SurvivorRoster {
         count>activityCapacity(room,job.kind)||view.destinationId!==room.id) {this.release(job.survivorId);continue;}
       const arrived=!view.isMoving&&this.layout.getRoomAt(view.cell.x,view.cell.y)?.id===room.id;
       if(arrived&&job.state==='enRoute')this.event('arrived',job);
-      job.state=arrived?(powered?'active':'suspended'):'enRoute';
+      job.state=arrived?(power>=(job.kind==='scientist'?LABORATORY_CONFIG.power:GUARD_CONFIG.power)?'active':'suspended'):'enRoute';
     }
   }
   /** Fixed simulation steps make travel and presence deterministic across frame rates. */
-  advance(deltaMs:number,powered:boolean):void {
+  advance(deltaMs:number,power:number):void {
     if(!Number.isFinite(deltaMs)||deltaMs<=0)return;
     this.remainderMs+=Math.min(deltaMs,60000);
-    while(this.remainderMs>=50){this.traffic.advance(50);this.reconcile(powered);this.remainderMs-=50;}
+    while(this.remainderMs>=50){this.traffic.advance(50);this.reconcile(power);this.remainderMs-=50;}
   }
   snapshot():SurvivorSnapshot {
     return {schemaVersion:1,survivors:structuredClone(this.people),assignments:structuredClone(this.jobs),traffic:this.traffic.snapshot(),operations:[...this.operations],events:structuredClone(this.events),remainderMs:this.remainderMs};
@@ -86,7 +87,7 @@ export class SurvivorRoster {
     if(s.schemaVersion!==1||!Array.isArray(s.survivors)||s.survivors.length>100||new Set(s.survivors.map(p=>p?.id)).size!==s.survivors.length||
       !s.survivors.every(p=>p&&typeof p.id==='string'&&p.id&&typeof p.name==='string')||
       !Array.isArray(s.assignments)||s.assignments.length>s.survivors.length||new Set(s.assignments.map(a=>a?.survivorId)).size!==s.assignments.length||
-      !s.assignments.every(a=>a&&typeof a.id==='string'&&a.id&&typeof a.survivorId==='string'&&typeof a.roomId==='string'&&a.kind==='guard'&&['active','enRoute','suspended'].includes(a.state)&&typeof a.roomPosition==='string')||
+      !s.assignments.every(a=>a&&typeof a.id==='string'&&a.id&&typeof a.survivorId==='string'&&typeof a.roomId==='string'&&['guard','scientist'].includes(a.kind)&&['active','enRoute','suspended'].includes(a.state)&&typeof a.roomPosition==='string')||
       new Set(s.assignments.map(a=>a.id)).size!==s.assignments.length||
       !Array.isArray(s.operations)||s.operations.length>5000||new Set(s.operations).size!==s.operations.length||!s.operations.every(id=>typeof id==='string'&&id)||
       !Array.isArray(s.events)||s.events.length>200||!s.events.every(e=>e&&e.schemaVersion===1&&Number.isSafeInteger(e.id)&&e.id>0&&['assigned','released','arrived'].includes(e.kind)&&typeof e.survivorId==='string'&&typeof e.roomId==='string')||
