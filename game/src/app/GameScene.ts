@@ -6,7 +6,7 @@ import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/gri
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
 import { BuildingLayout } from '../modules/building/layout';
 import { findRoomPath, walkPoint } from '../modules/characters/pathfinding';
-import { ResidentTraffic, type ResidentView } from '../modules/characters/traffic';
+import { ResidentTraffic } from '../modules/characters/traffic';
 import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE } from './roomArt';
