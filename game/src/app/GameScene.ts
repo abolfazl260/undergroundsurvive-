@@ -85,7 +85,7 @@ export class GameScene extends Phaser.Scene {
   };
   /** Camera zoom is measured in renderer pixels; the UI reports relative zoom. */
   private baseZoom = 1;
-  private zoomFactor = ZOOM.initial;
+  private zoomFactor: number = ZOOM.initial;
 
   private zoomLimits(): ZoomLimits {
     return { min: this.baseZoom * ZOOM.min, max: this.baseZoom * ZOOM.max };
