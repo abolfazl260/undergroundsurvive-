@@ -17,6 +17,8 @@ export function setupGameMenu(
   const dialog = document.querySelector<HTMLDialogElement>('#game-menu-dialog');
   const menuButton = document.querySelector<HTMLButtonElement>('#menu-toggle');
   const continueButton = document.querySelector<HTMLButtonElement>('#menu-continue');
+  const continueLabel = document.querySelector<HTMLElement>('[data-menu-continue-label]');
+  const pauseTitle = document.querySelector<HTMLElement>('#menu-pause-title');
   const newButton = document.querySelector<HTMLButtonElement>('#menu-new');
   const reducedMotion = document.querySelector<HTMLInputElement>('#menu-reduced-motion');
   const language = document.querySelector<HTMLSelectElement>('#menu-language');
@@ -27,7 +29,7 @@ export function setupGameMenu(
   const effectsVolume = document.querySelector<HTMLInputElement>('#menu-effects-volume');
   const musicValue = document.querySelector<HTMLOutputElement>('#menu-music-volume-value');
   const effectsValue = document.querySelector<HTMLOutputElement>('#menu-effects-volume-value');
-  if (!dialog || !menuButton || !continueButton || !newButton || !reducedMotion || !mute ||
+  if (!dialog || !menuButton || !continueButton || !continueLabel || !pauseTitle || !newButton || !reducedMotion || !mute ||
       !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue || !language) return;
 
   let playing = false;
@@ -37,8 +39,22 @@ export function setupGameMenu(
   let settings: MenuSettings = loadMenuSettings();
 
   function renderHome(): void {
-    continueButton!.textContent = t(hasSave ? 'ادامهٔ بازی' : 'شروع بازی');
+    // Preserve the decorated button and its click handler when changing the label.
+    continueLabel!.textContent = t(hasSave ? 'ادامهٔ بازی' : 'شروع بازی');
     newButton!.hidden = !hasSave;
+  }
+
+  function renderPauseHeading(): void {
+    // A highlighted word remains readable and correctly ordered in both locales.
+    const isPersian = getLocale() === 'fa';
+    const accent = document.createElement('span');
+    accent.className = 'menu-title-accent';
+    accent.textContent = isPersian ? 'متوقف' : 'paused';
+    pauseTitle!.replaceChildren(
+      document.createTextNode(isPersian ? 'بازی ' : 'Game '),
+      accent,
+      document.createTextNode(isPersian ? ' شده است' : '')
+    );
   }
 
   function renderAudio(): void {
@@ -96,11 +112,14 @@ export function setupGameMenu(
   function updateSettings(next: MenuSettings): void {
     settings = next;
     reducedMotion!.checked = settings.reducedMotion;
+    dialog!.classList.toggle('reduce-motion', settings.reducedMotion);
     scene.applyMenuSettings(settings);
     saveMenuSettings(settings);
   }
 
   scene.applyMenuSettings(settings);
+  dialog.classList.toggle('reduce-motion', settings.reducedMotion);
+  renderPauseHeading();
   renderHome();
   language.value = getLocale();
   reducedMotion.checked = settings.reducedMotion;
@@ -112,6 +131,7 @@ export function setupGameMenu(
   subscribeLocaleChange(() => {
     language.value = getLocale();
     renderHome();
+    renderPauseHeading();
     renderAudio();
   });
   mute.addEventListener('click', () => changeAudio({ muted: !audio.getSettings().muted }));
