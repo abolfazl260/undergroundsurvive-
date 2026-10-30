@@ -1,6 +1,6 @@
 import { getResourceCapacity, type ResourceType } from '../../modules/economy/resources';
 import type { GameSnapshot } from '../../modules/economy/session';
-import { formatNumber, subscribeLocaleChange, t } from '../../i18n';
+import { formatNumber, getLocale, subscribeLocaleChange, t } from '../../i18n';
 
 const titles: Record<ResourceType, string> = {
   power: 'برق', food: 'مواد خام', meal: 'جیره', ore: 'سنگ معدن', supplies: 'تجهیزات'
@@ -23,6 +23,9 @@ export function mountResourcePanel(root: ParentNode): {
     ore: required('resource-ore'),
     supplies: required('resource-supplies')
   };
+  const lifeWater = required('life-resource-water');
+  const lifeOxygen = required('life-resource-oxygen');
+  const lifeWarning = required('life-resource-warning');
   const ticks = required('resource-tick-count');
   const countdown = required('resource-next-tick');
   const warning = required('resource-warning');
@@ -36,6 +39,16 @@ export function mountResourcePanel(root: ParentNode): {
       for (const type of Object.keys(counts) as ResourceType[]) {
         counts[type].textContent = formatNumber(stock[type]) + ' / ' + formatNumber(capacity);
       }
+      const life = snapshot.lifeSupportView;
+      const en = getLocale() === 'en';
+      lifeWater.textContent = (en ? 'Water ' : 'آب ') + formatNumber(life.water.stock) + ' / ' + formatNumber(life.water.capacity);
+      lifeOxygen.textContent = (en ? 'Oxygen ' : 'اکسیژن ') + formatNumber(life.oxygen.stock) + ' / ' + formatNumber(life.oxygen.capacity);
+      const low = life.events.filter(e=>e.type==='life-support-shortage');
+      lifeWarning.dataset.shortage = String(low.length > 0);
+      lifeWarning.textContent = life.graceTicks ? (en ? `Emergency reserve: ${life.graceTicks} cycles` : `ذخیره اضطراری: ${formatNumber(life.graceTicks)} چرخه`) :
+        low.length ? (en ? `${low.length} life-support shortages; inspect water and ventilation.` : `${formatNumber(low.length)} هشدار کمبود آب یا اکسیژن؛ تصفیه و تهویه را بررسی کنید.`) :
+        (en ? `Water used ${life.water.consumed}/tick · Oxygen +${life.oxygen.produced}/-${life.oxygen.consumed}/tick` :
+          `مصرف آب ${formatNumber(life.water.consumed)} · اکسیژن +${formatNumber(life.oxygen.produced)}/-${formatNumber(life.oxygen.consumed)} در چرخه`);
       ticks.textContent = formatNumber(tickCount);
       warning.dataset.shortage = String(lastShortages.length > 0);
       warning.textContent = lastShortages.length
