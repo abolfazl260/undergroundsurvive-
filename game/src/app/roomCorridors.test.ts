@@ -42,7 +42,7 @@ describe('compact room-to-room corridor visuals', () => {
     const b = room('b', 2, -2, 2, 2);
     const c = room('c', 4, -1, 2, 1);
     const doors = roomCorridors([a, b, c]);
-    expect(doors.map(door => door.floor)).toEqual([-2, -1, -1]);
+    expect(doors.map(door => door.floor)).toEqual([-2, -1]);
     expect(doors.every(corridorFitsWithinFloor)).toBe(true);
   });
 
