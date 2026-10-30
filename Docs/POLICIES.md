@@ -1,7 +1,7 @@
 # Game policies, permissions and privacy
 
 **Review date:** 2026-10-31  
-**Implementation:** Main and pause menus → **قوانین و حریم خصوصی / Policies & Privacy**.
+**Implementation:** Main menu, pause menu, settings, and advanced in-game tools → **قوانین و حریم خصوصی / Policies & Privacy**.
 
 The in-game notice is maintained in `game/src/app/policyContent.ts` with matching Persian and English copy. It is rendered into the existing paused modal rather than opening an external web page. It covers:
 
@@ -32,3 +32,11 @@ The in-game notice is maintained in `game/src/app/policyContent.ts` with matchin
 - A public GitHub issue is not a private data-rights request channel. Before commercial release, add an operator identity and a private privacy contact, plus jurisdiction-specific legal notices as appropriate.
 
 This page describes implementation-visible practices and does not substitute for deployment-specific legal review.
+
+## Navigation and acceptance
+
+- Policies opened from **Settings** return to **Settings** via Back or Escape; Settings Back then returns to the original home/pause screen.
+- Policies opened from **Home** or **Pause** return to their respective originating menus.
+- Policies opened from the advanced game tools pause gameplay and return to the **Pause** menu, so no simulation changes occur while reading.
+- Verify both Persian RTL and English LTR labels, modal scrolling on narrow screens, keyboard Escape, and focus on the policy heading.
+- The previous short rules panel in the tools sidebar must not claim surface-floor construction is enabled; the full legal/data notice is the canonical source.

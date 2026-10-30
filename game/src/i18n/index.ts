@@ -180,6 +180,7 @@ const english: Readonly<Record<string, string>> = {
   "هنوز تراکنشی ثبت نشده است.": "No transactions yet.",
   "بازنشانی تمام تغییرات آزمایشی": "Reset all prototype changes",
   "قوانین این نسخه": "Rules for this version",
+  "ساخت‌وساز فعلاً فقط در زیرزمین و در شبکهٔ اتاق‌های متصل به آسانسور مجاز است. جزئیات کامل قوانین، حریم خصوصی و مجوزها در بخش اختصاصی قرار دارد.": "Construction is currently limited to underground rooms connected to the elevator network. See the dedicated page for full rules, privacy practices and device permissions.",
   "قوانین و حریم خصوصی": "Policies & Privacy",
   "شرایط استفاده، داده‌ها و دسترسی‌ها": "Terms, data and permissions",
   "حفاری از خانه‌های باز مجاور انجام می‌شود. برای ساخت طبقهٔ بالا، خانه‌های زیر اتاق باید تکیه‌گاه باشند. حذف تکیه‌گاه مجاز نیست. ارتقا تا سطح ۳ است و به سکه نیاز دارد.": "Excavate next to an open cell. Rooms above ground require support across their width. You cannot remove a supporting room. Upgrades cost coins and are capped at level 3.",
