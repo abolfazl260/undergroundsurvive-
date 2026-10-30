@@ -276,3 +276,76 @@ html[dir="ltr"] .game-menu .menu-choice-copy { direction: ltr; text-align: left;
   .game-menu .menu-screen--pause .menu-hero { min-height: 0; }
   .game-menu .menu-choice-list .menu-choice { min-height: 50px; }
 }
+
+/* Long-form rules and permissions: readable on narrow mobile viewports. */
+.game-menu .menu-policy-link {
+  width: 100%;
+  min-height: 48px;
+  margin: 18px 0 4px;
+  padding: 12px 16px;
+  background: #123443;
+  color: #d7f1f3;
+  border: 1px solid #4b8996;
+  border-radius: 10px;
+  font-weight: 700;
+  text-align: start;
+  cursor: pointer;
+}
+.game-menu .menu-policy-link:hover { background: #1a4656; }
+.game-menu .menu-policy-link:focus-visible,
+.game-menu .menu-policy-section summary:focus-visible { outline: 3px solid #a2f6d1; outline-offset: 2px; }
+.game-menu .menu-screen--policies h2 { margin: 7px 0 10px; line-height: 1.45; font-size: clamp(22px, 4vw, 30px); }
+.game-menu .menu-policy-lead {
+  color: #c7dfe4;
+  line-height: 1.9;
+  font-size: 14px;
+  margin: 0 0 18px;
+}
+.game-menu .menu-policy-sections { display: grid; gap: 10px; }
+.game-menu .menu-policy-section {
+  border: 1px solid #426c7b;
+  border-radius: 11px;
+  background: #112b39;
+  overflow: hidden;
+}
+.game-menu .menu-policy-section[open] { border-color: #6aabb5; }
+.game-menu .menu-policy-section summary {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  position: relative;
+  padding: 15px 18px 15px 46px;
+  min-height: 64px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+.game-menu .menu-policy-section summary::-webkit-details-marker { display: none; }
+.game-menu .menu-policy-section summary::before {
+  content: '+';
+  position: absolute;
+  inset-inline-end: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 24px;
+  font-weight: 400;
+  color: #a7e9d3;
+}
+.game-menu .menu-policy-section[open] summary::before { content: '−'; }
+.game-menu .menu-policy-section summary strong { color: #f2f9fa; font-size: 15px; line-height: 1.5; }
+.game-menu .menu-policy-section summary small { color: #a5c8d1; font-size: 12px; line-height: 1.6; }
+.game-menu .menu-policy-items { padding: 4px 18px 15px; border-top: 1px solid #416373; }
+.game-menu .menu-policy-item { padding: 12px 0 6px; }
+.game-menu .menu-policy-item + .menu-policy-item { border-top: 1px solid #385362; }
+.game-menu .menu-policy-item h3 { font-size: 14px; line-height: 1.7; margin: 0 0 4px; color: #a9f2d9; }
+.game-menu .menu-policy-item p { font-size: 13px; line-height: 1.95; color: #dae9ec; margin: 0; overflow-wrap: anywhere; }
+.game-menu .menu-policy-version { color: #a0cad1; font-size: 12px; margin: 18px 0 7px; line-height: 1.7; }
+.game-menu .menu-policy-notice { color: #c9d6df; font-size: 12px; line-height: 1.8; margin: 0 0 20px; }
+@media (max-width: 600px) {
+  .game-menu .menu-policy-lead { font-size: 13px; }
+  .game-menu .menu-policy-section summary { padding-block: 13px; min-height: 60px; }
+  .game-menu .menu-policy-items { padding-inline: 14px; }
+  .game-menu .menu-policy-item p { font-size: 12.5px; }
+}
