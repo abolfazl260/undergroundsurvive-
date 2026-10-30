@@ -5,7 +5,7 @@ import { SurvivorRoster } from './roster';
 import { GuardPosts } from '../defense/guardPost';
 function setup() {
   const session=GameSession.create();
-  expect(session.build('guardPost',1,-1).ok).toBe(true);
+  expect(session.build('guardPost',8,-1).ok).toBe(true);
   return session;
 }
 describe('guard assignments and defense adapter',()=>{
@@ -17,7 +17,7 @@ describe('guard assignments and defense adapter',()=>{
   s.advanceTime(10000);
   expect(s.survivors.assignment('resident-1')?.state).toBe('active');
   expect(s.guardPosts.getDefensePosts()[0]).toMatchObject({guards:1,readiness:1});
-  expect(s.survivors.traffic.getResident('resident-1')?.cell.x).toBe(2);
+  expect(s.survivors.traffic.getResident('resident-1')?.cell.x).toBe(9);
  });
  it('rejects duplicate and incompatible assignments and preserves movement across reload',()=>{
   const s=setup(),room=s.layout.rooms.find(r=>r.type==='guardPost')!;
@@ -58,9 +58,9 @@ describe('guard assignments and defense adapter',()=>{
   const raw=s.survivors.snapshot();raw.assignments[0].survivorId='removed-person';
   const restored=SurvivorRoster.restore(s.layout,raw)!;
   expect(restored.assignments).toHaveLength(0);
-  const isolated=new BuildingLayout();
-  expect(isolated.remove('initial-habitat').ok).toBe(true);
-  expect(isolated.place('guardPost',9,-2).ok).toBe(true);
+  const old = new BuildingLayout().snapshot();
+  old.rooms.push({ id:'orphan-guard', type:'guardPost', x:9, y:-2, width:2, height:1, level:1 });
+  const isolated = BuildingLayout.restore(old)!;
   const roster=new SurvivorRoster(isolated);
   expect(roster.assign('resident-1',isolated.rooms.at(-1)!.id,'guard','a')).toBe('path');
  });
