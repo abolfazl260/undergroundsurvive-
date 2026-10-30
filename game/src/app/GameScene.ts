@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
+import type { AudioCue } from '../modules/audio/AudioManager';
 import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/grid';
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
 import { BuildingLayout } from '../modules/building/layout';
 import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
-import { ROOM_ATLAS_KEY, ROOM_ATLAS_URL, ROOM_ATLAS_FRAME_WIDTH, ROOM_ATLAS_FRAME_HEIGHT, ROOM_FRAME_BY_TYPE } from './roomArt';
+import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE } from './roomArt';
+import { AssetManager } from './assets/assetManager';
 import { panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
@@ -13,6 +15,10 @@ export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade';
 
 export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
+  private readonly assets = new AssetManager(
+    [ROOM_ART_ASSET], import.meta.env.BASE_URL,
+    Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
+  );
   private get layout(): BuildingLayout { return this.session.layout; }
   private selectedRoom: BuildableRoomType = 'habitat';
   private mode: ToolMode = 'build';
@@ -31,6 +37,8 @@ export class GameScene extends Phaser.Scene {
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
     saved: unknown,
     private readonly onZoomChange: (zoom: number) => void = () => {},
+    private readonly onAudioCue: (cue: AudioCue) => void = () => {},
+    private readonly onAudioActivate: () => void = () => {},
     private readonly onUpgradeSelection: (details: UpgradeDetails | null) => void = () => {}
   ) {
     super({ key: 'UndergroundScene' });
@@ -38,13 +46,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.load.spritesheet(ROOM_ATLAS_KEY, ROOM_ATLAS_URL, {
-      frameWidth: ROOM_ATLAS_FRAME_WIDTH,
-      frameHeight: ROOM_ATLAS_FRAME_HEIGHT
-    });
+    this.assets.preload(this.load, this.textures);
   }
 
   create(): void {
+    this.assets.configureFilters(
+      this.textures, Phaser.Textures.FilterMode.LINEAR, Phaser.Textures.FilterMode.NEAREST
+    );
     this.drawBackdrop();
     this.terrainLayer = this.add.graphics().setDepth(1);
     this.roomLayer = this.add.container(0, 0).setDepth(3);
@@ -55,7 +63,10 @@ export class GameScene extends Phaser.Scene {
     this.addResident();
 
     this.input.addPointer(2); // Accept simultaneous touch contacts for pinch gestures.
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.startContact(pointer));
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      this.onAudioActivate(); // Unlock Web Audio during a touch/mouse gesture.
+      this.startContact(pointer);
+    });
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => this.moveContact(pointer));
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => this.endContact(pointer, false));
     this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => this.endContact(pointer, true));
@@ -221,6 +232,7 @@ export class GameScene extends Phaser.Scene {
       remove: 'برای تخریب روی اتاق کلیک کنید. اتاق فرمان محفوظ است.',
       upgrade: 'اتاق را انتخاب کنید، جزئیات ارتقا را ببینید و سپس پرداخت را تأیید کنید.'
     };
+    this.onAudioCue('select');
     this.notify(messages[tool]);
   }
 
@@ -228,18 +240,21 @@ export class GameScene extends Phaser.Scene {
     const cost = this.session.floorCost();
     const result = this.session.unlockFloor();
     if (result.ok) this.paintTerrain();
+    this.onAudioCue(result.ok ? 'floor' : 'error');
     this.paintPreview();
     this.notify(result.ok ? 'طبقهٔ جدید با پرداخت ' + cost + ' سکه آزاد شد؛ برای ساخت تکیه‌گاه لازم است.' : result.reason);
   }
 
   claimDemoBonus(): void {
     const result = this.session.claimDemoBonus();
+    this.onAudioCue(result.ok ? 'reward' : 'error');
     this.paintPreview();
     this.notify(result.ok ? '۵۰۰ سکهٔ کمک‌هزینهٔ آزمایشی دریافت شد.' : result.reason);
   }
 
   resetLayout(): void {
     this.session.reset();
+    this.onAudioCue('reset');
     this.pendingMoveId = null;
     this.selectedUpgradeId = null;
     this.onUpgradeSelection(null);
@@ -251,6 +266,7 @@ export class GameScene extends Phaser.Scene {
 
   upgradeSelected(): void {
     if (this.mode !== 'upgrade' || !this.selectedUpgradeId) {
+      this.onAudioCue('error');
       this.notify('ابتدا در حالت ارتقا یک اتاق را انتخاب کنید.');
       return;
     }
@@ -260,6 +276,7 @@ export class GameScene extends Phaser.Scene {
     if (result.ok) this.paintRooms();
     this.onUpgradeSelection(this.session.upgradeDetails(id));
     this.paintPreview();
+    this.onAudioCue(result.ok ? 'upgrade' : 'error');
     this.notify(result.ok
       ? 'اتاق ' + preview!.label + ' با هزینهٔ ' + preview!.cost + ' سکه ارتقا یافت.'
       : result.reason);
@@ -274,6 +291,7 @@ export class GameScene extends Phaser.Scene {
       this.onUpgradeSelection(preview);
       this.hovered = cell;
       this.paintPreview();
+      this.onAudioCue(preview ? 'select' : 'error');
       this.notify(!preview ? 'در این موقعیت اتاقی وجود ندارد.' :
         preview.cost === null ? 'این اتاق در بالاترین سطح قرار دارد.' :
         'جزئیات ارتقا نمایش داده شد؛ با دکمهٔ تأیید پرداخت کنید.');
@@ -281,6 +299,9 @@ export class GameScene extends Phaser.Scene {
     }
     let result: PlacementResult = { ok: false, reason: 'دستور نامعتبر است.' };
     let successMessage = '';
+    const cue: AudioCue = {
+      build: 'build', dig: 'dig', move: 'move', remove: 'remove', upgrade: 'upgrade'
+    }[this.mode] as AudioCue;
     if (this.mode === 'build') {
       const cost = this.session.buildCost(this.selectedRoom);
       result = this.session.build(this.selectedRoom, x, y);
@@ -293,16 +314,19 @@ export class GameScene extends Phaser.Scene {
       const room = this.layout.getRoomAt(x, y);
       if (!this.pendingMoveId) {
         if (!room || room.type === 'command') {
+          this.onAudioCue('error');
           this.notify('برای جابه‌جایی ابتدا یک اتاق معمولی انتخاب کنید.');
           return;
         }
         this.pendingMoveId = room.id;
+        this.onAudioCue('select');
         this.paintPreview();
         this.notify('اتاق انتخاب شد؛ روی محل جدید بزنید.');
         return;
       }
       if (room?.id === this.pendingMoveId) {
         this.pendingMoveId = null;
+        this.onAudioCue('select');
         this.paintPreview();
         this.notify('انتخاب جابه‌جایی لغو شد.');
         return;
@@ -313,6 +337,7 @@ export class GameScene extends Phaser.Scene {
     } else {
       const room = this.layout.getRoomAt(x, y);
       if (!room) {
+        this.onAudioCue('error');
         this.notify('در این موقعیت اتاقی وجود ندارد.');
         return;
       }
@@ -325,6 +350,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.hovered = cell;
     this.paintPreview();
+    this.onAudioCue(result.ok ? cue : 'error');
     this.notify(result.ok ? successMessage : result.reason);
   }
 
@@ -386,8 +412,6 @@ export class GameScene extends Phaser.Scene {
     if (!this.roomLayer) return;
     this.roomLayer.removeAll(true);
     this.roomBadges = [];
-    const artworkReady = this.textures.exists(ROOM_ATLAS_KEY);
-
     for (const room of this.layout.rooms) {
       const definition = ROOM_DEFINITIONS[room.type];
       const { left, top } = toPixels(room.x, room.y);
@@ -395,15 +419,18 @@ export class GameScene extends Phaser.Scene {
       const height = room.height * WORLD.cellSize - 4;
       const frame = ROOM_FRAME_BY_TYPE[room.type];
 
-      if (artworkReady && frame !== undefined) {
-        const sprite = this.add.image(left + 2, top + 2, ROOM_ATLAS_KEY, frame)
+      const texture = frame === undefined ? null : this.assets.resolve(
+        ROOM_ART_ASSET.key, this.textures, frame
+      );
+      if (texture) {
+        const sprite = this.add.image(left + 2, top + 2, texture.key, texture.frame)
           .setOrigin(0, 0)
           .setDisplaySize(width, height);
         this.roomLayer.add(sprite);
       }
 
       const graphics = this.add.graphics();
-      if (!artworkReady || frame === undefined) {
+      if (!texture) {
         // Keep legacy room types and failed asset requests playable.
         graphics.fillStyle(definition.color).fillRoundedRect(left + 2, top + 2, width, height, 4);
         graphics.fillStyle(definition.accent, 0.21).fillRect(left + 10, top + 9, width - 16, 8);

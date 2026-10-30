@@ -14,14 +14,39 @@
           <span class="brand-mark" aria-hidden="true">◆</span>
           <div><div class="brand-name">UNDERGROUND <span>SURVIVE</span></div><div class="eyebrow">نمونهٔ قابل‌بازی ساخت‌وساز</div></div>
         </div>
-        <div class="topbar-right">
-          <div class="coin-balance" aria-live="polite" aria-label="موجودی سکه">
-            <span class="coin-symbol" aria-hidden="true">●</span>
-            <span id="coin-balance">۱٬۵۰۰</span><span class="coin-unit">سکه</span>
+        <div class="player-profile" aria-label="اطلاعات بازیکن">
+          <span class="player-avatar" aria-hidden="true">◇</span>
+          <div class="player-details">
+            <strong>بازیکن محلی</strong>
+            <small>حساب آنلاین متصل نیست</small>
           </div>
-          <div class="prototype-tag">ECONOMY DEMO · v0.3</div>
+          <span class="save-badge" id="hud-save-status" role="status" aria-live="polite">در انتظار ذخیره</span>
         </div>
       </header>
+      <section class="hud-bar" aria-label="وضعیت منابع و پیشرفت پناهگاه">
+        <div class="hud-tile hud-tile-coins">
+          <span class="hud-icon" aria-hidden="true">●</span>
+          <div class="hud-tile-content">
+            <span class="hud-label">سکه</span>
+            <div class="hud-values">
+              <strong id="coin-balance" aria-live="polite" aria-label="موجودی سکه">۱٬۵۰۰</strong>
+              <span class="hud-change" id="hud-coin-change" aria-label="هنوز تغییری ثبت نشده است">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="hud-tile">
+          <span class="hud-icon" aria-hidden="true">⌂</span>
+          <div class="hud-tile-content"><span class="hud-label">اتاق‌های پناهگاه</span><strong id="hud-rooms">۴</strong></div>
+        </div>
+        <div class="hud-tile">
+          <span class="hud-icon" aria-hidden="true">▤</span>
+          <div class="hud-tile-content"><span class="hud-label">طبقات بالایی باز</span><strong id="hud-floors">۰ / ۲</strong></div>
+        </div>
+        <div class="hud-tile">
+          <span class="hud-icon" aria-hidden="true">⛏</span>
+          <div class="hud-tile-content"><span class="hud-label">خانه‌های حفاری‌شده</span><strong id="hud-excavated">۱۹</strong></div>
+        </div>
+      </section>
       <main class="workspace">
         <section class="play-area" aria-label="نمای دوبعدی پناهگاه">
           <div class="scene-header"><span>ساخت طبقات روی زمین و حفاری زیرزمین</span><span class="live-dot">LOCAL SAVE</span></div>
@@ -36,13 +61,7 @@
           </div>
           <div class="scene-footer">
             <span id="status" role="status" aria-live="polite">ابزار موردنظر را انتخاب کنید.</span>
-            <span id="room-count">اتاق‌ها: ۰</span>
-          </div>
-          <div class="stats-row" aria-live="polite">
-            <span id="floor-status">طبقات بالا: ۰ از ۲</span>
-            <span id="terrain-count">خانه‌های حفاری‌شده: ۰</span>
-            <span>ذخیره: روی همین مرورگر</span>
-          </div>
+           </div>
         </section>
         <aside class="sidebar">
           <div class="sidebar-heading">
@@ -76,6 +95,24 @@
           </section>
           <button type="button" id="unlock-floor" class="floor-button">＋ بازکردن طبقهٔ +۱</button>
           <button type="button" id="demo-bonus" class="bonus-button">دریافت ۵۰۰ سکهٔ آزمایشی (یک‌بار)</button>
+          <section class="audio-panel" aria-labelledby="audio-heading">
+            <div class="audio-heading">
+              <strong id="audio-heading">صدا و موسیقی</strong>
+              <button type="button" id="audio-mute" aria-pressed="false">قطع همهٔ صداها</button>
+            </div>
+            <div class="audio-control-row">
+              <label for="music-enabled"><input id="music-enabled" type="checkbox" checked /> موسیقی محیطی</label>
+              <output id="music-volume-value" for="music-volume">۳۰٪</output>
+            </div>
+            <input id="music-volume" class="audio-volume" type="range" min="0" max="100" step="5" value="30" aria-label="حجم موسیقی" />
+            <div class="audio-control-row">
+              <label for="effects-enabled"><input id="effects-enabled" type="checkbox" checked /> افکت‌های بازی</label>
+              <output id="effects-volume-value" for="effects-volume">۶۵٪</output>
+            </div>
+            <input id="effects-volume" class="audio-volume" type="range" min="0" max="100" step="5" value="65" aria-label="حجم افکت‌های صوتی" />
+            <button type="button" id="audio-preview">آزمایش افکت صوتی</button>
+            <p id="audio-hint" role="status">موسیقی پس از اولین لمس یا کلیک شروع می‌شود.</p>
+          </section>
           <div class="side-label">آخرین تراکنش‌ها</div>
           <ul class="transaction-list" id="transaction-list" aria-label="تاریخچهٔ سکه"><li>هنوز تراکنشی ثبت نشده است.</li></ul>
           <button type="button" id="reset-layout" class="reset-button">بازنشانی تمام تغییرات آزمایشی</button>
