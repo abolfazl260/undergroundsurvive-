@@ -514,6 +514,11 @@ export class GameScene extends Phaser.Scene {
     if (this.gameplayPaused) return;
     this.session.toggleWater(id); this.notify('تصفیه آب');
   }
+  toggleLifeSupportLink(a: string, b: string): void {
+    if (this.gameplayPaused) return;
+    const ok = this.session.toggleLifeSupportLink(a, b);
+    this.notify(ok ? 'وضعیت اتصال آب و اکسیژن تغییر کرد.' : 'این دو اتاق اتصال قابل تغییر ندارند.');
+  }
   toggleVent(id: string): void {
     if (this.gameplayPaused) return;
     const ok = this.session.toggleVent(id, crypto.randomUUID());
