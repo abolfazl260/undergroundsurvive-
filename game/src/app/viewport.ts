@@ -69,3 +69,14 @@ export function panBy(view: Viewport, screenDelta: Point): Viewport {
   };
   return { ...next, ...constrainScroll(next) };
 }
+
+/** Keep the same world point at screen center when the browser resizes or rotates. */
+export function resizeViewport(view: Viewport, width: number, height: number): Viewport {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return view;
+  const next: Viewport = {
+    ...view, width, height,
+    scrollX: view.scrollX + (view.width - width) / 2,
+    scrollY: view.scrollY + (view.height - height) / 2
+  };
+  return { ...next, ...constrainScroll(next) };
+}

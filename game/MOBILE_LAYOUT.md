@@ -1,30 +1,16 @@
-# One mobile-first screen on all devices
+# Fullscreen game HUD
 
-The web build intentionally keeps a **portrait 480 × 600 logical game viewport** and
-a **960 × 600 world** regardless of device. Phones, tablets and desktop browsers
-show the same single-column control order inside a centered, max-540px shell.
-The interface does not switch to a desktop sidebar or four-column HUD.
+The game now uses a **viewport-filling browser layout** on phones, tablets and desktop. There is no full-page vertical or horizontal scrolling. The Phaser canvas fills the screen, while menus, compact HUD counters and the six primary actions are positioned on top of it. This is a mobile game-style layout rather than a long page of controls.
 
-- On phones the shell fills the available width, including safe-area padding.
-- On tablet and desktop the same shell is centered; extra space becomes a gutter.
-- The HUD has two columns; the resource tiles have two columns; room choices
-  scroll horizontally. Tool buttons are always in two columns and at least 48px
-  tall. Zoom buttons remain at least 44px.
-- Audio controls, history and reset are available under the same expandable
-  “More settings and information” section everywhere.
-- Phaser FIT scales the 480×600 logical viewport; the asset manager continues
-  selecting high-resolution room and background textures for dense screens.
-- Camera pan bounds use the **full world dimensions**. The initial position and
-  reset are centered on the same world point, so the portrait crop doesn't
-  relocate rooms or distort the 1920×1200 background texture.
+- `game/src/fullscreen.css` owns edge-to-edge layout, safe-area insets, and the toolbar/sheet presentation.
+- `game/src/app/gameDock.ts` moves the existing tool controls (rather than cloning IDs), handles the build-room chooser, secondary management sheet, resource details and user-initiated Fullscreen API.
+- Build opens a room selector; choosing a room closes the selector while keeping build mode active. Dig, Move, Upgrade, Demolish and Resident Navigation remain direct-action buttons fixed at the bottom. The top extra-actions button opens floor unlocks, demo bonus, audio, history and reset. Upgrade confirmation appears directly above the dock when that tool is selected.
+- The map supports mouse wheel and pinch zoom, dragging, and reflow during orientation changes. `Phaser.Scale.RESIZE` adapts its physical canvas to the element, while `resizeViewport` keeps the same world location centered and re-constrains camera scroll. A single `960×600` world remains authoritative; no room placement or persistence schema changes.
+- The app requests true browser fullscreen only through the fullscreen button, because native browser fullscreen requires a user gesture and may be unavailable on iPhone Safari. Even when unavailable, the interface itself still fills the browser viewport via `100dvh` and safe-area padding.
+- Both Persian RTL and English LTR remain supported.
 
-## Review checklist
+## Check
 
-Run `cd game && npm test && npm run build`.
+Run `cd game && npm test && npm run build`, then verify 320–430px phone widths, tablet, desktop, rotation, menu/Fullscreen API, button hitboxes, pinch/pan and zoom, room selector/upgrade and secondary sheet, no body scroll, resource display and saved-game restoration.
 
-Manually check portrait widths 320, 360, 390 and 430px, a 768px tablet and a
-1280px desktop viewport. Confirm no horizontal page overflow, identical order
-of HUD/world/room picker/tools, scrollable room picker, safe-area padding,
-working taps and gestures, sharp room textures, correct selection after pan,
-reset zoom centering, and that gameplay saves remain readable. Verify menu,
-story, audio and accessibility at both keyboard and touch input.
+Note: Detailed room art is still positioned in the original world coordinate system. The visible world crop varies with the browser aspect ratio, which is expected; drag/pinch to navigate.
