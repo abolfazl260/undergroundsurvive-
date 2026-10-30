@@ -5,10 +5,16 @@ export function mountSurvivorPanel(root:HTMLElement,assign:(id:string,roomId:str
   return (s:GameSnapshot)=>{
     const en=getLocale()==='en',heading=document.createElement('h3');
     heading.textContent=en?'Survivors · assignments':'بازماندگان · تخصیص نیرو';root.replaceChildren(heading);
-    const posts=s.base.rooms.filter(r=>r.type==='guardPost'||r.type==='laboratory');
+    const posts=s.base.rooms.filter(r=>r.type==='guardPost'||r.type==='laboratory'||r.type==='kitchen');
     for(const lab of s.laboratories) {
       const p=document.createElement('p');
       p.textContent=`${en?'Laboratory':'آزمایشگاه'} · ${lab.roomId} · LV ${lab.level} · ${lab.assignedScientists}/${lab.scientistCapacity} · ${en?lab.status:lab.status==='active'?'فعال':lab.status==='unpowered'?'بدون برق':'بدون دانشمند'} · ${en?'Research':'پژوهش'}: ${s.research.activeResearchId??'—'}`;root.append(p);
+    }
+    for(const room of posts.filter(r=>r.type==='kitchen')) {
+      const assigned=s.survivors.assignments.filter(a=>a.roomId===room.id&&a.kind==='cook');
+      const p=document.createElement('p');
+      p.textContent=`${en?'Kitchen':'آشپزخانه'} · ${room.id} · LV ${room.level} · ${en?'Cooks':'آشپز'} ${assigned.filter(a=>a.state==='active').length}/${room.level}`;
+      root.append(p);
     }
     for(const room of posts.filter(r=>r.type==='guardPost')) {
       const a=s.survivors.assignments.filter(a=>a.roomId===room.id),p=document.createElement('p');
