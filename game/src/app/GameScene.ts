@@ -50,7 +50,7 @@ export class GameScene extends Phaser.Scene {
   private navigator?: ResidentNavigator;
   private residentWaitMs = 1400;
   private patrolCursor = 0;
-  private viewportSize = { width: GAME_VIEW.width, height: GAME_VIEW.height };
+  private viewportSize: { width: number; height: number } = { width: GAME_VIEW.width, height: GAME_VIEW.height };
 
   constructor(
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
