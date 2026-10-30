@@ -232,9 +232,14 @@ export class GameSession {
           rewarded.some((txn) => !ACHIEVEMENTS.some((entry) =>
             entry.id === txn.achievementId && entry.rewardCoins === txn.delta) ||
             !granted.includes(txn.achievementId as typeof ACHIEVEMENTS[number]['id']))) return null;
-    } else if (rewarded.length > 0) return null;
-    // Earlier saves have recorded unlocks but no coin payments.
+    } else if (rewarded.some((txn) => !ACHIEVEMENTS.some((entry) =>
+      entry.id === txn.achievementId && entry.rewardCoins === txn.delta))) return null;
+    // Earlier saves have recorded unlocks but no coin payments. Mixed-version
+    // snapshots can already contain a paid wallet entry; consume that receipt
+    // instead of crediting it a second time.
     session.refreshAchievementRewards();
+    if (rewarded.some((txn) => !session.achievementState.snapshot()
+      .rewardGrantedAchievementIds.includes(txn.achievementId as typeof ACHIEVEMENTS[number]['id']))) return null;
     return session;
   }
 
