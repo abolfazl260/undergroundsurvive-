@@ -56,3 +56,49 @@ export const LAB_WATER_ART_ASSET: TextureAsset = {
 export const LAB_WATER_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
   laboratory: 0, waterTreatment: 1
 };
+
+/**
+ * Approved Level 2 interiors, without characters or labels.
+ * Frames: power, water treatment, kitchen, medbay, laboratory.
+ * These are isolated from all Level 1 spritesheets.
+ */
+export const LEVEL_TWO_ROOM_ART_ASSET: TextureAsset = {
+  key: 'level-two-room-art',
+  kind: 'spritesheet',
+  frameWidth: 400,
+  frameHeight: 132,
+  filter: 'linear',
+  variants: [{ scale: 1, path: 'assets/rooms/room-level-2.webp' }]
+};
+
+export const LEVEL_TWO_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
+  generator: 0,
+  waterTreatment: 1,
+  kitchen: 2,
+  medbay: 3,
+  laboratory: 4
+};
+
+export interface RoomArtCandidate { readonly key: string; readonly frame: number }
+
+/**
+ * Explicit priority keeps Level 1 artwork untouched. Until distinct Level 3
+ * artwork exists, higher levels retain the upgraded look instead of regressing.
+ * A missing Level 2 file/frame falls back to existing art, not to an empty room.
+ */
+export function roomArtCandidates(type: RoomType, level: number): RoomArtCandidate[] {
+  const upgradedFrame = level >= 2 ? LEVEL_TWO_FRAME_BY_TYPE[type] : undefined;
+  const labWaterFrame = LAB_WATER_FRAME_BY_TYPE[type];
+  const gardenMedbayFrame = GARDEN_MEDBAY_FRAME_BY_TYPE[type];
+  const standardFrame = ROOM_FRAME_BY_TYPE[type];
+  const legacy: RoomArtCandidate[] = labWaterFrame !== undefined
+    ? [{ key: LAB_WATER_ART_ASSET.key, frame: labWaterFrame }]
+    : gardenMedbayFrame !== undefined
+      ? [{ key: GARDEN_MEDBAY_ART_ASSET.key, frame: gardenMedbayFrame }]
+      : standardFrame !== undefined
+        ? [{ key: ROOM_ART_ASSET.key, frame: standardFrame }]
+        : [];
+  return upgradedFrame === undefined
+    ? legacy
+    : [{ key: LEVEL_TWO_ROOM_ART_ASSET.key, frame: upgradedFrame }, ...legacy];
+}
