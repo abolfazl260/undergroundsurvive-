@@ -130,7 +130,8 @@ export class GameSession {
   private lifeSupportWaterAdapter() {
     return { available: () => this.waterState.snapshot().clean,
       capacity: () => this.waterState.capacity(this.world.rooms),
-      spend: (amount: number) => this.waterState.spendClean(amount) };
+      spend: (amount: number) => this.waterState.spendClean(amount),
+      records: () => this.waterState.snapshot().ledger };
   }
   private airState = new AirSystem();
   get air(): AirSystem { return this.airState; }
