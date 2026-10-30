@@ -41,9 +41,11 @@ describe('multi-resident physical navigation', () => {
   it('reserves source and destination cells for three concurrent residents', () => {
     const layout = new BuildingLayout();
     const traffic = new ResidentTraffic(layout, starter);
+    // Keep the destination order consistent with a narrow, single-width shaft
+    // corridor: agents cannot pass through occupied rooms or use ghost stairs.
     expect(traffic.goToRoom('a', 'initial-power')).toBe(true);
-    expect(traffic.goToRoom('b', 'initial-habitat')).toBe(true);
-    expect(traffic.goToRoom('c', 'initial-garden')).toBe(true);
+    expect(traffic.goToRoom('b', 'initial-garden')).toBe(true);
+    expect(traffic.goToRoom('c', 'initial-habitat')).toBe(true);
     const completed = new Set<string>();
     for (let i = 0; i < 600; i++) {
       traffic.advance(100).forEach((id) => completed.add(id));
@@ -121,8 +123,10 @@ describe('multi-resident physical navigation', () => {
   it('honors reduced motion by moving one reserved cell at a time', () => {
     const layout = new BuildingLayout();
     const traffic = new ResidentTraffic(layout, starter);
-    traffic.goToRoom('a', 'initial-habitat');
-    traffic.goToRoom('b', 'initial-power');
+    // The front agent reaches the lift first; the next one follows into
+    // housing without an impossible head-on swap in a one-cell corridor.
+    traffic.goToRoom('a', 'initial-power');
+    traffic.goToRoom('b', 'initial-habitat');
     for (let i = 0; i < 200; i++) {
       traffic.advance(16, true);
       assertSafe(layout, traffic);

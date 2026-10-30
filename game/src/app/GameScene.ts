@@ -1,4 +1,5 @@
 import { contaminationState } from '../modules/radiation/radiation';
+import { paintElevatorCars, paintElevatorShaft } from './elevatorArt';
 import { ELEVATOR_DEFINITION } from '../modules/world/elevators';
 import Phaser from 'phaser';
 import type { MenuSettings } from './menuSettings';
@@ -38,6 +39,7 @@ export class GameScene extends Phaser.Scene {
   private pendingMoveId: string | null = null;
   private selectedUpgradeId: string | null = null;
   private terrainLayer?: Phaser.GameObjects.Graphics;
+  private elevatorCarLayer?: Phaser.GameObjects.Graphics;
   private roomLayer?: Phaser.GameObjects.Container;
   private roomBadges: Phaser.GameObjects.Container[] = [];
   private airBadges: {id: string; label: Phaser.GameObjects.Text}[] = [];
@@ -111,6 +113,7 @@ export class GameScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', resizeView));
     this.drawBackdrop();
     this.terrainLayer = this.add.graphics().setDepth(1);
+    this.elevatorCarLayer = this.add.graphics().setDepth(3.8);
     this.radiationLayer=this.add.graphics().setDepth(5);
     this.roomLayer = this.add.container(0, 0).setDepth(3);
     this.residentPathLayer = this.add.graphics().setDepth(3.5);
@@ -171,6 +174,7 @@ export class GameScene extends Phaser.Scene {
 
   applyMenuSettings(settings: MenuSettings): void {
     this.menuSettings = { ...settings };
+    this.session.survivors.setReducedMotion(settings.reducedMotion);
     // Reduced motion resolves one reserved edge per update rather than
     // teleporting residents through other bodies or solid terrain.
     this.syncResidents();
@@ -200,6 +204,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.traffic) return;
     const arrivals: string[] = [];
     this.syncResidents();
+    this.paintElevatorMotion();
     this.paintResidentPath();
     for (const resident of this.traffic.residents) {
       if (resident.isMoving || this.session.survivors.assignment(resident.id)) continue;
@@ -670,12 +675,8 @@ export class GameScene extends Phaser.Scene {
         g.strokeRect(left, top, WORLD.cellSize, WORLD.cellSize);
       }
     }
-    for(const segment of this.layout.terrain.elevators) {
-      const {left,top}=toPixels(segment.x,segment.y);
-      g.fillStyle(0x729ba5,0.8).fillRect(left+15,top+2,24,WORLD.cellSize-4);
-      g.lineStyle(2,0xd5efec).strokeRect(left+9,top+2,36,WORLD.cellSize-4);
-      g.lineBetween(left+27,top+2,left+27,top+WORLD.cellSize-2);
-    }
+    paintElevatorShaft(g, this.layout.terrain.elevators);
+    this.paintElevatorMotion();
   }
 
   private paintRooms(): void {
@@ -802,6 +803,7 @@ export class GameScene extends Phaser.Scene {
       this.patrolCursors.set(resident.id, index);
     });
     this.syncResidents();
+    this.paintElevatorMotion();
     this.paintResidentPath();
   }
 
@@ -814,6 +816,9 @@ export class GameScene extends Phaser.Scene {
       const figure = this.residentFigures.get(resident.id);
       if (!figure) continue;
       figure.person.setPosition(resident.position.x, resident.position.y);
+      const phase = resident.elevator;
+      figure.person.setVisible(phase !== 'closing' && phase !== 'travel' && phase !== 'arrival-opening');
+      figure.person.setAlpha(phase === 'boarding' ? 0.6 : 1);
       figure.ring.setVisible(this.mode === 'navigate' && resident.id === this.selectedResidentId);
       if (Math.abs(resident.position.x - figure.lastX) > 0.01)
         figure.sprite.setFlipX(resident.position.x < figure.lastX);
@@ -827,6 +832,10 @@ export class GameScene extends Phaser.Scene {
       if (texture) figure.sprite.setTexture(texture.key, texture.frame);
 
     }
+  }
+
+  private paintElevatorMotion(): void {
+    if (this.elevatorCarLayer) paintElevatorCars(this.elevatorCarLayer, this.traffic?.elevatorCars ?? []);
   }
 
   private paintResidentPath(): void {
