@@ -14,7 +14,7 @@ export interface GameSnapshot {
   demoBonusClaimed: boolean;
 }
 
-export interface CommandResult extends PlacementResult {}
+export type CommandResult = PlacementResult;
 type SpendKind = 'build' | 'dig' | 'floor' | 'upgrade';
 
 export class GameSession {

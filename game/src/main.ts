@@ -73,11 +73,12 @@ const scene = new GameScene((snapshot, message) => {
   if (floorStatus) floorStatus.textContent = 'طبقات بالا: ' + snapshot.base.terrain.highestFloor + ' از ' + WORLD.maxY;
   if (terrainCount) terrainCount.textContent = 'خانه‌های حفاری‌شده: ' + snapshot.base.terrain.excavated.length;
   if (unlockButton) {
-    const maxed = snapshot.terrain.highestFloor >= WORLD.maxY;
+    const maxed = snapshot.base.terrain.highestFloor >= WORLD.maxY;
     unlockButton.disabled = maxed;
     unlockButton.textContent = maxed
       ? 'تمام طبقات باز شده‌اند'
-      : '＋ بازکردن طبقهٔ +' + (snapshot.terrain.highestFloor + 1);
+      : '＋ طبقهٔ +' + (snapshot.base.terrain.highestFloor + 1) + ' · ' +
+        formatCoins(getFloorCost(snapshot.base.terrain.highestFloor)) + ' سکه';
   }
 }, loadLocalBase());
 
