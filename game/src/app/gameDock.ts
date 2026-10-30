@@ -50,7 +50,7 @@ function attachRoomPreview(button: HTMLButtonElement, root: Document): void {
   const candidate = roomArtCandidates(type, 1)[0];
   const asset = [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, LAB_WATER_ART_ASSET]
     .find((item) => item.key === candidate?.key);
-  if (!candidate || !asset) {
+  if (!candidate || !asset || asset.kind !== 'spritesheet') {
     button.classList.add('room-preview-fallback');
     return;
   }
