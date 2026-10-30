@@ -25,7 +25,6 @@ interface ResidentState {
 }
 
 const key = (p: GridPosition): string => p.x + ':' + p.y;
-const same = (a: GridPosition, b: GridPosition): boolean => a.x === b.x && a.y === b.y;
 
 /**
  * Deterministic multi-resident movement. A walking resident reserves BOTH its
