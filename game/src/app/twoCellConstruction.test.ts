@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { AssetManager } from './assets/assetManager';
 import {
-  CONSTRUCTION_DURATION_MS, CONSTRUCTION_FRAME_MS, CONSTRUCTION_FRAMES,
+  CONSTRUCTION_BUILD_MS, CONSTRUCTION_DURATION_MS, CONSTRUCTION_FADE_MS,
+  CONSTRUCTION_FRAME_MS, CONSTRUCTION_FRAMES, CONSTRUCTION_REVEAL_MS,
   TWO_CELL_CONSTRUCTION_ART_ASSET, TwoCellConstructionAnimation
 } from './twoCellConstruction';
 
@@ -34,17 +35,39 @@ describe('generic two-cell construction art', () => {
     );
   });
 
-  it('plays eight frames and then exposes the completed room', () => {
+  it('plays eight legible stages over 5.76s and gently reveals the completed room', () => {
     const animation = new TwoCellConstructionAnimation();
+    expect(CONSTRUCTION_FRAME_MS).toBeGreaterThan(360);
+    expect(CONSTRUCTION_DURATION_MS).toBe(CONSTRUCTION_BUILD_MS + CONSTRUCTION_REVEAL_MS);
+    expect(CONSTRUCTION_DURATION_MS).toBeGreaterThan(6000);
     expect(animation.start('new-room', 2, 1)).toBe(true);
     expect(animation.frame('new-room')).toBe(0);
     for (let index = 1; index < CONSTRUCTION_FRAMES; index++) {
-      expect(animation.advance(CONSTRUCTION_FRAME_MS)).toBe(true);
+      expect(animation.advance(CONSTRUCTION_FRAME_MS)).toBe(false);
       expect(animation.frame('new-room')).toBe(index);
     }
-    expect(animation.advance(CONSTRUCTION_FRAME_MS)).toBe(true);
+    expect(animation.advance(CONSTRUCTION_FRAME_MS)).toBe(false);
+    expect(animation.visual('new-room')?.reveal).toBe(0);
+    expect(animation.advance(CONSTRUCTION_REVEAL_MS / 2)).toBe(false);
+    expect(animation.visual('new-room')?.reveal).toBeCloseTo(0.5, 5);
+    expect(animation.advance(CONSTRUCTION_REVEAL_MS / 2)).toBe(true);
     expect(animation.frame('new-room')).toBeNull();
     expect(animation.active).toBe(false);
+  });
+
+  it('holds each frame, smoothly blends the next and does not redraw the whole room every tick', () => {
+    const animation = new TwoCellConstructionAnimation();
+    animation.start('room', 2, 1);
+    expect(animation.visual('room')).toMatchObject({
+      frame: 0, nextFrame: 1, blend: 0, reveal: 0, progress: 0
+    });
+    expect(animation.advance(CONSTRUCTION_FRAME_MS - CONSTRUCTION_FADE_MS)).toBe(false);
+    expect(animation.visual('room')?.blend).toBe(0);
+    expect(animation.advance(CONSTRUCTION_FADE_MS / 2)).toBe(false);
+    expect(animation.visual('room')?.blend).toBeCloseTo(0.5, 5);
+    expect(animation.advance(CONSTRUCTION_FADE_MS / 2)).toBe(false);
+    expect(animation.visual('room')).toMatchObject({ frame: 1, nextFrame: 2, blend: 0 });
+    expect(animation.visual('room')?.progress).toBeCloseTo(1 / 8, 5);
   });
 
   it('does not animate other widths or reduced-motion rooms', () => {
@@ -72,6 +95,15 @@ describe('generic two-cell construction art', () => {
     animation.clear();
     expect(animation.active).toBe(false);
     expect(animation.advance(CONSTRUCTION_DURATION_MS)).toBe(false);
+    expect(animation.visual('b')).toBeNull();
+  });
+
+  it('caps lag spikes so the entire construction does not skip in one frame', () => {
+    const animation = new TwoCellConstructionAnimation();
+    animation.start('room', 2, 1);
+    expect(animation.advance(100_000)).toBe(false);
+    expect(animation.visual('room')?.elapsedMs).toBe(1000);
+    expect(animation.active).toBe(true);
   });
 
   it('does not replay construction on save restore or force full room graphics during a build', () => {
@@ -79,7 +111,11 @@ describe('generic two-cell construction art', () => {
     expect(scene).toContain('this.construction.start(');
     expect(scene).toContain('this.construction.advance(delta)');
     expect(scene).toContain('this.construction.clear()');
-    expect(scene).toContain('if (constructionArt) {');
-    expect(scene).toContain('this.roomLayer.add(constructionSprite)');
+    expect(scene).toContain('if (constructionArt && constructionVisual) {');
+    expect(scene).toContain('this.constructionViews.set(room.id,');
+    expect(scene).toContain('this.refreshConstructionViews()');
+    expect(scene).toContain('this.roomLayer.add([constructionSprite, incoming, effects])');
+    expect(scene).toContain('state.blend * (1 - state.reveal)');
+    expect(scene).toContain('state.frame > 0 && state.reveal === 0');
   });
 });
