@@ -3,6 +3,12 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
+  "آزمایشگاه": "Laboratory",
+  "پژوهش": "Research",
+  "سطح پژوهش": "Research level",
+  "پژوهش تکمیل شد.": "Research completed.",
+  "پژوهش آغاز شد.": "Research started.",
+  "پژوهش قابل شروع نیست؛ پیش‌نیازها را بررسی کنید.": "Cannot start research. Check prerequisites.",
   "ذخیره قابل بازیابی نیست؛ نسخهٔ اصلی برای بازیابی نگهداری شد.": "Save could not be restored; the original was retained for recovery.",
   "آسانسور": "Elevator",
   "این خانه آسانسور دارد.": "This cell already has an elevator.",

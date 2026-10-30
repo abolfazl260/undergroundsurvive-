@@ -6,6 +6,7 @@ export const DEMO_BONUS_COINS = 500;
 
 // Prototype balancing values. Later, the server will own the price catalog.
 export const BUILD_COSTS: Record<BuildableRoomType, number> = {
+  laboratory: 200,
   waterTreatment: 180,
   habitat: 120,
   generator: 220,
