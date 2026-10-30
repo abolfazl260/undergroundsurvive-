@@ -1,5 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { configureAndroidGradle, validateReleaseVersion } from './configure-android-release.mjs';
 
 const nativeGradle = `apply plugin: 'com.android.application'
@@ -19,6 +22,15 @@ android {
 `;
 
 describe('Manual signed Android release', () => {
+  it('exposes only a manual release trigger and restricts signing to main', () => {
+    const scriptDir = dirname(fileURLToPath(import.meta.url));
+    const workflow = readFileSync(join(scriptDir, '..', '..', '.github', 'workflows',
+      'android-signed-release.yml'), 'utf8');
+    assert.match(workflow, /^on:\\n  workflow_dispatch:/m);
+    assert.doesNotMatch(workflow, /^  (?:push|pull_request|schedule|workflow_call):/m);
+    assert.match(workflow, /github.ref == 'refs\\/heads\\/main'/);
+  });
+
   it('accepts valid Play Store version metadata', () => {
     assert.doesNotThrow(() => validateReleaseVersion('12', '1.2.3-beta'));
   });
