@@ -23,7 +23,7 @@ describe('official day-ninety prologue', () => {
     expect(fa.scenes.map((scene) => scene.src)).toEqual(en.scenes.map((scene) => scene.src));
     for (const scene of fa.scenes) {
       expect(scene.type).toBe('image');
-      expect(scene.src).toMatch(/^media\\/images\\/prologue-[a-z0-9-]+\\.webp$/);
+      expect(scene.src).toMatch(/^media\/images\/prologue-[a-z0-9-]+\.webp$/);
       expect(scene.text.length).toBeGreaterThan(70);
       const file = readFileSync(new URL('../../../public/content/' + scene.src, import.meta.url));
       expect(file.length).toBeGreaterThan(30_000);
