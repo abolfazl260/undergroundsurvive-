@@ -320,6 +320,8 @@ document.querySelector<HTMLButtonElement>('#reset-layout')?.addEventListener('cl
   scene.resetLayout();
 });
 
+updateSelectedButtons();
+
 const storyButton = document.querySelector<HTMLButtonElement>('#story-open');
 if (storyButton) mountStoryViewer(storyButton);
 
