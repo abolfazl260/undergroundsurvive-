@@ -131,8 +131,7 @@ export function setupGameMenu(
   language.value = getLocale();
   reducedMotion.checked = settings.reducedMotion;
   showScreen('home');
-  // The initial modal is intentionally deferred until Phaser reports that
-  // the world has finished preloading and drawing its first frame.
+  // Let the game finish booting before placing this modal in the top layer.
   menuButton.addEventListener('click', openPauseMenu);
   toolsPolicyButton?.addEventListener('click', () => {
     if (!playing || dialog!.open) return;
@@ -210,7 +209,5 @@ export function setupGameMenu(
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) openPauseMenu();
   });
-  return () => {
-    if (!dialog.open) dialog.showModal();
-  };
+  return () => { if (!dialog.open) dialog.showModal(); };
 }

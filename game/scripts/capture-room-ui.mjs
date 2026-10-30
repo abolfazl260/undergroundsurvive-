@@ -9,10 +9,10 @@ for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
   page.on('pageerror', error=>errors.push(error.message));
   await page.goto(base);
   await page.locator('#menu-continue').click();
-  await page.locator('canvas').waitFor();
+  await page.locator('#game-canvas canvas').waitFor();
   await page.waitForTimeout(800);
   await page.screenshot({path:`${output}/${mode}-${width}x${height}-scene.png`});
-  // Reveal mobile tools only when the target is hidden, in both layouts.
+  // Compare both layouts: reveal mobile controls only when currently hidden.
   const upgradeTool = page.locator('[data-tool="upgrade"]');
   if (!await upgradeTool.isVisible()) {
     const dockTools = page.locator('#dock-tools');
