@@ -69,7 +69,7 @@ export class GameScene extends Phaser.Scene {
     width: GAME_VIEW.width, height: GAME_VIEW.height
   };
   /** Actual Phaser zoom = responsive baseline × UI zoom (100% = 1). */
-  private baseZoom = ZOOM.initial;
+  private baseZoom: number = ZOOM.initial;
 
   constructor(
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
