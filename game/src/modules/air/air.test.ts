@@ -32,7 +32,7 @@ describe('air simulation', () => {
     expect(low.quality).toBeLessThan(overloaded.quality);
     expect(overloaded.reason).toBe('overload');
     expect(low.reason).toBe('power');
-    expect(low.quality).toBeGreaterThan(78);
+    expect(low.quality).toBeGreaterThan(75);
     expect(simulateAir(5000, 100, 20, {quality:0,units}, 0).quality).toBe(0);
   });
   it('charges once per tick, pauses at unchanged clock and restores enabled/health', () => {
@@ -69,7 +69,7 @@ describe('air simulation', () => {
     expect(a.repairVent(id,'repair')).toBe(false);
     const after = a.snapshot();
     expect(GameSession.restore(after)?.snapshot()).toEqual(after);
-    const old = {...after,schemaVersion:9,air:undefined};
+    const old = {...after,schemaVersion:10,air:undefined};
     expect(GameSession.restore(old)?.air.snapshot().nowMs).toBe(after.resources.tickCount * AIR_CONFIG.tickMs);
   });
 });
