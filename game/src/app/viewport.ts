@@ -4,6 +4,17 @@ export const ZOOM = { min: 0.75, max: 2.5, initial: 1, step: 0.25 } as const;
 /** Portrait viewport with extra vertical world space for the sealed access shaft. */
 export const GAME_VIEW = { width: 480, height: 600, worldWidth: 960, worldHeight: 720 } as const;
 
+/** Frame the 14-cell playfield rather than its much wider decorative margins. */
+export const GAME_FOCUS = { width: 804, height: 660 } as const;
+
+/** 100% zoom covers the viewport while keeping room artwork at a useful size. */
+export function fitCameraZoom(width: number, height: number): number {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return 1;
+  return Math.max(width / GAME_FOCUS.width, height / GAME_FOCUS.height);
+}
+
+export interface ZoomLimits { min: number; max: number }
+
 export interface Point { x: number; y: number }
 export interface Viewport {
   width: number;
@@ -16,8 +27,8 @@ export interface Viewport {
   scrollY: number;
 }
 
-export function clampZoom(value: number): number {
-  return Number.isFinite(value) ? Math.min(ZOOM.max, Math.max(ZOOM.min, value)) : ZOOM.initial;
+export function clampZoom(value: number, limits: ZoomLimits = ZOOM): number {
+  return Number.isFinite(value) ? Math.min(limits.max, Math.max(limits.min, value)) : ZOOM.initial;
 }
 
 /** Camera origin is fixed at the center of its viewport. */
@@ -45,8 +56,8 @@ export function constrainScroll(view: Viewport): Pick<Viewport, 'scrollX' | 'scr
 }
 
 /** Keep a world position beneath a given screen point while changing zoom. */
-export function zoomToWorldAnchor(view: Viewport, proposedZoom: number, world: Point, screen: Point): Viewport {
-  const zoom = clampZoom(proposedZoom);
+export function zoomToWorldAnchor(view: Viewport, proposedZoom: number, world: Point, screen: Point, limits: ZoomLimits = ZOOM): Viewport {
+  const zoom = clampZoom(proposedZoom, limits);
   const result: Viewport = {
     ...view,
     zoom,
@@ -56,8 +67,8 @@ export function zoomToWorldAnchor(view: Viewport, proposedZoom: number, world: P
   return { ...result, ...constrainScroll(result) };
 }
 
-export function zoomAt(view: Viewport, proposedZoom: number, screen: Point): Viewport {
-  return zoomToWorldAnchor(view, proposedZoom, screenToWorld(view, screen), screen);
+export function zoomAt(view: Viewport, proposedZoom: number, screen: Point, limits: ZoomLimits = ZOOM): Viewport {
+  return zoomToWorldAnchor(view, proposedZoom, screenToWorld(view, screen), screen, limits);
 }
 
 /** Dragging the picture right moves the camera left (screen pixels / zoom). */
