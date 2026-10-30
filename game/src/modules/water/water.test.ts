@@ -30,7 +30,7 @@ it('scales output, cancels upgrade progress, preserves pause and drops demolishe
   w.advance(5000,[{...room,level:2}],p); expect(w.snapshot().clean).toBe(4); w.sync([]); expect(w.snapshot().cycles).toEqual([]);
 });
 it('integrates construction, tick partitioning, migration and malformed saves', () => {
-  const a=GameSession.create(); expect(a.build('waterTreatment',3,-1).ok).toBe(true);
+  const a=GameSession.create(); expect(a.build('waterTreatment',8,-1).ok).toBe(true);
   const b=GameSession.restore(a.snapshot())!; a.advanceTime(10000); for(let i=0;i<100;i++) b.advanceTime(100);
   expect(b.snapshot()).toEqual(a.snapshot()); expect(a.water.snapshot().clean).toBe(2);
   expect(GameSession.restore(a.snapshot())!.snapshot()).toEqual(a.snapshot());
