@@ -45,7 +45,9 @@ it('preserves level-one art, upgrades level two, and falls back on failed loads'
   expect(roomArtCandidates('kitchen', 1)).toEqual([]);
   expect(roomArtCandidates('kitchen', 2)).toEqual([{ key: 'level-two-room-art', frame: 2 }]);
   expect(roomArtCandidates('laboratory', 3)[0]).toEqual({ key: 'level-two-room-art', frame: 4 });
-  expect(roomArtCandidates('mine', 2)).toEqual([{ key: 'room-art', frame: 5 }]);
+  expect(roomArtCandidates('mine', 2)).toEqual([
+    { key: 'level-two-additional-art', frame: 4 }, { key: 'room-art', frame: 5 }
+  ]);
 });
 
 
