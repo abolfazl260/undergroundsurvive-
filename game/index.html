@@ -27,10 +27,10 @@
         <button id="menu-toggle" class="menu-open-button" type="button" aria-haspopup="dialog" aria-controls="game-menu-dialog" hidden>☰ منو</button>
         <button type="button" id="open-more" class="hud-action" aria-controls="game-sheet" aria-expanded="false" title="تنظیمات و امکانات">☷</button>
       </header>
-      <nav class="story-navigation" aria-label="روایت بازی">
-        <button type="button" id="story-open" class="story-open">داستان تصویری</button>
+      <nav class="story-navigation" aria-label="روایت و پیشرفت پناهگاه">
+        <button type="button" id="story-open" class="story-open"><span data-ui-icon="info" aria-hidden="true">◎</span><span>داستان تصویری</span></button>
         <button type="button" id="achievements-open" class="achievements-open" aria-haspopup="dialog" aria-controls="achievements-dialog">
-          <span aria-hidden="true">★</span><span>دستاوردها</span><output id="achievement-count">۰ / ۱۱</output>
+          <span data-ui-icon="check" aria-hidden="true">★</span><span>دستاوردها</span><output id="achievement-count">۰ / ۱۱</output>
         </button>
       </nav>
       <section class="hud-bar" aria-label="وضعیت منابع و پیشرفت پناهگاه">
@@ -48,27 +48,24 @@
           <span class="hud-icon" data-ui-icon="home" aria-hidden="true">⌂</span>
           <div class="hud-tile-content"><span class="hud-label">اتاق‌های پناهگاه</span><strong id="hud-rooms">۴</strong></div>
         </div>
-        <div class="hud-tile">
-          <span class="hud-icon" data-ui-icon="layers" aria-hidden="true">▤</span>
-          <div class="hud-tile-content"><span class="hud-label">طبقات بالایی باز</span><strong id="hud-floors">۰ / ۲</strong></div>
-        </div>
-        <div class="hud-tile">
-          <span class="hud-icon" data-ui-icon="pickaxe" aria-hidden="true">⛏</span>
-          <div class="hud-tile-content"><span class="hud-label">خانه‌های حفاری‌شده</span><strong id="hud-excavated">۱۹</strong></div>
-        </div>
       </section>
       <section class="resource-panel" aria-label="منابع و چرخهٔ زمانی پناهگاه" data-expanded="false">
         <div class="resource-panel-header">
-          <strong>تولید و مصرف منابع</strong><button type="button" id="resource-details-toggle" aria-expanded="false" aria-label="جزئیات منابع">⌄</button>
-          <span>چرخه <output id="resource-tick-count">۰</output> · چرخهٔ بعد در <output id="resource-next-tick">۵</output> ثانیه</span>
+          <span class="cycle-icon" data-ui-icon="reset" aria-hidden="true">◷</span>
+          <span class="cycle-label">چرخه <output id="resource-tick-count">۰</output></span>
+          <button type="button" id="resource-details-toggle" aria-expanded="false" aria-controls="resource-details" aria-label="نمایش یا پنهان‌کردن منابع">⌄</button>
         </div>
-        <div class="resource-grid">
-          <div class="resource-item"><span>برق</span><strong id="resource-power">۱۲ / ۳۰</strong></div>
-          <div class="resource-item"><span>غذا</span><strong id="resource-food">۱۲ / ۳۰</strong></div>
-          <div class="resource-item"><span>سنگ معدن</span><strong id="resource-ore">۰ / ۳۰</strong></div>
-          <div class="resource-item"><span>تجهیزات</span><strong id="resource-supplies">۰ / ۳۰</strong></div>
+        <div id="resource-details" class="resource-details">
+          <strong class="resource-details-title">تولید و مصرف منابع</strong>
+          <span class="cycle-next">چرخهٔ بعد در <output id="resource-next-tick">۵</output> ثانیه</span>
+          <div class="resource-grid">
+            <div class="resource-item"><span>برق</span><strong id="resource-power">۱۲ / ۳۰</strong></div>
+            <div class="resource-item"><span>غذا</span><strong id="resource-food">۱۲ / ۳۰</strong></div>
+            <div class="resource-item"><span>سنگ معدن</span><strong id="resource-ore">۰ / ۳۰</strong></div>
+            <div class="resource-item"><span>تجهیزات</span><strong id="resource-supplies">۰ / ۳۰</strong></div>
+          </div>
+          <p id="resource-warning" role="status" aria-live="polite">تولید هر ۵ ثانیه از زمان فعال بازی محاسبه می‌شود.</p>
         </div>
-        <p id="resource-warning" role="status" aria-live="polite">تولید هر ۵ ثانیه از زمان فعال بازی محاسبه می‌شود.</p>
       </section>
       <main class="workspace">
         <section class="play-area" aria-label="نمای دوبعدی پناهگاه">

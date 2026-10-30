@@ -5,6 +5,7 @@ import { setupGameMenu } from './app/gameMenu';
 import './audio.css';
 import './ui/ui.css';
 import './fullscreen.css';
+import './gameHud.css';
 import { createIcon } from './ui/icons';
 import { enhanceIcons, setButtonLabel, setPressed } from './ui/components';
 import { createGame } from './app/createGame';
@@ -75,6 +76,7 @@ function renderUpgradePanel(): void {
   upgradePanel.hidden = activeTool !== 'upgrade';
   if (activeTool !== 'upgrade') return;
   const details = upgradeSelection;
+  upgradePanel.classList.toggle('has-selection', details !== null);
   if (!details) {
     if (upgradeTitle) upgradeTitle.textContent = t('یک اتاق را برای ارتقا انتخاب کنید');
     if (upgradeEffect) upgradeEffect.textContent = t('برای دیدن ظرفیت و هزینه، روی اتاق بزنید.');

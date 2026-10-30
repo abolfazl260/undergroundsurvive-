@@ -21,22 +21,30 @@ export function mountGameDock(root: Document = document): {
   const resourcePanel = root.querySelector<HTMLElement>('.resource-panel');
   const resourceToggle = root.querySelector<HTMLButtonElement>('#resource-details-toggle');
   const fullscreen = root.querySelector<HTMLButtonElement>('#screen-fullscreen');
-  if (!sheet || !dock || !toolGrid || !moreButton || !closeButton || !scrim || !title || !resourcePanel || !resourceToggle) {
+  const topbar = root.querySelector<HTMLElement>('.topbar');
+  const hud = root.querySelector<HTMLElement>('.hud-bar');
+  if (!sheet || !dock || !toolGrid || !moreButton || !closeButton || !scrim || !title || !resourcePanel || !resourceToggle || !topbar || !hud) {
     throw new Error('Fullscreen game controls are missing required elements');
   }
 
-  // Move the existing controls rather than cloning them; IDs, listeners and tool state stay intact.
+  // Reuse the live resource/HUD nodes inside a thin translucent header.
+  // Moving the nodes (rather than cloning) preserves IDs, listeners and snapshot updates.
+  topbar.insertBefore(hud, moreButton);
+  topbar.insertBefore(resourcePanel, moreButton);
   dock.append(toolGrid);
-  // The save indicator remains visible as a small status dot in the compact header.
   const saveBadge = root.querySelector<HTMLElement>('#hud-save-status');
-  const topbar = root.querySelector<HTMLElement>('.topbar');
-  if (saveBadge && topbar) topbar.append(saveBadge);
+  if (saveBadge) topbar.append(saveBadge);
   // Upgrade confirmations remain visible while selecting a room in the map.
   const upgradePanel = sheet.querySelector<HTMLElement>('#upgrade-panel');
   const playArea = root.querySelector<HTMLElement>('.play-area');
   if (upgradePanel && playArea) playArea.append(upgradePanel);
   let current: GameSheet = null;
+  const collapseResources = () => {
+    resourcePanel.dataset.expanded = 'false';
+    resourceToggle.setAttribute('aria-expanded', 'false');
+  };
   const showSheet = (next: GameSheet) => {
+    if (next !== null) collapseResources();
     current = next;
     sheet.hidden = next === null;
     scrim.hidden = next === null;
@@ -52,16 +60,24 @@ export function mountGameDock(root: Document = document): {
   closeButton.addEventListener('click', () => showSheet(null));
   scrim.addEventListener('click', () => showSheet(null));
   root.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && current !== null) {
+    if (event.key !== 'Escape') return;
+    if (current !== null) {
       event.preventDefault();
       event.stopImmediatePropagation();
       showSheet(null);
+    } else if (resourcePanel.dataset.expanded === 'true') {
+      event.preventDefault();
+      collapseResources();
+      resourceToggle.focus();
     }
   });
   resourceToggle.addEventListener('click', () => {
     const open = resourcePanel.dataset.expanded !== 'true';
     resourcePanel.dataset.expanded = String(open);
     resourceToggle.setAttribute('aria-expanded', String(open));
+  });
+  root.addEventListener('pointerdown', (event) => {
+    if (event.target instanceof Node && !resourcePanel.contains(event.target)) collapseResources();
   });
 
   const updateFullscreen = () => {
