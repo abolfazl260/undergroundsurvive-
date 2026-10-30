@@ -1,0 +1,34 @@
+name: Audio feature checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "game/src/modules/audio/**"
+      - "game/src/audio.css"
+      - "game/src/main.ts"
+      - "game/src/app/GameScene.ts"
+      - "game/index.html"
+      - ".github/workflows/audio-system-checks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: game
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run unit tests
+        run: npm test
+      - name: Typecheck and build web game
+        run: npm run build

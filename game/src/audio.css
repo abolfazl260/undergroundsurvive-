@@ -1,0 +1,28 @@
+/* Audio settings are self-contained; no game canvas or economy styling is changed. */
+.audio-panel{
+  margin-top:20px;padding:14px;border:1px solid #365262;
+  border-radius:12px;background:#142635;direction:rtl;
+}
+.audio-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.audio-heading strong{font-size:13px;color:#e3f6f2}
+.audio-heading button,#audio-preview{
+  border:1px solid #4e857d;border-radius:8px;color:#ddf5ed;
+  background:#24483f;font-size:11px;padding:9px 11px;min-height:36px;
+}
+.audio-heading button[aria-pressed="true"]{background:#503936;border-color:#a96b61;color:#ffe2da}
+.audio-heading button:hover,#audio-preview:hover:not(:disabled){background:#2d6657}
+.audio-control-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 7px;color:#d1e3e9;font-size:12px}
+.audio-control-row label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.audio-control-row input{accent-color:#75d6b8;width:17px;height:17px}
+.audio-control-row output{direction:ltr;color:#9edfc9;font:700 12px Arial,sans-serif}
+.audio-volume{width:100%;height:25px;accent-color:#76c9b3;cursor:pointer;touch-action:pan-y}
+.audio-volume:disabled{opacity:.4;cursor:default}
+#audio-preview{width:100%;margin-top:10px}
+#audio-preview:disabled{opacity:.4;cursor:not-allowed}
+#audio-hint{margin:10px 0 0;color:#99b9c7;font-size:10px;line-height:1.8}
+@media(max-width:640px){
+  .audio-panel{margin-top:16px;padding:11px}
+  .audio-heading strong{font-size:12px}
+  .audio-heading button{padding:8px}
+  .audio-control-row{font-size:11px}
+}
