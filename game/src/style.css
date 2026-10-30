@@ -77,6 +77,47 @@ button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3c
   .room-cost{font-size:9px}.economy-notice{font-size:10px}.brand-name{font-size:12px}}
 
 
+/* Player and live HUD: one top-of-screen layout shared by web and mobile. */
+.topbar{margin-bottom:14px;padding-bottom:16px}
+.player-profile{direction:rtl;display:flex;align-items:center;gap:10px;min-width:0}
+.player-avatar{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:12px;background:#1e403e;border:1px solid #487d70;color:#adf3dc;font-size:25px}
+.player-details{display:grid;gap:3px;min-width:0}
+.player-details strong{font-size:12px;color:#e9f4f2}
+.player-details small{font-size:10px;color:#a8bfc9}
+.save-badge{margin-inline-start:8px;border:1px solid #386c60;border-radius:999px;padding:7px 10px;background:#14352e;color:#a1e4ce;white-space:nowrap;font-size:10px}
+.save-badge[data-state="failed"]{border-color:#875755;background:#442a2c;color:#ffd2cf}
+.hud-bar{direction:rtl;display:grid;grid-template-columns:1.2fr repeat(3,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.hud-tile{display:flex;align-items:center;gap:11px;min-width:0;min-height:76px;border:1px solid #30495b;border-radius:13px;padding:12px;background:linear-gradient(135deg,#16283a,#10202e)}
+.hud-tile-coins{border-color:#8b713c;background:linear-gradient(135deg,#3c321f,#24251d)}
+.hud-icon{display:grid;place-items:center;flex:none;width:37px;height:37px;border-radius:11px;background:#294759;color:#a1e1d4;font-size:21px}
+.hud-tile-coins .hud-icon{background:#69512a;color:#ffdb85}
+.hud-tile-content{min-width:0;display:grid;gap:5px}
+.hud-label{font-size:11px;color:#b0c2cf}
+.hud-tile-content strong{font:700 clamp(14px,1.7vw,19px)/1.4 Tahoma,Arial,sans-serif;color:#f1f7fc;overflow-wrap:anywhere}
+.hud-tile-coins strong{color:#ffe19b}
+.hud-values{direction:ltr;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.hud-change{font-size:11px;font-weight:700;color:#a3b0b9;white-space:nowrap}
+.hud-change[data-kind="earned"]{color:#9ee4b9}
+.hud-change[data-kind="spent"]{color:#ffb1a8}
+@media(max-width:640px){
+  .topbar{flex-wrap:wrap;gap:12px;margin-bottom:11px;padding-bottom:13px}
+  .player-profile{margin-inline-start:auto}
+  .player-avatar{height:34px;width:34px;font-size:21px}
+  .save-badge{margin-inline-start:0;padding:6px 8px}
+  .hud-bar{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+  .hud-tile{min-height:64px;padding:9px;gap:8px}
+  .hud-icon{width:30px;height:30px;border-radius:9px;font-size:17px}
+  .hud-label{font-size:10px}
+  .hud-tile-content strong{font-size:15px}
+  .hud-change{font-size:10px}
+}
+@media(max-width:360px){
+  .hud-tile{gap:6px;padding:8px}
+  .hud-icon{width:27px;height:27px}
+  .hud-tile-content strong{font-size:13px}
+  .player-details small{font-size:9px}
+}
+
 /* Game menu: modal on all form factors; separate from the world editor. */
 [hidden]{display:none!important}
 .menu-open-button{border:1px solid #4c826e;border-radius:10px;background:#1a4037;color:#ddfff1;padding:9px 12px;font-size:13px;font-weight:700;white-space:nowrap}

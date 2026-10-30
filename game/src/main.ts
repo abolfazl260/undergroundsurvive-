@@ -3,6 +3,7 @@ import { setupGameMenu } from './app/gameMenu';
 import { createGame } from './app/createGame';
 import { GameScene, type ToolMode } from './app/GameScene';
 import { ZOOM } from './app/viewport';
+import { mountHud } from './app/ui/hud';
 import { WORLD } from './modules/world/grid';
 import type { BuildableRoomType } from './modules/building/catalog';
 import { loadLocalBase, saveLocalBase } from './platform/localSave';
@@ -10,11 +11,8 @@ import { BUILD_COSTS, DIG_COST, DEMO_BONUS_COINS, getFloorCost } from './modules
 import type { TransactionKind } from './modules/economy/wallet';
 
 const status = document.querySelector<HTMLElement>('#status');
-const roomCount = document.querySelector<HTMLElement>('#room-count');
-const floorStatus = document.querySelector<HTMLElement>('#floor-status');
-const terrainCount = document.querySelector<HTMLElement>('#terrain-count');
 const unlockButton = document.querySelector<HTMLButtonElement>('#unlock-floor');
-const balanceNode = document.querySelector<HTMLElement>('#coin-balance');
+const renderHud = mountHud(document);
 const bonusButton = document.querySelector<HTMLButtonElement>('#demo-bonus');
 const historyNode = document.querySelector<HTMLElement>('#transaction-list');
 const digButton = document.querySelector<HTMLButtonElement>('[data-tool="dig"]');
@@ -51,7 +49,7 @@ let activeTool: ToolMode = 'build';
 const savedGame = loadLocalBase();
 const scene = new GameScene((snapshot, message) => {
   const saved = saveLocalBase(snapshot);
-  if (balanceNode) balanceNode.textContent = formatCoins(snapshot.wallet.balance);
+  renderHud(snapshot, saved);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
     bonusButton.textContent = snapshot.demoBonusClaimed
@@ -72,9 +70,6 @@ const scene = new GameScene((snapshot, message) => {
     }
   }
   if (status) status.textContent = saved ? message : message + ' (ذخیرهٔ محلی در دسترس نیست)';
-  if (roomCount) roomCount.textContent = 'اتاق‌ها: ' + snapshot.base.rooms.length;
-  if (floorStatus) floorStatus.textContent = 'طبقات بالا: ' + snapshot.base.terrain.highestFloor + ' از ' + WORLD.maxY;
-  if (terrainCount) terrainCount.textContent = 'خانه‌های حفاری‌شده: ' + snapshot.base.terrain.excavated.length;
   if (unlockButton) {
     const maxed = snapshot.base.terrain.highestFloor >= WORLD.maxY;
     unlockButton.disabled = maxed;
