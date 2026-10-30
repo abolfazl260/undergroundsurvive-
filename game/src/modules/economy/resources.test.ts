@@ -53,8 +53,9 @@ describe('resource production and consumption', () => {
     expect(state.stock.power).toBeGreaterThanOrEqual(0);
     expect(state.stock.food).toBeGreaterThanOrEqual(0);
     expect(state.stock.ore).toBe(0);
-    expect(state.lastShortages).toContain('power');
+    expect(state.lastShortages).toContain('food');
     expect(state.lastShortages).toContain('ore');
+    expect(state.lastShortages).toContain('supplies');
     expect(state.inactiveRooms).toBeGreaterThan(0);
   });
 
