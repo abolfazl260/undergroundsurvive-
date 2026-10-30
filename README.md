@@ -27,6 +27,12 @@ npm run dev
 
 سپس http://localhost:5173 را باز کنید. راهنما: [game/README.md](game/README.md). این نسخه فقط نمونهٔ آزمایشی محلی است؛ هنوز روی دامنهٔ عمومی منتشر نشده و اتصال Supabase یا ذخیرهٔ آنلاین ندارد.
 
+## انتشار آنلاین نسخهٔ آزمایشی
+
+فایل Workflow استقرار روی GitHub Pages در `.github/workflows/deploy-web.yml` اضافه شده است. **فعال‌کردن GitHub Pages هنوز به اقدام مالک مخزن نیاز دارد**؛ ساخت و تست خودکار موفق بوده‌اند اما سایت عمومی هنوز منتشر نشده است.
+
+برای فعال‌سازی، در GitHub مسیر **Settings → Pages → Build and deployment → Source: GitHub Actions** را انتخاب کنید. سپس Workflow با نام **Deploy web prototype to GitHub Pages** را از بخش Actions دوباره اجرا کنید. پس از موفقیت استقرار، آدرس نهایی در خروجی همان Workflow نمایش داده می‌شود.
+
 ## مستندات
 
 - [معماری Web-First و مرز ماژول‌ها (Docs/ARCHITECTURE.md)](Docs/ARCHITECTURE.md)
