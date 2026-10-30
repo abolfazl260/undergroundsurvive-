@@ -256,3 +256,23 @@ html[dir="ltr"] .game-menu .menu-choice-copy { direction: ltr; text-align: left;
   .game-menu .menu-choice-list .menu-choice:active { transform: none; }
   .game-menu::backdrop { backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* Compact menus: keep navigation and primary actions, not explanatory copy. */
+.game-menu .menu-screen--home .menu-hero { min-height: 154px; }
+.game-menu .menu-screen--pause .menu-hero { min-height: 130px; padding-bottom: 16px; }
+.game-menu .menu-screen--pause .menu-hero-top { justify-content: flex-end; }
+.game-menu .menu-choice-list .menu-choice { min-height: 68px; }
+.game-menu .menu-choice-copy { gap: 0; }
+.game-menu .menu-choice-copy strong { line-height: 1.6; }
+.game-menu .menu-content { padding-bottom: 22px; }
+@media (max-width: 600px) {
+  .game-menu .menu-screen--home .menu-hero { min-height: 116px; }
+  .game-menu .menu-screen--pause .menu-hero { min-height: 104px; padding-bottom: 12px; }
+  .game-menu .menu-choice-list .menu-choice { min-height: 58px; }
+  .game-menu .menu-content { padding-bottom: 16px; }
+}
+@media (max-height: 650px) {
+  .game-menu .menu-screen--home .menu-hero,
+  .game-menu .menu-screen--pause .menu-hero { min-height: 0; }
+  .game-menu .menu-choice-list .menu-choice { min-height: 50px; }
+}

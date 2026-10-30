@@ -727,17 +727,17 @@ export class GameScene extends Phaser.Scene {
       const plate = this.add.graphics();
       plate.fillStyle(0x09131f, 0.82).fillRoundedRect(0, 0, badgeWidth, 14, 3);
       const name = this.add.text(4, 1, getLocale() === 'fa' ? localizedRoomBadges[room.type] : definition.label, {
-        fontSize: '9px', fontFamily: 'Arial', fontStyle: 'bold', color: '#f4f7fa'
+        fontSize: '9px', fontFamily: getLocale() === 'fa' ? 'Vazirmatn, Tahoma, Arial, sans-serif' : 'Arial', fontStyle: 'bold', color: '#f4f7fa'
       }).setResolution(3);
       const level = this.add.text(badgeWidth - 4, 1, 'LV ' + room.level, {
-        fontSize: '9px', fontFamily: 'Arial', color: room.level > 1 ? '#ffe2a1' : '#e0e5eb'
+        fontSize: '9px', fontFamily: getLocale() === 'fa' ? 'Vazirmatn, Tahoma, Arial, sans-serif' : 'Arial', color: room.level > 1 ? '#ffe2a1' : '#e0e5eb'
       }).setOrigin(1, 0).setResolution(3);
       badge.add([plate, name, level]);
       this.roomBadges.push(badge);
       this.roomLayer.add(badge);
       if (room.type === 'ventilation') {
         const airLabel = this.add.text(left + 7, top + height - 14, '', {
-          fontSize: '10px', color: '#a8fff0', fontFamily: 'Arial', fontStyle: 'bold',
+          fontSize: '10px', color: '#a8fff0', fontFamily: getLocale() === 'fa' ? 'Vazirmatn, Tahoma, Arial, sans-serif' : 'Arial', fontStyle: 'bold',
           backgroundColor: '#09202bd9', padding: {x:3,y:1},
         }).setResolution(3);
         this.airBadges.push({id: room.id, label: airLabel});
@@ -749,7 +749,7 @@ export class GameScene extends Phaser.Scene {
           const pct = cycle.durationMs ? Math.round(100 * cycle.elapsedMs / cycle.durationMs) : 100;
           const cooking = this.add.text(left + 8, top + height - 14,
             (cycle.status === 'completed' ? '✓' : cycle.status === 'running' ? '♨' : 'Ⅱ') + ' ' + pct + '%',
-            { fontSize: '10px', fontFamily: 'Arial', color: '#fff5d5', backgroundColor: '#222222aa' }).setResolution(3);
+            { fontSize: '10px', fontFamily: getLocale() === 'fa' ? 'Vazirmatn, Tahoma, Arial, sans-serif' : 'Arial', color: '#fff5d5', backgroundColor: '#222222aa' }).setResolution(3);
           this.roomLayer.add(cooking);
         }
       }
