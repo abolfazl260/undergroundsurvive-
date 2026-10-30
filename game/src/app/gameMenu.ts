@@ -7,6 +7,7 @@ import { renderPolicyContent } from './policyContent';
 
 type MenuScreen = 'home' | 'pause' | 'settings' | 'policies' | 'confirm-new';
 type ReturnScreen = 'home' | 'pause';
+type PolicyReturnScreen = ReturnScreen | 'settings';
 
 /** The modal makes other DOM controls inert while the Phaser scene is paused. */
 export function setupGameMenu(
@@ -17,6 +18,7 @@ export function setupGameMenu(
 ): void {
   const dialog = document.querySelector<HTMLDialogElement>('#game-menu-dialog');
   const menuButton = document.querySelector<HTMLButtonElement>('#menu-toggle');
+  const toolsPolicyButton = document.querySelector<HTMLButtonElement>('#menu-policies-from-tools');
   const continueButton = document.querySelector<HTMLButtonElement>('#menu-continue');
   const continueLabel = document.querySelector<HTMLElement>('[data-menu-continue-label]');
   const pauseTitle = document.querySelector<HTMLElement>('#menu-pause-title');
@@ -38,6 +40,7 @@ export function setupGameMenu(
   let hasSave = savedGameExists;
   let screen: MenuScreen = 'home';
   let returnScreen: ReturnScreen = 'home';
+  let policyReturnScreen: PolicyReturnScreen = 'home';
   let settings: MenuSettings = loadMenuSettings();
 
   function renderHome(): void {
@@ -130,6 +133,13 @@ export function setupGameMenu(
   showScreen('home');
   dialog.showModal();
   menuButton.addEventListener('click', openPauseMenu);
+  toolsPolicyButton?.addEventListener('click', () => {
+    if (!playing || dialog!.open) return;
+    scene.pauseGameplay();
+    policyReturnScreen = 'pause';
+    showScreen('policies');
+    dialog!.showModal();
+  });
 
   language.addEventListener('change', () => setLocale(language.value));
   subscribeLocaleChange(() => {
@@ -170,11 +180,11 @@ export function setupGameMenu(
         showScreen('settings');
         break;
       case 'policies':
-        returnScreen = screen === 'pause' ? 'pause' : 'home';
+        policyReturnScreen = screen === 'settings' ? 'settings' : screen === 'pause' ? 'pause' : 'home';
         showScreen('policies');
         break;
       case 'back':
-        showScreen(returnScreen);
+        showScreen(screen === 'policies' ? policyReturnScreen : returnScreen);
         break;
       case 'main':
         hasSave = true;
@@ -187,6 +197,7 @@ export function setupGameMenu(
   dialog.addEventListener('cancel', (event) => {
     event.preventDefault();
     if (screen === 'pause') resume();
+    else if (screen === 'policies') showScreen(policyReturnScreen);
     else if (screen !== 'home') showScreen(returnScreen);
   });
   document.addEventListener('keydown', (event) => {
