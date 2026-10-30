@@ -1,7 +1,8 @@
 import { COMMAND_CENTER_DEFINITION } from '../command/commandCenter';
 import { ROOM_DEFINITIONS, type BuildableRoomType, type RoomType } from './catalog';
 import { MAX_ROOM_LEVEL } from './upgrades';
-import { validatePlacement, hasStructuralSupport, type PlacementResult, type Room } from './placement';
+import { validatePlacement, validateFootprint, hasStructuralSupport, type PlacementResult, type Room } from './placement';
+import { connectedRoomIds, preserveRoomConnections } from './connectivity';
 import { TerrainMap, type TerrainSnapshot, type TerrainResult } from '../world/terrain';
 import { isInsideWorld } from '../world/grid';
 import { canConstructAtLevel, canEditFootprint, LEGACY_SURFACE_POLICY, LEGACY_SURFACE_READ_ONLY_REASON, UNDERGROUND_ONLY_POLICY, UNDERGROUND_ONLY_REASON, type ConstructionPolicy } from './constructionPolicy';
@@ -9,8 +10,8 @@ import { canConstructAtLevel, canEditFootprint, LEGACY_SURFACE_POLICY, LEGACY_SU
 const STARTER_ROOMS: Room[] = [
   { id: 'initial-command', type: 'command', x: 5, y: -1, width: 3, height: 1, level: 1 },
   { id: 'initial-power', type: 'generator', x: 1, y: -2, width: 2, height: 1, level: 1 },
-  { id: 'initial-habitat', type: 'habitat', x: 10, y: -2, width: 2, height: 1, level: 1 },
-  { id: 'initial-garden', type: 'hydroponics', x: 11, y: -1, width: 2, height: 1, level: 1 }
+  { id: 'initial-habitat', type: 'habitat', x: 3, y: -1, width: 2, height: 1, level: 1 },
+  { id: 'initial-garden', type: 'hydroponics', x: 1, y: -1, width: 2, height: 1, level: 1 }
 ];
 export interface BaseSnapshot {
   schemaVersion: 1 | 2;
@@ -32,6 +33,11 @@ export class BuildingLayout {
     this.sequence = snapshot?.nextRoomId ?? 0;
   }
   get rooms(): readonly Room[] { return this.data; }
+  /** Non-destructive diagnostic for historical saves with pre-existing disconnected rooms. */
+  get disconnectedRoomIds(): readonly string[] {
+    const connected = connectedRoomIds(this.data, this.terrain);
+    return this.data.filter((room) => !connected.has(room.id)).map((room) => room.id);
+  }
   getRoomAt(x: number, y: number): Room | undefined {
     return this.data.find((r) => x >= r.x && x < r.x + r.width &&
       y >= r.y && y < r.y + r.height);
@@ -62,9 +68,10 @@ export class BuildingLayout {
     const others = this.data.filter((r) => r.id !== id);
     const result = validatePlacement(others, room.type, x, y, this.terrain, this.policy);
     if (!result.ok) return result;
-    if (!hasStructuralSupport([...others, { ...room, x, y }], this.terrain))
+    const candidate = [...others, { ...room, x, y }];
+    if (!hasStructuralSupport(candidate, this.terrain))
       return { ok: false, reason: 'اتاق‌های بالاتر بدون تکیه‌گاه باقی می‌مانند.' };
-    return { ok: true };
+    return preserveRoomConnections(this.data, candidate, this.terrain);
   }
   move(id: string, x: number, y: number): PlacementResult {
     const result = this.canMove(id, x, y);
@@ -74,7 +81,7 @@ export class BuildingLayout {
     room.y = y;
     return { ok: true };
   }
-  remove(id: string): PlacementResult {
+  canRemove(id: string): PlacementResult {
     const room = this.data.find((r) => r.id === id);
     if (!room)
       return { ok: false, reason: 'ابتدا یک اتاق را انتخاب کنید.' };
@@ -83,7 +90,12 @@ export class BuildingLayout {
     const remaining = this.data.filter((r) => r.id !== id);
     if (!hasStructuralSupport(remaining, this.terrain))
       return { ok: false, reason: 'این اتاق تکیه‌گاه طبقات بالایی است.' };
-    this.data = remaining;
+    return preserveRoomConnections(this.data, remaining, this.terrain);
+  }
+  remove(id: string): PlacementResult {
+    const result = this.canRemove(id);
+    if (!result.ok) return result;
+    this.data = this.data.filter((room) => room.id !== id);
     return { ok: true };
   }
   upgrade(id: string): PlacementResult {
@@ -160,7 +172,7 @@ export class BuildingLayout {
     // Exclude the current room to check collisions without self-overlap.
     for (const room of rooms) {
       const others = rooms.filter((other) => other.id !== room.id);
-      if (!validatePlacement(others, room.type, room.x, room.y, terrain, LEGACY_SURFACE_POLICY).ok) return null;
+      if (!validateFootprint(others, room.type, room.x, room.y, terrain, LEGACY_SURFACE_POLICY).ok) return null;
     }
     if (!hasStructuralSupport(rooms, terrain)) return null;
     return new BuildingLayout({

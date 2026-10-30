@@ -3,9 +3,6 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
-  "راهنمای بازی": "How to Play",
-  "شروع سریع، ساخت‌وساز، منابع و سؤالات رایج": "Quick start, building, resources and FAQs",
-  "بازگشت به تنظیمات": "Back to settings",
   'نگهبانی':'Guard post',
   'ظرفیت نگهبانی':'Guard capacity',
   'تخصیص انجام شد؛ نیرو در مسیر است.':'Assigned; survivor is en route.',
