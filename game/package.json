@@ -8,17 +8,29 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
-    "validate:story": "node --experimental-strip-types scripts/validate-story.mjs"
+    "validate:story": "node --experimental-strip-types scripts/validate-story.mjs",
+    "mobile:check": "node scripts/verify-mobile.mjs",
+    "mobile:test": "node --test scripts/*.test.mjs",
+    "mobile:prepare:android": "npm run build && npm run mobile:check && node scripts/prepare-mobile.mjs android",
+    "mobile:prepare:ios": "npm run build && npm run mobile:check && node scripts/prepare-mobile.mjs ios",
+    "mobile:open:android": "cap open android",
+    "mobile:open:ios": "cap open ios",
+    "mobile:run:android": "npm run mobile:prepare:android && cap run android",
+    "mobile:run:ios": "npm run mobile:prepare:ios && cap run ios"
   },
   "engines": {
     "node": ">=22.12.0"
   },
   "dependencies": {
-    "phaser": "3.90.0"
+    "phaser": "3.90.0",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/android": "8.5.3",
+    "@capacitor/ios": "8.5.3"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
     "vite": "^7.3.0",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@capacitor/cli": "8.5.3"
   }
 }
