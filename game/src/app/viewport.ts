@@ -1,8 +1,8 @@
 /** Pure camera geometry shared by mouse, touch and UI controls. Phaser-independent. */
 export const ZOOM = { min: 0.75, max: 2.5, initial: 1, step: 0.25 } as const;
 
-/** One portrait screen and one unchanged 960×600 world on every device. */
-export const GAME_VIEW = { width: 480, height: 600, worldWidth: 960, worldHeight: 600 } as const;
+/** Portrait viewport with extra vertical world space for the sealed access shaft. */
+export const GAME_VIEW = { width: 480, height: 600, worldWidth: 960, worldHeight: 720 } as const;
 
 export interface Point { x: number; y: number }
 export interface Viewport {

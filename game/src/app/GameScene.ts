@@ -637,7 +637,7 @@ export class GameScene extends Phaser.Scene {
   private drawBackdrop(): void {
     // Keep an oversized solid fallback behind the artwork for panning, zooming
     // out, or a failed texture request. The artwork itself maps 1:1 onto the
-    // 960×600 world, even though the mobile-first viewing window is portrait.
+    // The view stays portrait while the sealed shaft occupies two extra levels.
     const fallback = this.add.graphics().setDepth(-1);
     fallback.fillStyle(0x211f2a).fillRect(-600, -400, 2160, WORLD.groundLineY + 400);
     fallback.fillStyle(0x33271e).fillRect(-600, WORLD.groundLineY, 2160, 1000);
@@ -646,11 +646,17 @@ export class GameScene extends Phaser.Scene {
     if (background) {
       this.add.image(0, 0, background.key)
         .setOrigin(0, 0)
-        .setDisplaySize(GAME_VIEW.worldWidth, GAME_VIEW.worldHeight)
+        .setDisplaySize(GAME_VIEW.worldWidth, 600)
+        .setDepth(0);
+      // Continue only the soil strip; scaling the skyline shifts the surface.
+      this.add.image(0, 600, background.key)
+        .setOrigin(0, 0)
+        .setCrop(0, 1000, 1920, 200)
+        .setScale(GAME_VIEW.worldWidth / 1920, (GAME_VIEW.worldHeight - 600) / 200)
         .setDepth(0);
     }
     this.add.text(20, 20, 'SURFACE / CONSTRUCTION LOCKED', { fontSize: '13px', color: '#e2e5ed' }).setDepth(2);
-    this.add.text(20, 566, 'UNDERGROUND / EXCAVATE BELOW', { fontSize: '13px', color: '#cbb7a0' }).setDepth(2);
+    this.add.text(20, GAME_VIEW.worldHeight - 34, 'UNDERGROUND / EXCAVATE BELOW', { fontSize: '13px', color: '#cbb7a0' }).setDepth(2);
   }
 
   private paintTerrain(): void {
@@ -832,7 +838,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private paintElevatorMotion(): void {
-    if (this.elevatorCarLayer) paintElevatorCars(this.elevatorCarLayer, this.traffic?.elevatorCars ?? []);
+    if (this.elevatorCarLayer) paintElevatorCars(this.elevatorCarLayer,
+      this.traffic?.elevatorCars ?? [], this.layout.terrain.elevators);
   }
 
   private paintResidentPath(): void {
