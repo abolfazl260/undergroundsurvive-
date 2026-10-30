@@ -11,7 +11,7 @@ import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE } from './roomArt';
 import { AssetManager } from './assets/assetManager';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
-import { panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
+import { constrainScroll, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
@@ -71,6 +71,11 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     this.assets.configureFilters(
       this.textures, Phaser.Textures.FilterMode.LINEAR, Phaser.Textures.FilterMode.NEAREST
+    );
+    // The visual window is portrait; the map and every stored grid coordinate stay unchanged.
+    this.cameras.main.setScroll(
+      (GAME_VIEW.worldWidth - this.cameras.main.width) / 2,
+      (GAME_VIEW.worldHeight - this.cameras.main.height) / 2
     );
     this.drawBackdrop();
     this.terrainLayer = this.add.graphics().setDepth(1);
@@ -184,13 +189,20 @@ export class GameScene extends Phaser.Scene {
   }
 
   resetZoom(): void {
-    this.applyView({ ...this.currentView(), zoom: ZOOM.initial, scrollX: 0, scrollY: 0 });
+    const view = this.currentView();
+    const centered = {
+      ...view, zoom: ZOOM.initial,
+      scrollX: (GAME_VIEW.worldWidth - view.width) / 2,
+      scrollY: (GAME_VIEW.worldHeight - view.height) / 2
+    };
+    this.applyView({ ...centered, ...constrainScroll(centered) });
   }
 
   private currentView(): Viewport {
     const camera = this.cameras.main;
     return {
       width: camera.width, height: camera.height,
+      worldWidth: GAME_VIEW.worldWidth, worldHeight: GAME_VIEW.worldHeight,
       zoom: camera.zoom, scrollX: camera.scrollX, scrollY: camera.scrollY
     };
   }
@@ -474,7 +486,7 @@ export class GameScene extends Phaser.Scene {
   private drawBackdrop(): void {
     // Keep an oversized solid fallback behind the artwork for panning, zooming
     // out, or a failed texture request. The artwork itself maps 1:1 onto the
-    // 960×600 game canvas (source resolution: 1920×1200 for crisp zoom).
+    // 960×600 world, even though the mobile-first viewing window is portrait.
     const fallback = this.add.graphics().setDepth(-1);
     fallback.fillStyle(0x211f2a).fillRect(-600, -400, 2160, WORLD.groundLineY + 400);
     fallback.fillStyle(0x33271e).fillRect(-600, WORLD.groundLineY, 2160, 1000);
@@ -483,7 +495,7 @@ export class GameScene extends Phaser.Scene {
     if (background) {
       this.add.image(0, 0, background.key)
         .setOrigin(0, 0)
-        .setDisplaySize(this.cameras.main.width, this.cameras.main.height)
+        .setDisplaySize(GAME_VIEW.worldWidth, GAME_VIEW.worldHeight)
         .setDepth(0);
     }
     this.add.text(20, 20, 'SURFACE / BUILD ABOVE', { fontSize: '13px', color: '#e2e5ed' }).setDepth(2);
