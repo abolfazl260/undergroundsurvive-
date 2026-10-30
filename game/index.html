@@ -69,6 +69,7 @@
             <div class="resource-item"><span>تجهیزات</span><strong id="resource-supplies">۰ / ۳۰</strong></div>
           </div>
           <p id="resource-warning" role="status" aria-live="polite">تولید هر ۵ ثانیه از زمان فعال بازی محاسبه می‌شود.</p>
+          <section id="power-panel" class="power-panel" data-no-i18n aria-label="شبکه توزیع برق"></section>
         </div>
       </section>
       <main class="workspace">
@@ -130,6 +131,10 @@
             <button type="button" class="tool-button ui-button" data-tool="upgrade" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="arrow-up" aria-hidden="true">↑</span><span class="ui-control-label">ارتقا</span></button>
             <button type="button" class="tool-button ui-button" data-tool="remove" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="trash" aria-hidden="true">×</span><span class="ui-control-label">تخریب</span></button>
             <button type="button" class="tool-button ui-button" data-tool="navigate" aria-label="مسیریابی آدمک" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="route" aria-hidden="true">•</span><span class="ui-control-label">آدمک</span></button>
+            <button type="button" class="tool-button ui-button" data-tool="cable" aria-pressed="false">کابل · ۱۵</button>
+            <button type="button" class="tool-button ui-button" data-tool="riser" aria-pressed="false">رابط عمودی · ۳۵</button>
+            <button type="button" class="tool-button ui-button" data-tool="cutCable" aria-pressed="false">حذف کابل</button>
+            <button type="button" class="tool-button ui-button" id="power-overlay-toggle" aria-pressed="false" aria-label="نمایش کابل و اتاق‌های بی‌برق">نمایش شبکه برق</button>
           </div>
           <section class="upgrade-panel" id="upgrade-panel" aria-label="جزئیات ارتقای اتاق" aria-live="polite" hidden>
             <strong id="upgrade-title">یک اتاق انتخاب کنید</strong>
