@@ -68,7 +68,9 @@ export class ResidentTraffic {
   }
 
   private view(agent: ResidentState): ResidentView {
-    const room = agent.destinationId && this.layout.rooms.find((r) => r.id === agent.destinationId);
+    const room = agent.destinationId
+      ? this.layout.rooms.find((r) => r.id === agent.destinationId)
+      : undefined;
     const inRoom = room?.id === this.layout.getRoomAt(agent.cell.x, agent.cell.y)?.id && !agent.next;
     return {
       id: agent.id, cell: { ...agent.cell }, position: { ...agent.position },
