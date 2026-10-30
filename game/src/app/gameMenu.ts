@@ -1,17 +1,11 @@
 import type { GameScene } from './GameScene';
-import { mountGameHelp } from './ui/gameHelp';
 import type { AudioManager } from '../modules/audio/AudioManager';
 import type { AudioSettings } from '../modules/audio/settings';
 import { loadMenuSettings, saveMenuSettings, type MenuSettings } from './menuSettings';
 import { getLocale, setLocale, subscribeLocaleChange, t, formatNumber } from '../i18n';
 
-type MenuScreen = 'home' | 'pause' | 'settings' | 'help' | 'confirm-new';
+type MenuScreen = 'home' | 'pause' | 'settings' | 'confirm-new';
 type ReturnScreen = 'home' | 'pause';
-
-/** Back/Escape must return from Help to Settings before returning to Home/Pause. */
-export function menuBackTarget(screen: MenuScreen, returnScreen: ReturnScreen): MenuScreen {
-  return screen === 'help' ? 'settings' : returnScreen;
-}
 
 /** The modal makes other DOM controls inert while the Phaser scene is paused. */
 export function setupGameMenu(
@@ -38,7 +32,6 @@ export function setupGameMenu(
   if (!dialog || !menuButton || !continueButton || !continueLabel || !pauseTitle || !newButton || !reducedMotion || !mute ||
       !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue || !language) return;
 
-  const help = mountGameHelp(dialog);
   let playing = false;
   let hasSave = savedGameExists;
   let screen: MenuScreen = 'home';
@@ -95,7 +88,6 @@ export function setupGameMenu(
     });
     dialog!.setAttribute('aria-labelledby', 'menu-' + next + '-title');
     if (next === 'settings') renderAudio();
-    if (next === 'help') help.open();
     dialog!.querySelector<HTMLElement>('#menu-' + next + '-title')?.focus();
   }
 
@@ -141,7 +133,6 @@ export function setupGameMenu(
     renderHome();
     renderPauseHeading();
     renderAudio();
-    help.render();
   });
   mute.addEventListener('click', () => changeAudio({ muted: !audio.getSettings().muted }));
   musicEnabled.addEventListener('change', () => changeAudio({ musicEnabled: musicEnabled.checked }));
@@ -173,11 +164,8 @@ export function setupGameMenu(
         returnScreen = screen === 'pause' ? 'pause' : 'home';
         showScreen('settings');
         break;
-      case 'help':
-        showScreen('help');
-        break;
       case 'back':
-        showScreen(menuBackTarget(screen, returnScreen));
+        showScreen(returnScreen);
         break;
       case 'main':
         hasSave = true;
@@ -190,7 +178,7 @@ export function setupGameMenu(
   dialog.addEventListener('cancel', (event) => {
     event.preventDefault();
     if (screen === 'pause') resume();
-    else if (screen !== 'home') showScreen(menuBackTarget(screen, returnScreen));
+    else if (screen !== 'home') showScreen(returnScreen);
   });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && playing && !dialog.open) {

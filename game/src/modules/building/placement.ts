@@ -1,6 +1,7 @@
 import { isInsideWorld } from '../world/grid';
 import { TerrainMap } from '../world/terrain';
 import { ROOM_DEFINITIONS, type RoomType } from './catalog';
+import { validateRoomConnection } from './connectivity';
 import { canConstructAtLevel, UNDERGROUND_ONLY_POLICY, UNDERGROUND_ONLY_REASON, type ConstructionPolicy } from './constructionPolicy';
 
 export interface Room {
@@ -16,7 +17,7 @@ export type PlacementResult = { ok: true } | { ok: false; reason: string };
 const occupied = (rooms: readonly Room[], x: number, y: number): boolean =>
   rooms.some((r) => x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height);
 
-export function validatePlacement(
+export function validateFootprint(
   rooms: readonly Room[], type: RoomType, x: number, y: number,
   terrain: TerrainMap = new TerrainMap(), policy: ConstructionPolicy = UNDERGROUND_ONLY_POLICY
 ): PlacementResult {
@@ -38,6 +39,22 @@ export function validatePlacement(
     }
   }
   return { ok: true };
+}
+
+/** Player operations require both a legal footprint and a horizontal elevator route. */
+export function validatePlacement(
+  rooms: readonly Room[], type: RoomType, x: number, y: number,
+  terrain: TerrainMap = new TerrainMap(), policy: ConstructionPolicy = UNDERGROUND_ONLY_POLICY
+): PlacementResult {
+  const footprint = validateFootprint(rooms, type, x, y, terrain, policy);
+  if (!footprint.ok) return footprint;
+  // The historical surface policy is used solely for compatibility fixtures.
+  if (y >= 0 && policy.allowSurfaceConstruction) return { ok: true };
+  const definition = ROOM_DEFINITIONS[type];
+  return validateRoomConnection(rooms, {
+    id: '__candidate__', type, x, y,
+    width: definition.width, height: definition.height, level: 1
+  }, terrain);
 }
 
 export function hasStructuralSupport(rooms: readonly Room[], terrain: TerrainMap): boolean {

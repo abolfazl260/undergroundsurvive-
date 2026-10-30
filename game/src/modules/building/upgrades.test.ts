@@ -31,7 +31,7 @@ describe('room upgrade capacities', () => {
       id: 'initial-habitat', level: 1, cost: getUpgradeCost('habitat', 1),
       current: { value: 2 }, next: { value: 4 }
     });
-    expect(game.upgradeCostAt(10, -2)).toBe(240);
+    expect(game.upgradeCostAt(3, -1)).toBe(240);
     expect(game.upgradeDetails('missing')).toBeNull();
     expect(game.snapshot()).toEqual(before);
   });
@@ -40,7 +40,7 @@ describe('room upgrade capacities', () => {
     const game = GameSession.create();
     const id = 'initial-habitat';
     expect(game.upgradeRoom(id)).toEqual({ ok: true });
-    expect(game.layout.getRoomAt(10, -2)?.level).toBe(2);
+    expect(game.layout.getRoomAt(3, -1)?.level).toBe(2);
     expect(game.upgradeDetails(id)?.current.value).toBe(4);
     expect(game.upgradeDetails(id)?.next?.value).toBe(6);
     expect(game.upgradeDetails(id)?.cost).toBe(360);
