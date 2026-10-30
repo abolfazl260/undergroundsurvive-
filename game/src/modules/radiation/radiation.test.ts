@@ -1,0 +1,51 @@
+import { expect,it } from 'vitest';
+import { RadiationField, RADIATION_CONFIG, LEAK_SOURCE, type ShieldingProvider, type RadiationExposureEvent } from './radiation';
+import { WORLD } from '../world/grid';
+import { GameSession } from '../economy/session';
+const open:ShieldingProvider={permeable:()=>true,shielding:()=>1,ventilation:()=>.98};
+const idx=(x:number,y:number)=>(y-WORLD.minY)*WORLD.cols+x;
+it('gives surface/leak more cumulative exposure than protected underground; gear reduces dose',()=>{
+ const f=new RadiationField(),events:RadiationExposureEvent[]=[];
+ f.advanceTo(5000,open,[{id:'surface',x:1,y:0,protection:0},{id:'underground',x:1,y:-4,protection:0},{id:'gear',x:1,y:0,protection:.75},{id:'leak',x:12,y:-1,protection:0}],{onRadiationExposure:e=>events.push(e)});
+ const dose=(id:string)=>f.snapshot().exposures.find(e=>e.id===id)!.dose;
+ expect(dose('surface')).toBeGreaterThan(dose('underground'));expect(dose('leak')).toBeGreaterThan(dose('underground'));
+ expect(dose('gear')).toBeCloseTo(dose('surface')*.25);expect(new Set(events.map(e=>e.id)).size).toBe(4);
+});
+it('uses double buffers, respects walls/solid barriers and bounds every value',()=>{
+ const state=new RadiationField().snapshot();state.levels.fill(0);state.levels[idx(4,-2)]=100;
+ const a=RadiationField.restore(state)!,b=RadiationField.restore(state)!;
+ const wall={...open,canTransmit:(from:{x:number;y:number},to:{x:number;y:number})=>!(from.x===4&&to.x===5)};
+ a.advanceTo(5000,wall,[]);b.advanceTo(5000,wall,[]);expect(a.snapshot()).toEqual(b.snapshot());
+ expect(a.getRiskForLocation(5,-2)).toBe(0);expect(a.getRiskForLocation(6,-2)).toBe(0);
+ const solid=RadiationField.restore(state)!;solid.advanceTo(5000,{...open,permeable:x=>x!==5},[]);expect(solid.getRiskForLocation(5,-2)).toBe(0);
+ for(let i=2;i<=30;i++)a.advanceTo(i*5000,wall,[]);
+ expect(a.snapshot().levels.every(n=>Number.isFinite(n)&&n>=0&&n<=100)).toBe(true);
+ expect(a.getRiskForLocation(-1,-1)).toBe(0);
+});
+it('applies atomic cleanup/filter costs once, with measurable mitigation in a crisis',()=>{
+ const s=GameSession.create(),before=s.wallet.balance;
+ expect(s.cleanupRadiation(12,-1,'clean')).toBe(true);expect(s.radiation.getRiskForLocation(12,-1)).toBe(27.5);
+ expect(s.cleanupRadiation(12,-1,'clean')).toBe(false);expect(s.wallet.balance).toBe(before-25);
+ expect(s.cleanupRadiation(-1,-1,'bad')).toBe(false);expect(s.installRadiationFilter('absent','bad')).toBe(false);
+ const plain=GameSession.restore(s.snapshot())!;
+ expect(s.installRadiationFilter('initial-command','filter')).toBe(true);expect(s.installRadiationFilter('initial-command','again')).toBe(false);
+ const occupants=[{id:'a',x:5,y:-1,protection:0}];s.setRadiationOccupants(occupants);plain.setRadiationOccupants(occupants);
+ s.advanceTime(5000);plain.advanceTime(5000);
+ expect(s.radiation.snapshot().exposures[0].dose).toBeLessThan(plain.radiation.snapshot().exposures[0].dose);
+ expect(s.wallet.balance).toBe(before-25-50);
+ const loaded=GameSession.restore(s.snapshot())!;expect(loaded.cleanupRadiation(12,-1,'clean')).toBe(false);
+ expect(loaded.installRadiationFilter('initial-command','filter')).toBe(false);
+ const poor=GameSession.create();poor.wallet.spend(poor.wallet.balance,'radiation');const saved=poor.snapshot();expect(poor.cleanupRadiation(12,-1,'x')).toBe(false);expect(poor.snapshot()).toEqual(saved);
+});
+it('limits surge source, duration, cooldown and dose; persists pause/reload and migrates old games',()=>{
+ const f=new RadiationField();expect(f.triggerSurge('fake')).toBe(false);expect(f.triggerSurge(LEAK_SOURCE.id)).toBe(true);expect(f.triggerSurge(LEAK_SOURCE.id)).toBe(false);
+ f.advanceTo(35000,open,[]);expect(f.triggerSurge(LEAK_SOURCE.id)).toBe(false);
+ const snap=f.snapshot();expect(RadiationField.restore(snap)!.snapshot()).toEqual(snap);f.advanceTo(NaN,open,[]);f.advanceTo(0,open,[]);expect(f.snapshot()).toEqual(snap);
+ expect(RadiationField.restore({...snap,levels:[NaN,...snap.levels.slice(1)]})).toBeNull();
+ expect(RadiationField.restore({...snap,exposures:[{id:'x',dose:-1}]})).toBeNull();
+ const cap=RadiationField.restore({...snap,exposures:[{id:'max',dose:RADIATION_CONFIG.maxDose-1}]})!;
+ cap.advanceTo(40000,open,[{id:'max',x:0,y:0,protection:0}]);expect(cap.snapshot().exposures[0].dose).toBe(RADIATION_CONFIG.maxDose);
+ const a=GameSession.create(),b=GameSession.restore(a.snapshot())!;a.advanceTime(10000);for(let i=0;i<100;i++)b.advanceTime(100);expect(b.snapshot()).toEqual(a.snapshot());
+ expect(GameSession.restore(a.snapshot())!.snapshot()).toEqual(a.snapshot());
+ const legacy=GameSession.restore({...a.snapshot(),schemaVersion:6,radiation:undefined})!;expect(legacy.radiation.snapshot().nowMs).toBe(10000);
+});

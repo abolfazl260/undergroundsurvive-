@@ -1,4 +1,4 @@
-export type TransactionKind = 'starting-balance' | 'build' | 'dig' | 'floor' | 'upgrade' | 'demo-bonus' | 'research';
+export type TransactionKind = 'starting-balance' | 'build' | 'dig' | 'floor' | 'upgrade' | 'demo-bonus' | 'research' | 'radiation';
 
 export interface WalletTransaction {
   id: number;
@@ -15,7 +15,7 @@ export interface WalletSnapshot {
 }
 
 const VALID_KINDS: ReadonlySet<string> = new Set([
-  'starting-balance', 'build', 'dig', 'floor', 'upgrade', 'demo-bonus', 'research'
+  'starting-balance', 'build', 'dig', 'floor', 'upgrade', 'demo-bonus', 'research', 'radiation'
 ]);
 const MAX_BALANCE = 1_000_000_000;
 
@@ -31,7 +31,7 @@ export class Wallet {
     return Number.isSafeInteger(cost) && cost > 0 && this.coins >= cost;
   }
 
-  spend(cost: number, kind: 'build' | 'dig' | 'floor' | 'upgrade' | 'research'): boolean {
+  spend(cost: number, kind: 'build' | 'dig' | 'floor' | 'upgrade' | 'research' | 'radiation'): boolean {
     if (!this.canAfford(cost)) return false;
     this.record(kind, -cost);
     return true;
