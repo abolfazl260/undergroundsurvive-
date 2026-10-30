@@ -5,7 +5,7 @@ import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/ca
 import { BuildingLayout } from '../modules/building/layout';
 import { GameSession, type GameSnapshot } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
-import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE } from './roomArt';
+import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE } from './roomArt';
 import { AssetManager } from './assets/assetManager';
 import { panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
@@ -16,7 +16,7 @@ export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade';
 export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
   private readonly assets = new AssetManager(
-    [ROOM_ART_ASSET], import.meta.env.BASE_URL,
+    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET], import.meta.env.BASE_URL,
     Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
   );
   private get layout(): BuildingLayout { return this.session.layout; }
@@ -386,10 +386,12 @@ export class GameScene extends Phaser.Scene {
       const { left, top } = toPixels(room.x, room.y);
       const width = room.width * WORLD.cellSize - 4;
       const height = room.height * WORLD.cellSize - 4;
-      const frame = ROOM_FRAME_BY_TYPE[room.type];
+      const specialFrame = GARDEN_MEDBAY_FRAME_BY_TYPE[room.type];
+      const frame = specialFrame ?? ROOM_FRAME_BY_TYPE[room.type];
+      const assetKey = specialFrame === undefined ? ROOM_ART_ASSET.key : GARDEN_MEDBAY_ART_ASSET.key;
 
       const texture = frame === undefined ? null : this.assets.resolve(
-        ROOM_ART_ASSET.key, this.textures, frame
+        assetKey, this.textures, frame
       );
       if (texture) {
         const sprite = this.add.image(left + 2, top + 2, texture.key, texture.frame)
