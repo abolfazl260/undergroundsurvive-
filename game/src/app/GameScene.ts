@@ -13,6 +13,7 @@ import { ResidentTraffic } from '../modules/characters/traffic';
 import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE } from './roomArt';
+import { SURVIVOR_ART, survivorGeometry, survivorFrame, hitSurvivor } from './survivorArt';
 import { AssetManager } from './assets/assetManager';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
 import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
@@ -28,7 +29,7 @@ export type ToolMode = 'elevator' | 'build' | 'dig' | 'move' | 'remove' | 'upgra
 export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
   private readonly assets = new AssetManager(
-    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND], import.meta.env.BASE_URL,
+    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART], import.meta.env.BASE_URL,
     Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
   );
   private get layout(): BuildingLayout { return this.session.layout; }
@@ -54,9 +55,10 @@ export class GameScene extends Phaser.Scene {
   private menuSettings: MenuSettings = { reducedMotion: false };
   private readonly residentFigures = new Map<string, {
     person: Phaser.GameObjects.Container;
-    label: Phaser.GameObjects.Text;
-    legs: Phaser.GameObjects.Rectangle[];
-    ring: Phaser.GameObjects.Arc;
+    sprite: Phaser.GameObjects.Image;
+    variant: number;
+    lastX: number;
+    ring: Phaser.GameObjects.Ellipse;
   }>();
   private residentPathLayer?: Phaser.GameObjects.Graphics;
   private traffic?: ResidentTraffic;
@@ -486,7 +488,7 @@ export class GameScene extends Phaser.Scene {
       // Tap a character to select it, then tap a room to direct that resident.
       // Use rendered positions, not only grid origins, for moving characters.
       const selected = worldPoint && this.traffic?.residents.find((resident) =>
-        Math.hypot(resident.position.x - worldPoint.x, resident.position.y - worldPoint.y) <= 17
+        hitSurvivor(resident.position, worldPoint, this.cameras.main.zoom)
       );
       if (selected) {
         this.selectedResidentId = selected.id;
@@ -678,7 +680,7 @@ export class GameScene extends Phaser.Scene {
       // does not obscure the newly detailed artwork. Text textures render at
       // 3× resolution instead of stretching a tiny 9px bitmap.
       const badgeWidth = width - 8;
-      const badge = this.add.container(left + 6, top + height - 18);
+      const badge = this.add.container(left + 6, top + 3);
       const plate = this.add.graphics();
       plate.fillStyle(0x09131f, 0.82).fillRoundedRect(0, 0, badgeWidth, 14, 3);
       const name = this.add.text(4, 1, getLocale() === 'fa' ? localizedRoomBadges[room.type] : definition.label, {
@@ -713,25 +715,16 @@ export class GameScene extends Phaser.Scene {
     this.selectedResidentId = starts[0].id;
     this.residentWaitMs.clear();
     this.patrolCursors.clear();
-    const colors = [0x8bd9c4, 0x91b9ee, 0xf1ba84];
     this.traffic.residents.forEach((resident, index) => {
       const person = this.add.container(resident.position.x, resident.position.y).setDepth(4);
-      const ring = this.add.circle(0, -4, 16, 0x000000, 0)
-        .setStrokeStyle(2, 0xffe29a, 0.95);
-      const legs = [
-        this.add.rectangle(-4, 10, 3, 10, 0x1a2638),
-        this.add.rectangle(4, 10, 3, 10, 0x1a2638)
-      ];
-      const label = this.add.text(0, -34, String(index + 1) + ' · IDLE', {
-        fontSize: '9px', fontFamily: 'Arial', color: '#f7fff5',
-        backgroundColor: '#163943', padding: { x: 3, y: 1 }
-      }).setOrigin(0.5).setResolution(3);
-      person.add([
-        ring, this.add.circle(0, -14, 5, 0xf7d9ae),
-        this.add.rectangle(0, -2, 11, 15, colors[index]),
-        ...legs, label
-      ]);
-      this.residentFigures.set(resident.id, { person, legs, label, ring });
+      const geometry = survivorGeometry();
+      const ring = this.add.ellipse(0, geometry.feetOffset, 15, 4, 0xffe29a, 0.25);
+      const texture = this.assets.resolve(SURVIVOR_ART.key, this.textures, index * 6);
+      // The loader always bundles the atlas; a missing animation uses its idle frame.
+      const sprite = this.add.image(0, geometry.feetOffset, texture?.key ?? '__MISSING', texture?.frame)
+        .setOrigin(0.5, 1).setDisplaySize(geometry.width, geometry.height);
+      person.add([ring, sprite]);
+      this.residentFigures.set(resident.id, { person, sprite, variant: index, lastX: resident.position.x, ring });
       this.residentWaitMs.set(resident.id, 1400 + index * 650);
       this.patrolCursors.set(resident.id, index);
     });
@@ -749,15 +742,17 @@ export class GameScene extends Phaser.Scene {
       if (!figure) continue;
       figure.person.setPosition(resident.position.x, resident.position.y);
       figure.ring.setVisible(this.mode === 'navigate' && resident.id === this.selectedResidentId);
-      const swing = resident.isWalking && !this.menuSettings.reducedMotion
-        ? Math.sin((resident.position.x + resident.position.y) * 0.23) * 18 : 0;
-      figure.legs[0].setAngle(swing);
-      figure.legs[1].setAngle(-swing);
-      const room = this.layout.rooms.find((r) => r.id === resident.destinationId);
-      const status = resident.isWaiting ? 'WAIT' : resident.isWalking ? 'MOVE' :
-        !room || room.type === 'command' ? 'IDLE' :
-          room.type === 'habitat' ? 'REST' : 'WORK';
-      figure.label.setText(resident.id.replace('resident-', '') + ' · ' + status);
+      if (Math.abs(resident.position.x - figure.lastX) > 0.01)
+        figure.sprite.setFlipX(resident.position.x < figure.lastX);
+      figure.lastX = resident.position.x;
+      const room = this.layout.getRoomAt(resident.cell.x, resident.cell.y);
+      const state = resident.isWalking ? 'walk' : !resident.isWaiting && room &&
+        room.type !== 'habitat' && room.type !== 'command' ? 'work' : 'idle';
+      const frame = survivorFrame(figure.variant, state, this.time.now, this.menuSettings.reducedMotion);
+      const texture = this.assets.resolve(SURVIVOR_ART.key, this.textures, frame)
+        ?? this.assets.resolve(SURVIVOR_ART.key, this.textures, figure.variant * 6);
+      if (texture) figure.sprite.setTexture(texture.key, texture.frame);
+
     }
   }
 
