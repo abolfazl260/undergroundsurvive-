@@ -1,0 +1,96 @@
+name: Capacitor Android and iOS checks
+
+on:
+  push:
+    paths:
+      - "game/**"
+      - ".github/workflows/mobile-capacitor-checks.yml"
+  pull_request:
+    paths:
+      - "game/**"
+      - ".github/workflows/mobile-capacitor-checks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-capacitor-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-bundle:
+    name: Web bundle and Capacitor config
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: game
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify web game and mobile config unit tests
+        run: |
+          npm test
+          npm run mobile:test
+      - name: Build and inspect offline bundle
+        run: |
+          npm run build
+          npm run mobile:check
+
+  android-debug:
+    name: Android debug APK
+    needs: web-bundle
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: game
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK platform
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Generate and sync Android shell
+        run: npm run mobile:prepare:android
+      - name: Compile development APK (not store-signed)
+        run: ./gradlew assembleDebug --no-daemon
+        working-directory: game/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underground-survive-android-debug
+          path: game/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  ios-shell:
+    name: iOS SPM project generation
+    needs: web-bundle
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: game
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Show Xcode version
+        run: xcodebuild -version
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Generate and sync iOS shell
+        run: npm run mobile:prepare:ios
+      - name: Check generated Xcode project
+        run: test -f ios/App/App.xcodeproj/project.pbxproj
