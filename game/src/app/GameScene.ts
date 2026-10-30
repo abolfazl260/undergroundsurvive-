@@ -156,7 +156,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawLevelMarkers(): void {
-    for (let y = WORLD.minY; y <= WORLD.maxY; y++) {
+    for (let y: number = WORLD.minY; y <= WORLD.maxY; y++) {
       const { top } = toPixels(0, y);
       this.add.text(68, top + 22, y > 0 ? '+' + y : String(y), {
         fontSize: '13px', fontFamily: 'Arial', color: y >= 0 ? '#b5d4df' : '#b6a58f'
@@ -168,7 +168,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.terrainLayer) return;
     const g = this.terrainLayer;
     g.clear();
-    for (let y = WORLD.minY; y <= WORLD.maxY; y++) {
+    for (let y: number = WORLD.minY; y <= WORLD.maxY; y++) {
       for (let x = 0; x < WORLD.cols; x++) {
         const { left, top } = toPixels(x, y);
         const open = this.layout.terrain.isOpen(x, y);
