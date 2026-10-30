@@ -14,7 +14,13 @@
           <span class="brand-mark" aria-hidden="true">◆</span>
           <div><div class="brand-name">UNDERGROUND <span>SURVIVE</span></div><div class="eyebrow">نمونهٔ قابل‌بازی ساخت‌وساز</div></div>
         </div>
-        <div class="prototype-tag">WEB PROTOTYPE · v0.2</div>
+        <div class="topbar-right">
+          <div class="coin-balance" aria-live="polite" aria-label="موجودی سکه">
+            <span class="coin-symbol" aria-hidden="true">●</span>
+            <span id="coin-balance">۱٬۵۰۰</span><span class="coin-unit">سکه</span>
+          </div>
+          <div class="prototype-tag">ECONOMY DEMO · v0.3</div>
+        </div>
       </header>
       <main class="workspace">
         <section class="play-area" aria-label="نمای دوبعدی پناهگاه">
@@ -44,7 +50,8 @@
             <h1>ساخت‌وساز</h1>
             <p>اتاق موردنظر را انتخاب کنید و روی خانه‌های باز شبکه بزنید.</p>
           </div>
-          <div class="side-label">اتاق‌ها</div>
+          <div class="economy-notice">موجودی شروع: ۱٬۵۰۰ سکه. هزینه‌ها آزمایشی‌اند و برای ساخت، حفاری، آزادسازی طبقه و ارتقا پرداخت می‌شوند.</div>
+          <div class="side-label">اتاق‌ها و قیمت ساخت</div>
           <div class="room-list" role="group" aria-label="انتخاب نوع اتاق">
             <button class="room-button active" type="button" data-room="habitat" aria-pressed="true"><span class="room-icon icon-habitat">⌂</span><span><strong>اتاق مسکونی</strong><small>Habitat · ۲ خانه</small></span><span class="room-arrow">←</span></button>
             <button class="room-button" type="button" data-room="generator" aria-pressed="false"><span class="room-icon icon-generator">ϟ</span><span><strong>نیروگاه</strong><small>Generator · ۲ خانه</small></span><span class="room-arrow">←</span></button>
@@ -62,11 +69,14 @@
             <button type="button" class="tool-button" data-tool="remove" aria-pressed="false">× تخریب</button>
           </div>
           <button type="button" id="unlock-floor" class="floor-button">＋ بازکردن طبقهٔ +۱</button>
+          <button type="button" id="demo-bonus" class="bonus-button">دریافت ۵۰۰ سکهٔ آزمایشی (یک‌بار)</button>
+          <div class="side-label">آخرین تراکنش‌ها</div>
+          <ul class="transaction-list" id="transaction-list" aria-label="تاریخچهٔ سکه"><li>هنوز تراکنشی ثبت نشده است.</li></ul>
           <button type="button" id="reset-layout" class="reset-button">بازنشانی تمام تغییرات آزمایشی</button>
           <div class="info-panel">
             <strong>قوانین این نسخه</strong>
-            <p>حفاری از خانه‌های باز مجاور انجام می‌شود. برای ساخت طبقهٔ بالا، خانه‌های زیر اتاق باید تکیه‌گاه باشند. حذف تکیه‌گاه مجاز نیست. ارتقا تا سطح ۳ و بدون سکه است.</p>
-            <p>تغییرات در همین مرورگر ذخیره می‌شوند؛ فعلاً سرور، حساب کاربری و اقتصاد واقعی وجود ندارد.</p>
+            <p>حفاری از خانه‌های باز مجاور انجام می‌شود. برای ساخت طبقهٔ بالا، خانه‌های زیر اتاق باید تکیه‌گاه باشند. حذف تکیه‌گاه مجاز نیست. ارتقا تا سطح ۳ است و به سکه نیاز دارد.</p>
+            <p>سکه‌ها و تغییرات فقط در همین مرورگر ذخیره می‌شوند؛ اقتصاد این نسخه آزمایشی است و هنوز سرور، حساب کاربری یا پرداخت واقعی وجود ندارد.</p>
           </div>
         </aside>
       </main>
