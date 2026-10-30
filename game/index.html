@@ -155,11 +155,24 @@
     </div>
     <dialog id="achievements-dialog" class="achievements-dialog" aria-labelledby="achievements-heading">
       <div class="achievements-header">
-        <div><span class="eyebrow">SHELTER MILESTONES</span><h2 id="achievements-heading">دستاوردهای پناهگاه</h2>
-          <p id="achievements-summary">۰ از ۱۱ دستاورد باز شده</p></div>
-        <button type="button" id="achievements-close" aria-label="بستن دستاوردها">بستن</button>
+        <div class="achievements-hero-content">
+          <span class="achievements-crest" aria-hidden="true">★</span>
+          <div class="achievements-heading-block">
+            <span class="achievements-kicker">SHELTER MILESTONES</span>
+            <h2 id="achievements-heading">دستاوردهای پناهگاه</h2>
+            <p id="achievements-summary">۰ از ۱۱ دستاورد باز شده</p>
+            <div class="achievements-total">
+              <progress id="achievements-total-progress" max="11" value="0" aria-label="پیشرفت کل دستاوردها"></progress>
+              <output id="achievements-total-fraction">۰ / ۱۱</output>
+            </div>
+          </div>
+        </div>
+        <button type="button" id="achievements-close" aria-label="بستن دستاوردها" title="بستن">×</button>
       </div>
-      <ul id="achievements-list" class="achievements-list" aria-label="فهرست دستاوردها"></ul>
+      <div class="achievements-body">
+        <nav id="achievements-filters" class="achievements-filters" aria-label="دسته‌بندی دستاوردها"></nav>
+        <ul id="achievements-list" class="achievements-list" aria-label="فهرست دستاوردها"></ul>
+      </div>
     </dialog>
     <div id="achievement-toast" class="achievement-toast" role="status" aria-live="polite" hidden></div>
     <dialog id="game-menu-dialog" class="game-menu" aria-labelledby="menu-home-title">

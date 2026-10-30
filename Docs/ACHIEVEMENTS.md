@@ -26,3 +26,11 @@ The Achievements action opens an accessible native dialog with progress bars and
 ## Test commands
 
 From the game directory, run: npm test, then npm run build. The achievement suite tests command success/failure, migration, persistence, reset, resource progress, and malformed data.
+
+## Vault-styled achievements screen
+
+The achievements modal uses the same full-screen mobile-first visual design on the web and mobile. It features an illustrated header, overall completion meter, category filters, localized milestone details, accessible progress elements, and unlocked-state medals. Larger screens arrange filters beside the cards; narrow screens make them a horizontal, touch-friendly strip. The list scrolls inside the modal without moving the game canvas.
+
+Categories are presentation-only: construction (builds, digs, upgrades), exploration (upper floors), production (resource cycles), and community (distinct room types). Their totals are derived from the existing 11 achievement definitions. No badge ID, unlock rule, save schema, reward or economy value is modified. Card artwork reuses the already packaged HD room atlases; no additional downloaded artwork is required.
+
+Dialog Escape and close-button behavior, the existing unlock toast, RTL Persian/LTR English layouts, and local-save progress are preserved. The display also supports reduced-motion preferences.
