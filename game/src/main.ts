@@ -1,4 +1,5 @@
 import './style.css';
+import './audio.css';
 import { createGame } from './app/createGame';
 import { GameScene, type ToolMode } from './app/GameScene';
 import { ZOOM } from './app/viewport';
