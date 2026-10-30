@@ -20,14 +20,21 @@ export function mountWaterPanel(root: HTMLElement, collect: () => void, toggle: 
     networkTitle.textContent = en ? 'Life-support distribution' : 'توزیع آب و اکسیژن';
     const totals = document.createElement('p');
     totals.textContent = en
-      ? `Clean water: ${life.water.stock}/${life.water.capacity} (use ${life.water.consumed}/tick) · Oxygen: ${life.oxygen.stock}/${life.oxygen.capacity} (produce ${life.oxygen.produced}, use ${life.oxygen.consumed}/tick)`
-      : `آب سالم: ${life.water.stock}/${life.water.capacity} (مصرف ${life.water.consumed}/چرخه) · اکسیژن: ${life.oxygen.stock}/${life.oxygen.capacity} (تولید ${life.oxygen.produced}، مصرف ${life.oxygen.consumed}/چرخه)`;
+      ? `Clean water: ${life.water.stock}/${life.water.capacity} (produce ${life.water.produced}, use ${life.water.consumed}/tick) · Oxygen: ${life.oxygen.stock}/${life.oxygen.capacity} (produce ${life.oxygen.produced}, use ${life.oxygen.consumed}/tick)`
+      : `آب سالم: ${life.water.stock}/${life.water.capacity} (تولید ${life.water.produced}، مصرف ${life.water.consumed}/چرخه) · اکسیژن: ${life.oxygen.stock}/${life.oxygen.capacity} (تولید ${life.oxygen.produced}، مصرف ${life.oxygen.consumed}/چرخه)`;
     network.append(networkTitle,totals);
     const grace = document.createElement('p');
     if (life.graceTicks) {
       grace.textContent = en ? `Emergency reserve: ${life.graceTicks} cycles before residential consumption starts.`
         : `ذخیرهٔ اضطراری: ${life.graceTicks} چرخه تا شروع مصرف ساکنان.`;
       network.append(grace);
+    }
+    for (const zone of life.zones) {
+      const line = document.createElement('p');
+      line.textContent = en
+        ? `Zone ${zone.ids.join(', ')}: water ${zone.waterStock ?? 0}, oxygen ${zone.oxygenStock ?? 0}`
+        : `منطقه ${zone.ids.join('، ')}: آب ${zone.waterStock ?? 0}، اکسیژن ${zone.oxygenStock ?? 0}`;
+      network.append(line);
     }
     for (const state of life.rooms.filter(r=>r.status !== 'online')) {
       const line = document.createElement('p');
@@ -40,7 +47,7 @@ export function mountWaterPanel(root: HTMLElement, collect: () => void, toggle: 
     for (const link of life.links) {
       const button = document.createElement('button'); button.type='button';
       button.className = 'life-support-valve';
-      button.textContent = `${link.a} ↔ ${link.b} · ${link.open ? (en?'Close valve':'بستن شیر') : (en?'Open valve':'بازکردن شیر')}`;
+      button.textContent = `${link.a} ↔ ${link.b} · ${link.open ? (en?'Close valve':'بستن شیر') : (en?'Open valve':'بازکردن شیر')} · ${link.capacity}/${en?'tick':'چرخه'}`;
       button.setAttribute('aria-label',button.textContent);
       button.onclick = () => toggleLink(link.a,link.b);
       network.append(button);
