@@ -12,7 +12,7 @@ describe('HUD snapshot projection', () => {
     const view = toHudView(snapshot, true);
     expect(view.balance).toBe(format(snapshot.wallet.balance));
     expect(view.rooms).toBe(format(snapshot.base.rooms.length));
-    expect(view.floors).toBe(format(0) + ' / ' + format(WORLD.maxY));
+    expect(view.floors).toBe(format(2) + ' / ' + format(-WORLD.minY));
     expect(view.excavated).toBe(format(snapshot.base.terrain.excavated.length));
     expect(view.changeKind).toBe('none');
     expect(view.lastChange).toBe('—');
@@ -29,14 +29,15 @@ describe('HUD snapshot projection', () => {
     expect(view.changeKind).toBe('earned');
   });
 
-  it('reports expenses and floor progress from the game state', () => {
+  it('reports excavated underground depth rather than disabled sky floors', () => {
     const session = GameSession.create();
-    expect(session.unlockFloor().ok).toBe(true);
+    expect(session.dig(5, -2).ok).toBe(true);
+    expect(session.dig(5, -3).ok).toBe(true);
     const view = toHudView(session.snapshot(), true);
-    expect(view.balance).toBe(format(1200));
-    expect(view.lastChange).toBe('−' + format(300));
+    expect(view.balance).toBe(format(1500 - 70));
+    expect(view.lastChange).toBe('−' + format(35));
     expect(view.changeKind).toBe('spent');
-    expect(view.floors).toBe(format(1) + ' / ' + format(WORLD.maxY));
+    expect(view.floors).toBe(format(3) + ' / ' + format(-WORLD.minY));
   });
 
   it('renders English digits and save status on a language switch without mutating the snapshot', () => {
