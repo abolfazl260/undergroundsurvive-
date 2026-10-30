@@ -13,7 +13,7 @@ const BASE_CAPACITY = 30;
 const MAX_STOCK = 100_000;
 
 export interface ResourceSnapshot {
-  schemaVersion: 2;
+  schemaVersion: 1 | 2;
   stock: ResourceStock;
   elapsedMs: number;
   tickCount: number;
