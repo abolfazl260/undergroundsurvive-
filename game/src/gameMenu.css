@@ -1,0 +1,254 @@
+/* Cinematic shelter menu – shared across phone, tablet and desktop. */
+.game-menu {
+  width: min(760px, calc(100vw - 32px));
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  padding: 0;
+  margin: auto;
+  color: #edf7f8;
+  background: #081825;
+  border: 1px solid #4d8290;
+  border-radius: 19px;
+  box-shadow: 0 0 0 1px #07141a, 0 24px 90px #000e, inset 0 0 42px #14304260;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #4f7e88 #102733;
+}
+.game-menu::backdrop {
+  background: #01080dd9;
+  -webkit-backdrop-filter: blur(9px) saturate(.68);
+  backdrop-filter: blur(9px) saturate(.68);
+}
+.game-menu .menu-screen--home,
+.game-menu .menu-screen--pause {
+  padding: 0;
+  position: relative;
+  min-width: 0;
+  text-align: start;
+  background: linear-gradient(160deg, #0c2530 0%, #091925 58%, #061621 100%);
+}
+.game-menu .menu-screen--home::before,
+.game-menu .menu-screen--pause::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 1px solid #72bfd022;
+  border-radius: 11px;
+  pointer-events: none;
+}
+.game-menu .menu-hero {
+  min-height: 214px;
+  padding: 26px 35px 22px;
+  position: relative;
+  overflow: hidden;
+  direction: rtl;
+  text-align: right;
+  background-image:
+    linear-gradient(270deg, #091925f5 0%, #091925de 42%, #07192565 100%),
+    linear-gradient(0deg, #081926 0%, transparent 42%),
+    url('/assets/backgrounds/ruined-city-hd.webp');
+  background-position: center, center, center 42%;
+  background-size: cover;
+  border-bottom: 1px solid #396b7766;
+  box-shadow: inset 0 -16px 32px #061923bd;
+}
+.game-menu .menu-hero-top {
+  display: flex;
+  direction: ltr;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 38px;
+}
+.game-menu .menu-hero .menu-kicker {
+  color: #93cbd3;
+  text-align: left;
+  font: 800 12px/1.6 system-ui, sans-serif;
+  letter-spacing: .25em;
+  text-shadow: 0 1px 8px #01090e;
+  direction: ltr;
+}
+.game-menu .menu-hero h2 {
+  margin: 8px 0 9px;
+  font-size: clamp(23px, 4.2vw, 36px);
+  font-weight: 900;
+  line-height: 1.45;
+  letter-spacing: -.035em;
+  color: #f5f9fa;
+  text-shadow: 0 2px 15px #06121f;
+  outline: none;
+}
+.game-menu .menu-title-accent { color: #37e6aa; }
+.game-menu .menu-hero .menu-description {
+  max-width: 48ch;
+  font-size: clamp(12px, 1.8vw, 14px);
+  font-weight: 500;
+  line-height: 1.9;
+  color: #c4d8dd;
+  text-wrap: pretty;
+  margin: 0;
+  text-shadow: 0 1px 6px #061520;
+}
+.game-menu .menu-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 9px;
+  background: #0b2432d9;
+  color: #d2f1f3;
+  border: 1px solid #80b5c06b;
+  transition: background .16s ease, border-color .16s ease;
+  touch-action: manipulation;
+}
+.game-menu .menu-close:hover { background: #24485a; border-color: #b0dce5; }
+.game-menu .menu-close .ui-icon { width: 24px; height: 24px; }
+.game-menu .menu-content { padding: 19px 34px 18px; position: relative; }
+.game-menu .menu-choice-list { display: grid; gap: 11px; }
+.game-menu .menu-choice-list .menu-choice {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 20px;
+  align-items: center;
+  column-gap: 18px;
+  direction: ltr;
+  width: 100%;
+  min-height: 76px;
+  margin: 0;
+  padding: 12px 20px;
+  text-align: right;
+  border: 1px solid #426f80;
+  border-radius: 11px;
+  background: linear-gradient(100deg, #112c3b, #153343 68%, #0f2937);
+  box-shadow: inset 0 1px #ffffff0b, 0 3px 12px #010b1199;
+  color: #eef8fb;
+  transition: background .16s ease, border-color .16s ease, transform .16s ease;
+  touch-action: manipulation;
+}
+.game-menu .menu-choice-list .menu-choice:hover {
+  background: linear-gradient(100deg, #1e4252, #194253);
+  border-color: #83bfc8;
+  transform: translateY(-1px);
+}
+.game-menu .menu-choice-list .menu-choice:active { transform: translateY(1px); }
+.game-menu .menu-choice-list .menu-choice:focus-visible,
+.game-menu .menu-close:focus-visible { outline: 3px solid #a2f6d1; outline-offset: 3px; }
+.game-menu .menu-choice-list .menu-primary {
+  background: linear-gradient(105deg, #126449, #0b7557 65%, #086c55);
+  border-color: #41efba;
+  box-shadow: 0 0 0 1px #1f966e55, inset 0 1px #aaf8d342, inset 0 -1px #07402b;
+}
+.game-menu .menu-choice-list .menu-primary:hover {
+  background: linear-gradient(105deg, #197a59, #138c68 65%, #0b795d);
+  border-color: #b7ffe0;
+}
+.game-menu .menu-choice-copy {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  direction: rtl;
+  text-align: right;
+  align-items: flex-start;
+  line-height: 1.4;
+}
+.game-menu .menu-choice-copy strong {
+  width: 100%;
+  font-size: clamp(15px, 2vw, 19px);
+  font-weight: 800;
+  line-height: 1.4;
+}
+.game-menu .menu-choice-copy small {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #a4c4ce;
+}
+.game-menu .menu-primary .menu-choice-copy small { color: #b9e8d7; }
+.game-menu .menu-choice-icon {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  height: 43px;
+  color: #bad5dd;
+  border-right: 1px solid #7ba5ac36;
+}
+.game-menu .menu-choice-icon .ui-icon { width: 30px; height: 30px; stroke-width: 2; }
+.game-menu .menu-primary .menu-choice-icon { color: #a2ffe0; border-right-color: #a4efd64a; }
+.game-menu .menu-choice-chevron {
+  grid-column: 3;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  color: #c5dce2;
+}
+.game-menu .menu-choice-chevron .ui-icon { width: 19px; height: 19px; stroke-width: 2.5; }
+.game-menu .menu-save-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin: 19px 0 0;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #a5c9cf;
+}
+.game-menu .menu-save-note .ui-icon { width: 16px; height: 16px; }
+.game-menu .menu-screen:not(.menu-screen--home):not(.menu-screen--pause) {
+  padding: 27px 32px;
+}
+html[dir="ltr"] .game-menu .menu-hero { direction: ltr; text-align: left;
+  background-image: linear-gradient(90deg, #091925f5 0%, #091925de 42%, #07192565 100%), linear-gradient(0deg, #081926 0%, transparent 42%), url('/assets/backgrounds/ruined-city-hd.webp'); }
+html[dir="ltr"] .game-menu .menu-choice-copy { direction: ltr; text-align: left; }
+@media (max-width: 600px) {
+  .game-menu {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    border-radius: 13px;
+  }
+  .game-menu .menu-hero { min-height: 167px; padding: 18px 19px 16px; }
+  .game-menu .menu-hero .menu-kicker { font-size: 10px; letter-spacing: .2em; }
+  .game-menu .menu-hero-top { min-height: 30px; }
+  .game-menu .menu-hero h2 { margin: 7px 0 5px; font-size: clamp(22px, 6vw, 29px); }
+  .game-menu .menu-hero .menu-description { font-size: 12px; line-height: 1.7; }
+  .game-menu .menu-close { width: 36px; height: 36px; }
+  .game-menu .menu-close .ui-icon { width: 21px; height: 21px; }
+  .game-menu .menu-content { padding: 12px 17px 13px; }
+  .game-menu .menu-choice-list { gap: 8px; }
+  .game-menu .menu-choice-list .menu-choice {
+    min-height: 65px;
+    padding: 9px 13px;
+    column-gap: 10px;
+    grid-template-columns: 35px minmax(0, 1fr) 18px;
+    border-radius: 9px;
+  }
+  .game-menu .menu-choice-copy { gap: 2px; }
+  .game-menu .menu-choice-copy strong { font-size: 14px; }
+  .game-menu .menu-choice-copy small { font-size: 11px; }
+  .game-menu .menu-choice-icon { height: 34px; }
+  .game-menu .menu-choice-icon .ui-icon { width: 23px; height: 23px; }
+  .game-menu .menu-choice-chevron .ui-icon { width: 16px; height: 16px; }
+  .game-menu .menu-save-note { margin-top: 12px; font-size: 10px; }
+  .game-menu .menu-screen:not(.menu-screen--home):not(.menu-screen--pause) { padding: 22px 18px; }
+}
+@media (max-height: 650px) {
+  .game-menu .menu-hero { min-height: 0; padding-top: 13px; padding-bottom: 13px; }
+  .game-menu .menu-hero h2 { font-size: 23px; margin: 2px 0 4px; }
+  .game-menu .menu-hero .menu-description { font-size: 11px; line-height: 1.55; }
+  .game-menu .menu-choice-list .menu-choice { min-height: 54px; padding-top: 6px; padding-bottom: 6px; }
+  .game-menu .menu-content { padding-top: 9px; padding-bottom: 10px; }
+  .game-menu .menu-save-note { margin-top: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-menu .menu-choice-list .menu-choice, .game-menu .menu-close { transition: none; }
+  .game-menu .menu-choice-list .menu-choice:hover,
+  .game-menu .menu-choice-list .menu-choice:active { transform: none; }
+  .game-menu::backdrop { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
