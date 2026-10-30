@@ -494,6 +494,8 @@ export class GameScene extends Phaser.Scene {
     if (this.mode === 'elevator') {
       const result=this.session.buildElevator(x,y);
       if(result.ok) { this.paintTerrain(); this.refreshResidentPath(); }
+      this.hovered = cell;
+      this.paintPreview();
       this.notify(result.ok ? 'آسانسور ساخته و طبقه آزاد شد.' : result.reason); return;
     }
     if (this.mode === 'navigate') {
