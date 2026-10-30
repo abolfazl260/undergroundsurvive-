@@ -65,10 +65,13 @@ export const LAB_WATER_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
 export const LEVEL_TWO_ROOM_ART_ASSET: TextureAsset = {
   key: 'level-two-room-art',
   kind: 'spritesheet',
-  frameWidth: 400,
-  frameHeight: 132,
+  frameWidth: 160,
+  frameHeight: 53,
   filter: 'linear',
-  variants: [{ scale: 1, path: 'assets/rooms/room-level-2.webp' }]
+  variants: [
+    { scale: 1, path: 'assets/rooms/room-level-2.webp' },
+    { scale: 4, path: 'assets/rooms/room-level-2-hd.webp', frameWidth: 640, frameHeight: 212 }
+  ]
 };
 
 export const LEVEL_TWO_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
