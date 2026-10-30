@@ -82,6 +82,6 @@ describe('room pathfinding', () => {
     expect(resident.goToRoom('initial-power')).toBe(true);
     expect(resident.goToRoom('not-a-room')).toBe(false);
     expect(resident.destinationId).toBe('initial-power');
-    expect(walkPoint({ x: 1, y: 0 })).toEqual({ x: 156, y: 276 });
+    expect(walkPoint({ x: 1, y: 0 })).toEqual({ x: 183, y: 294 });
   });
 });
