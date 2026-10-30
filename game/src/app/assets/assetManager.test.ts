@@ -3,7 +3,7 @@ import {
   AssetManager, assetUrl, chooseVariants, variantTextureKey,
   type LoaderPort, type TextureAsset, type TextureRegistry
 } from './assetManager';
-import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE } from '../roomArt';
+import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE } from '../roomArt';
 
 const art: TextureAsset = {
   key: 'rooms',
@@ -118,5 +118,37 @@ describe('AssetManager', () => {
     expect(loader.spritesheet).toHaveBeenCalledTimes(2);
     expect(ROOM_ART_ASSET.variants).toHaveLength(2);
     expect(Object.values(ROOM_FRAME_BY_TYPE).sort()).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+});
+
+describe('garden and medbay room artwork', () => {
+  it('maps the existing room types to different frames', () => {
+    expect(GARDEN_MEDBAY_FRAME_BY_TYPE.hydroponics).toBe(0);
+    expect(GARDEN_MEDBAY_FRAME_BY_TYPE.medbay).toBe(1);
+    expect(ROOM_FRAME_BY_TYPE.hydroponics).toBeUndefined();
+    expect(ROOM_FRAME_BY_TYPE.medbay).toBeUndefined();
+    expect(GARDEN_MEDBAY_ART_ASSET.key).not.toBe(ROOM_ART_ASSET.key);
+  });
+  it('preloads high-definition and fallback frames', () => {
+    const manager = new AssetManager([ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET], '/', 4);
+    const loader = createLoader();
+    manager.preload(loader, createTextures({}));
+    expect(loader.spritesheet).toHaveBeenCalledWith(
+      'garden-medbay-art@6.4x', '/assets/rooms/garden-medbay-atlas-hd.webp',
+      { frameWidth: 1024, frameHeight: 341, margin: 0, spacing: 0 }
+    );
+    expect(loader.spritesheet).toHaveBeenCalledWith(
+      'garden-medbay-art@1x', '/assets/rooms/garden-medbay-atlas.webp',
+      { frameWidth: 160, frameHeight: 53, margin: 0, spacing: 0 }
+    );
+    const frames = createTextures({ 'garden-medbay-art@6.4x': ['0', '1'] });
+    expect(manager.resolve('garden-medbay-art', frames, 0))
+      .toEqual({ key: 'garden-medbay-art@6.4x', frame: 0 });
+    expect(manager.resolve('garden-medbay-art', frames, 1))
+      .toEqual({ key: 'garden-medbay-art@6.4x', frame: 1 });
+    expect(manager.resolve('garden-medbay-art',
+      createTextures({ 'garden-medbay-art@1x': ['0', '1'] }), 1))
+      .toEqual({ key: 'garden-medbay-art@1x', frame: 1 });
+    expect(manager.resolve('garden-medbay-art', createTextures({}), 1)).toBeNull();
   });
 });
