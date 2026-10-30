@@ -61,6 +61,9 @@ export function mountStartupScreen(doc: Document = document): StartupScreen {
   const meter = doc.getElementById('startup-meter');
   const detail = doc.getElementById('startup-detail');
   const retry = doc.getElementById('startup-retry') as HTMLButtonElement | null;
+  const caption = doc.querySelector<HTMLElement>('.startup-caption');
+  const meterHeading = doc.querySelector<HTMLElement>('.startup-progress-head span');
+  overlay?.setAttribute('data-boot-mounted', 'true');
 
   let phase: StartupPhase = 'initializing';
   let assetFraction = 0;
@@ -74,6 +77,10 @@ export function mountStartupScreen(doc: Document = document): StartupScreen {
     const locale = getLocale();
     const labels = messages[locale];
     overlay.dir = locale === 'fa' ? 'rtl' : 'ltr';
+    overlay.setAttribute('aria-label', locale === 'fa' ? 'در حال آماده‌سازی بازی' : 'Preparing the game');
+    if (caption) caption.textContent = locale === 'fa' ? 'پناهگاهی در دل شهر خاموش' : 'A shelter beneath a silent city';
+    if (meterHeading) meterHeading.textContent = locale === 'fa' ? 'آماده‌سازی بازی' : 'Preparing game';
+    if (meter) meter.setAttribute('aria-label', locale === 'fa' ? 'پیشرفت آماده‌سازی بازی' : 'Game loading progress');
     if (stage) stage.textContent = issue === 'failed' ? labels.failed : labels[phase];
     if (detail) detail.textContent = issue ? labels[issue] :
       unavailableAssets > 0 ? labels.someAssets : labels.detail;
@@ -154,7 +161,7 @@ export function mountStartupScreen(doc: Document = document): StartupScreen {
         onComplete();
       };
       // Respect reduced-motion settings and avoid blocking when no CSS transition fires.
-      const reduceMotion = win?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      const reduceMotion = win?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
       if (reduceMotion || !overlay) finishTransition();
       else win?.setTimeout(finishTransition, 260);
     }
