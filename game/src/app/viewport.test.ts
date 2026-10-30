@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampZoom, constrainScroll, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, resizeViewport, ZOOM, type Viewport } from './viewport';
+import { clampZoom, constrainScroll, fitCameraZoom, GAME_FOCUS, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, resizeViewport, ZOOM, type Viewport } from './viewport';
 
 const base: Viewport = { width: 960, height: 600, zoom: 1, scrollX: 0, scrollY: 0 };
 
@@ -83,5 +83,35 @@ describe('camera zoom and pan', () => {
     const world = screenToWorld(view, targetScreen);
     expect(world.x).toBeCloseTo(360);
     expect(world.y).toBeCloseTo(460);
+  });
+});
+
+
+describe('responsive world framing', () => {
+  it('covers the active playfield at 100% on phone, tablet and desktop', () => {
+    expect(GAME_FOCUS).toEqual({ width: 804, height: 660 });
+    for (const [width, height] of [[390, 844], [768, 1024], [1920, 1080], [844, 390]]) {
+      const scale = fitCameraZoom(width, height);
+      expect(width / scale).toBeLessThanOrEqual(GAME_FOCUS.width + 0.001);
+      expect(height / scale).toBeLessThanOrEqual(GAME_FOCUS.height + 0.001);
+    }
+    expect(fitCameraZoom(0, 100)).toBe(1);
+    expect(fitCameraZoom(Infinity, 100)).toBe(1);
+  });
+
+  it('uses absolute camera zoom limits derived from relative UI factors', () => {
+    const baseZoom = fitCameraZoom(1920, 1080);
+    const limits = { min: baseZoom * ZOOM.min, max: baseZoom * ZOOM.max };
+    const view: Viewport = {
+      width: 1920, height: 1080, worldWidth: 960, worldHeight: 720,
+      zoom: baseZoom, scrollX: 480 - 960, scrollY: 360 - 540
+    };
+    const pointer = { x: 850, y: 610 };
+    const anchored = screenToWorld(view, pointer);
+    const next = zoomAt(view, baseZoom * 2, pointer, limits);
+    expect(next.zoom).toBeCloseTo(baseZoom * 2);
+    expect(screenToWorld(next, pointer).x).toBeCloseTo(anchored.x);
+    expect(screenToWorld(next, pointer).y).toBeCloseTo(anchored.y);
+    expect(zoomAt(view, baseZoom * 8, pointer, limits).zoom).toBeCloseTo(baseZoom * ZOOM.max);
   });
 });
