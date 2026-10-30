@@ -7,6 +7,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="description" content="Underground Survive — ساخت زمین، طبقات و اتاق‌های دوبعدی" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet" />
     <title>Underground Survive — Building Prototype</title>
   </head>
   <body>
@@ -196,62 +199,61 @@
         <header class="menu-hero">
           <div class="menu-hero-top"><span class="menu-kicker">UNDERGROUND SURVIVE</span></div>
           <h2 id="menu-home-title" tabindex="-1">پناهگاه زیرزمینی</h2>
-          <p class="menu-description">پناهگاه خود را روی زمین و زیر زمین توسعه دهید. پیشرفت بازی در همین مرورگر ذخیره می‌شود.</p>
+
         </header>
         <div class="menu-content">
           <div class="menu-actions menu-choice-list">
             <button class="menu-choice menu-primary" id="menu-continue" type="button" data-menu-action="continue">
               <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
-              <span class="menu-choice-copy"><strong data-menu-continue-label>شروع بازی</strong><small>ورود به پناهگاه</small></span>
+              <span class="menu-choice-copy"><strong data-menu-continue-label>شروع بازی</strong></span>
               <span class="menu-choice-icon" data-ui-icon="play" aria-hidden="true"></span>
             </button>
             <button class="menu-choice" type="button" id="menu-new" data-menu-action="new" hidden>
               <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
-              <span class="menu-choice-copy"><strong>بازی جدید</strong><small>ساخت یک پناهگاه تازه</small></span>
+              <span class="menu-choice-copy"><strong>بازی جدید</strong></span>
               <span class="menu-choice-icon" data-ui-icon="reset" aria-hidden="true"></span>
             </button>
             <button class="menu-choice" type="button" data-menu-action="settings">
               <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
-              <span class="menu-choice-copy"><strong>تنظیمات</strong><small>صدا، زبان و حرکت</small></span>
+              <span class="menu-choice-copy"><strong>تنظیمات</strong></span>
               <span class="menu-choice-icon" data-ui-icon="settings" aria-hidden="true"></span>
             </button>
           </div>
-          <p class="menu-save-note"><span data-ui-icon="save" aria-hidden="true"></span><span>ذخیرهٔ محلی روی این دستگاه</span></p>
+
         </div>
       </section>
       <section data-menu-screen="pause" class="menu-screen menu-screen--pause" hidden>
         <header class="menu-hero">
           <div class="menu-hero-top">
-            <span class="menu-kicker">GAME PAUSED</span>
             <button class="menu-close" type="button" data-menu-action="resume" aria-label="بستن منوی توقف و ادامهٔ بازی" title="ادامهٔ بازی"><span data-ui-icon="x" aria-hidden="true"></span></button>
           </div>
           <h2 id="menu-pause-title" tabindex="-1" aria-label="بازی متوقف شده است">بازی <span class="menu-title-accent">متوقف</span> شده است</h2>
-          <p class="menu-description">زمان و حرکت‌های صحنه متوقف شده‌اند. پیشرفت شما به‌صورت محلی ذخیره می‌شود.</p>
+
         </header>
         <div class="menu-content">
           <div class="menu-actions menu-choice-list">
             <button class="menu-choice menu-primary" type="button" data-menu-action="resume">
               <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
-              <span class="menu-choice-copy"><strong>ادامهٔ بازی</strong><small>بازگشت به پناهگاه</small></span>
+              <span class="menu-choice-copy"><strong>ادامهٔ بازی</strong></span>
               <span class="menu-choice-icon" data-ui-icon="play" aria-hidden="true"></span>
             </button>
             <button class="menu-choice" type="button" data-menu-action="settings">
               <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
-              <span class="menu-choice-copy"><strong>تنظیمات</strong><small>صدا، زبان و حرکت</small></span>
+              <span class="menu-choice-copy"><strong>تنظیمات</strong></span>
               <span class="menu-choice-icon" data-ui-icon="settings" aria-hidden="true"></span>
             </button>
             <button class="menu-choice" type="button" data-menu-action="new">
               <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
-              <span class="menu-choice-copy"><strong>بازی جدید</strong><small>ساخت یک پناهگاه تازه</small></span>
+              <span class="menu-choice-copy"><strong>بازی جدید</strong></span>
               <span class="menu-choice-icon" data-ui-icon="reset" aria-hidden="true"></span>
             </button>
             <button class="menu-choice" type="button" data-menu-action="main">
               <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
-              <span class="menu-choice-copy"><strong>منوی اصلی</strong><small>بازگشت به صفحهٔ شروع</small></span>
+              <span class="menu-choice-copy"><strong>منوی اصلی</strong></span>
               <span class="menu-choice-icon" data-ui-icon="log-out" aria-hidden="true"></span>
             </button>
           </div>
-          <p class="menu-save-note"><span data-ui-icon="save" aria-hidden="true"></span><span>ذخیرهٔ محلی روی این دستگاه</span></p>
+
         </div>
       </section>
       <section data-menu-screen="settings" class="menu-screen" hidden>
@@ -272,13 +274,13 @@
           <label class="menu-audio-toggle" for="menu-effects-enabled"><span>افکت‌های صوتی</span><input id="menu-effects-enabled" type="checkbox" /></label>
           <label for="menu-effects-volume">حجم افکت‌ها <output id="menu-effects-volume-value" for="menu-effects-volume">۶۵٪</output></label>
           <input id="menu-effects-volume" type="range" min="0" max="100" step="5" value="65" />
-          <p class="menu-audio-note">تنظیمات صدا با کنترل‌های پنل بازی مشترک است.</p>
+
         </div>
         <label class="menu-check" for="menu-reduced-motion">
           <input id="menu-reduced-motion" type="checkbox" />
-          <span>کاهش حرکت‌های تزئینی <small>انیمیشن آدمک آزمایشی متوقف می‌شود.</small></span>
+          <span>کاهش حرکت‌های تزئینی</span>
         </label>
-        <p class="menu-footnote">تنظیمات صدا و کاهش حرکت جدا از پیشرفت پناهگاه ذخیره می‌شوند.</p>
+
         <div class="menu-actions">
           <button class="menu-primary" type="button" data-menu-action="back">بازگشت</button>
         </div>
