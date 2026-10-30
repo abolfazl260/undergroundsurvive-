@@ -23,11 +23,11 @@ import {
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../building/catalog';
 import { getRoomPerformance, MAX_ROOM_LEVEL, type RoomPerformance } from '../building/upgrades';
 import type { PlacementResult } from '../building/placement';
-import { AchievementTracker, type AchievementSnapshot } from '../achievements/achievements';
+import { ACHIEVEMENTS, AchievementTracker, rewardForAchievement, type AchievementSnapshot } from '../achievements/achievements';
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 14;
+  schemaVersion: 15;
   power: PowerSnapshot;
   air: AirSystemState;
   kitchen: CookingSnapshot;
@@ -174,7 +174,7 @@ export class GameSession {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
     const version=value.schemaVersion;
-    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>14||typeof value.demoBonusClaimed!=='boolean')return null;
+    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>15||typeof value.demoBonusClaimed!=='boolean')return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
     const resources = (version>=3)
@@ -186,7 +186,7 @@ export class GameSession {
     const bonusCount = wallet.transactions.filter((t) => t.kind === 'demo-bonus').length;
     if ((value.demoBonusClaimed && bonusCount !== 1) ||
         (!value.demoBonusClaimed && bonusCount !== 0)) return null;
-    const power = version >= 14 ? restorePower(value.power, world.rooms, world.terrain) : legacyPower();
+    const power = version >= 15 ? restorePower(value.power, world.rooms, world.terrain) : legacyPower();
     if (!power) return null;
     const session = new GameSession(world, wallet, value.demoBonusClaimed, resources, achievements, power);
     if (version>=5) {
@@ -238,6 +238,19 @@ export class GameSession {
     session.survivors.reconcile(session.resources.snapshot().stock.power);
     session.commandStatus();
     session.waterState.sync(world.rooms);
+    const rewarded = wallet.transactions.filter(txn=>txn.kind==='achievement-reward');
+    // v14+ achievements record both payment receipts and granted milestones.
+    if (version>=14) {
+      const granted = achievements.snapshot().rewardGrantedAchievementIds;
+      if (value.achievements?.schemaVersion !== 2 || rewarded.length !== granted.length ||
+          rewarded.some(txn=>!ACHIEVEMENTS.some(entry=>
+            entry.id===txn.achievementId && entry.rewardCoins===txn.delta) ||
+            !granted.includes(txn.achievementId as typeof ACHIEVEMENTS[number]['id']))) return null;
+    } else if (rewarded.some(txn=>!ACHIEVEMENTS.some(entry=>
+      entry.id===txn.achievementId && entry.rewardCoins===txn.delta))) return null;
+    session.refreshAchievementRewards();
+    if (rewarded.some(txn=>!session.achievementState.snapshot()
+      .rewardGrantedAchievementIds.includes(txn.achievementId as typeof ACHIEVEMENTS[number]['id']))) return null;
     return session;
   }
 
@@ -292,6 +305,18 @@ export class GameSession {
     return {ok:true};
   }
 
+  /** Award new or historical achievement unlocks once without double spending. */
+  private refreshAchievementRewards(): void {
+    this.achievementState.evaluate({
+      base: this.world.snapshot(), wallet: this.purse.snapshot(),
+      resources: this.resourceState.snapshot()
+    });
+    for (const id of this.achievementState.pendingRewards()) {
+      if (this.purse.creditAchievement(rewardForAchievement(id), id) ||
+          this.purse.hasAchievementReward(id)) this.achievementState.markRewardGranted(id);
+    }
+  }
+
   /** Simulation advances only when the Phaser scene is active (not paused/offline). */
   advanceTime(deltaMs: number): number {
     if (!Number.isFinite(deltaMs) || deltaMs <= 0) return 0;
@@ -314,6 +339,7 @@ export class GameSession {
       }
       remaining -= step;
     }
+    if(ticks) this.refreshAchievementRewards();
     return ticks;
   }
 
@@ -354,6 +380,7 @@ export class GameSession {
     this.world = candidate;
     this.survivors.setLayout(this.world);
     this.kitchenState.sync(this.world.rooms);
+    this.refreshAchievementRewards();
     return { ok: true };
   }
 
@@ -429,11 +456,11 @@ export class GameSession {
     this.radiationState.reconcileRooms(this.world.rooms);
     this.survivors.reconcile(this.resources.snapshot().stock.power);
     const base = this.world.snapshot();
+    this.refreshAchievementRewards();
     const wallet = this.purse.snapshot();
     const resources = this.resourceState.snapshot();
-    this.achievementState.evaluate({ base, wallet, resources });
     return {
-      schemaVersion: 14,
+      schemaVersion: 15,
       power: this.power,
       air: this.airState.snapshot(),
       kitchen: this.kitchenState.snapshot(),
