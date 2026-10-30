@@ -1,3 +1,4 @@
+import { WaterProductionProcessor, type WaterSnapshot } from '../water/water';
 import { BuildingLayout, type BaseSnapshot } from '../building/layout';
 import { Wallet, type WalletSnapshot } from './wallet';
 import { ResourceEngine, type ResourceSnapshot } from './resources';
@@ -12,7 +13,8 @@ import { AchievementTracker, type AchievementSnapshot } from '../achievements/ac
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 4;
+  schemaVersion: 5;
+  water: WaterSnapshot;
   base: BaseSnapshot;
   wallet: WalletSnapshot;
   resources: ResourceSnapshot;
@@ -33,6 +35,11 @@ export interface UpgradeDetails {
 type SpendKind = 'build' | 'dig' | 'floor' | 'upgrade';
 
 export class GameSession {
+  private waterState = new WaterProductionProcessor();
+  get water(): WaterProductionProcessor { return this.waterState; }
+  private powerAdapter() { return { available: () => this.resources.snapshot().stock.power, spend: (n: number) => this.resources.spendPower(n) }; }
+  collectWater(id: string): boolean { return this.waterState.collect(id, this.world.rooms, this.powerAdapter()); }
+  toggleWater(id: string): boolean { this.waterState.sync(this.world.rooms); return this.waterState.toggle(id); }
   private world: BuildingLayout;
   private purse: Wallet;
   private bonusClaimed = false;
@@ -55,20 +62,27 @@ export class GameSession {
   static restore(raw: unknown): GameSession | null {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
-    if ((value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4) ||
+    if ((value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4 && value.schemaVersion !== 5) ||
         typeof value.demoBonusClaimed !== 'boolean') return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
-    const resources = (value.schemaVersion === 3 || value.schemaVersion === 4)
+    const resources = (value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5)
       ? ResourceEngine.restore(value.resources) : ResourceEngine.create();
-    const achievements = value.schemaVersion === 4
+    const achievements = (value.schemaVersion === 4 || value.schemaVersion === 5)
       ? AchievementTracker.restore(value.achievements) : new AchievementTracker();
     if (!world || !wallet || !resources || !achievements) return null;
     resources.reconcileCapacity(world.rooms);
     const bonusCount = wallet.transactions.filter((t) => t.kind === 'demo-bonus').length;
     if ((value.demoBonusClaimed && bonusCount !== 1) ||
         (!value.demoBonusClaimed && bonusCount !== 0)) return null;
-    return new GameSession(world, wallet, value.demoBonusClaimed, resources, achievements);
+    const session = new GameSession(world, wallet, value.demoBonusClaimed, resources, achievements);
+    if (value.schemaVersion === 5) {
+      const water = WaterProductionProcessor.restore(value.water);
+      if (!water) return null;
+      session.waterState = water;
+    }
+    session.waterState.sync(world.rooms);
+    return session;
   }
 
   // Existing v1 browser saves contain only a layout; migrate without losing rooms.
@@ -84,7 +98,16 @@ export class GameSession {
 
   /** Simulation advances only when the Phaser scene is active (not paused/offline). */
   advanceTime(deltaMs: number): number {
-    return this.resourceState.advance(deltaMs, this.world.rooms);
+    if (!Number.isFinite(deltaMs) || deltaMs <= 0) return 0;
+    let remaining = Math.min(deltaMs, 60_000), ticks = 0;
+    while (remaining > 0) {
+      const step = Math.min(remaining, this.resources.remainingMs);
+      const completed = this.resourceState.advance(step, this.world.rooms);
+      ticks += completed;
+      if (completed) this.waterState.advance(5000, this.world.rooms, this.powerAdapter());
+      remaining -= step;
+    }
+    return ticks;
   }
 
   buildCost(type: BuildableRoomType): number { return getBuildCost(type); }
@@ -161,6 +184,7 @@ export class GameSession {
   }
 
   reset(): void {
+    this.waterState = new WaterProductionProcessor();
     this.world = new BuildingLayout();
     this.purse = Wallet.create(STARTING_COINS);
     this.bonusClaimed = false;
@@ -170,12 +194,14 @@ export class GameSession {
 
   snapshot(): GameSnapshot {
     this.resourceState.reconcileCapacity(this.world.rooms);
+    this.waterState.sync(this.world.rooms);
     const base = this.world.snapshot();
     const wallet = this.purse.snapshot();
     const resources = this.resourceState.snapshot();
     this.achievementState.evaluate({ base, wallet, resources });
     return {
-      schemaVersion: 4,
+      schemaVersion: 5,
+      water: this.waterState.snapshot(),
       base, wallet, resources,
       demoBonusClaimed: this.bonusClaimed,
       achievements: this.achievementState.snapshot()

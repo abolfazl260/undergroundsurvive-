@@ -18,6 +18,7 @@ const ROOM_EFFECTS: Record<RoomType, RoomEffectDefinition> = {
   medbay: { label: 'ظرفیت درمان', unit: 'نفر', base: 2, perLevel: 1 },
   workshop: { label: 'ظرفیت کارگاه', unit: 'واحد', base: 5, perLevel: 3 },
   storage: { label: 'ظرفیت ذخیره', unit: 'واحد', base: 50, perLevel: 25 },
+  waterTreatment: { label: 'آب تمیز در هر چرخه', unit: 'واحد', base: 2, perLevel: 2 },
   mine: { label: 'توان اسمی استخراج', unit: 'واحد', base: 5, perLevel: 3 }
 };
 

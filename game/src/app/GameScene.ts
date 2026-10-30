@@ -18,7 +18,7 @@ import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomA
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
   command: 'فرمان', habitat: 'مسکونی', generator: 'برق', hydroponics: 'گلخانه',
-  medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
+  waterTreatment: 'تصفیه آب', medbay: 'درمانگاه', workshop: 'کارگاه', storage: 'انبار', mine: 'معدن'
 };
 
 export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade' | 'navigate';
@@ -366,6 +366,15 @@ export class GameScene extends Phaser.Scene {
     this.notify(result.ok ? 'طبقهٔ جدید با پرداخت ' + cost + ' سکه آزاد شد؛ برای ساخت تکیه‌گاه لازم است.' : result.reason);
   }
 
+  collectWater(): void {
+    if (this.gameplayPaused) return;
+    const ok = this.session.collectWater(crypto.randomUUID());
+    this.notify(ok ? 'آب خام برداشت شد.' : 'برداشت ممکن نیست؛ برق، فضای مخزن و ذخیرهٔ چاه را بررسی کنید.');
+  }
+  toggleWater(id: string): void {
+    if (this.gameplayPaused) return;
+    this.session.toggleWater(id); this.notify('تصفیه آب');
+  }
   claimDemoBonus(): void {
     const result = this.session.claimDemoBonus();
     this.onAudioCue(result.ok ? 'reward' : 'error');
