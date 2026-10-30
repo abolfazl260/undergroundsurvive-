@@ -31,7 +31,10 @@ jobs:
         with:
           node-version: "22"
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: |
+          npm install --no-audit --no-fund
+          # npm sometimes omits the Linux Rollup optional native package on fresh runners.
+          npm install --no-save --no-package-lock --no-audit --no-fund "@rollup/rollup-linux-x64-gnu@$(node -p "require('./node_modules/rollup/package.json').version")"
       - name: Verify web game and mobile config unit tests
         run: |
           npm test
@@ -70,7 +73,10 @@ jobs:
           "$SDKMANAGER" --version
           "$SDKMANAGER" --sdk_root="$SDK_ROOT" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: |
+          npm install --no-audit --no-fund
+          # npm sometimes omits the Linux Rollup optional native package on fresh runners.
+          npm install --no-save --no-package-lock --no-audit --no-fund "@rollup/rollup-linux-x64-gnu@$(node -p "require('./node_modules/rollup/package.json').version")"
       - name: Generate and sync Android shell
         run: npm run mobile:prepare:android
       - name: Compile development APK (not store-signed)
