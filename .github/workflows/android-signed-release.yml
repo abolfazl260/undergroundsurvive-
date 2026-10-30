@@ -46,7 +46,6 @@ jobs:
       RELEASE_FORMAT: ${{ inputs.artifact_format }}
       RELEASE_VERSION_CODE: ${{ inputs.version_code }}
       RELEASE_VERSION_NAME: ${{ inputs.version_name }}
-      ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/underground-survive-release.jks
     steps:
       - name: Check out main
         uses: actions/checkout@v4
@@ -72,6 +71,9 @@ jobs:
             exit 1
           fi
           "$SDKMANAGER" --sdk_root="$SDK_ROOT" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Initialize temporary keystore location
+        run: echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/underground-survive-release.jks" >> "$GITHUB_ENV"
 
       - name: Check signing secrets and restore temporary keystore
         env:
@@ -158,10 +160,7 @@ jobs:
             }
             cp "$AAB" "$OUT/underground-survive-v${RELEASE_VERSION_NAME}-signed.aab"
           fi
-          (cd "$OUT" && sha256sum *.apk *.aab 2>/dev/null > SHA256SUMS) || {
-            # Bash glob may have no matching extension: regenerate checksums from actual files.
-            (cd "$OUT" && find . -maxdepth 1 -type f \( -name '*.apk' -o -name '*.aab' \) -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
-          }
+          (cd "$OUT" && find . -maxdepth 1 -type f \( -name '*.apk' -o -name '*.aab' \) -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS)
           if [[ ! -s "$OUT/SHA256SUMS" ]]; then
             echo "::error::No verified signed artifacts were staged"
             exit 1
