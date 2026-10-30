@@ -1,10 +1,10 @@
 import './style.css';
-import './fullscreen.css';
 import { mountGameDock } from './app/gameDock';
 import { mountStoryViewer } from './modules/narrative/viewer';
 import { setupGameMenu } from './app/gameMenu';
 import './audio.css';
 import './ui/ui.css';
+import './fullscreen.css';
 import { createIcon } from './ui/icons';
 import { enhanceIcons, setButtonLabel, setPressed } from './ui/components';
 import { createGame } from './app/createGame';

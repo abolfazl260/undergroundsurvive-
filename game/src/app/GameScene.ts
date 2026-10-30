@@ -11,7 +11,7 @@ import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE } from './roomArt';
 import { AssetManager } from './assets/assetManager';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
-import { constrainScroll, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
+import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
@@ -81,17 +81,12 @@ export class GameScene extends Phaser.Scene {
     this.viewportSize = { width: this.cameras.main.width, height: this.cameras.main.height };
     // RESIZE updates canvas and camera in CSS pixels; preserve the same world center.
     const resizeView = (size: Phaser.Structs.Size): void => {
+      if (size.width <= 0 || size.height <= 0) return;
       const camera = this.cameras.main;
-      const centerX = camera.scrollX + this.viewportSize.width / 2;
-      const centerY = camera.scrollY + this.viewportSize.height / 2;
+      const previous = { ...this.currentView(), ...this.viewportSize };
       camera.setSize(size.width, size.height);
       this.viewportSize = { width: size.width, height: size.height };
-      const view = {
-        ...this.currentView(),
-        scrollX: centerX - size.width / 2,
-        scrollY: centerY - size.height / 2
-      };
-      this.applyView({ ...view, ...constrainScroll(view) });
+      this.applyView(resizeViewport(previous, size.width, size.height));
     };
     this.scale.on('resize', resizeView);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', resizeView));

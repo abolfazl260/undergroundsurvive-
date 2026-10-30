@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampZoom, constrainScroll, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Viewport } from './viewport';
+import { clampZoom, constrainScroll, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, resizeViewport, ZOOM, type Viewport } from './viewport';
 
 const base: Viewport = { width: 960, height: 600, zoom: 1, scrollX: 0, scrollY: 0 };
 
@@ -59,6 +59,22 @@ describe('camera zoom and pan', () => {
       width: 480, height: 600, worldWidth: 960, worldHeight: 600,
       zoom: 0.75, scrollX: 99999, scrollY: 99999
     })).toEqual({ scrollX: 400, scrollY: 0 });
+  });
+
+  it('retains the same map center when switching between portrait and landscape screens', () => {
+    const portrait: Viewport = { width: 390, height: 810, worldWidth: 960,
+      worldHeight: 600, zoom: 2, scrollX: 150, scrollY: -90 };
+    const before = screenToWorld(portrait, { x: 195, y: 405 });
+    const wide = resizeViewport(portrait, 810, 390);
+    expect(screenToWorld(wide, { x: 405, y: 195 })).toEqual(before);
+    expect(wide).toMatchObject({ width: 810, height: 390, zoom: 2 });
+  });
+
+  it('clamps resize to world bounds and ignores zero-sized browser frames', () => {
+    const portrait: Viewport = { width: 390, height: 800, worldWidth: 960,
+      worldHeight: 600, zoom: 1, scrollX: 285, scrollY: -100 };
+    expect(resizeViewport(portrait, 0, 500)).toEqual(portrait);
+    expect(resizeViewport(portrait, 1600, 1000)).toMatchObject({ scrollX: -320, scrollY: -200 });
   });
 
   it('maintains grid selection after zoom and pan', () => {
