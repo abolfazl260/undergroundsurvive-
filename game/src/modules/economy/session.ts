@@ -1,3 +1,4 @@
+import { CapabilityGate, CAPABILITY_REASONS, type CommandCenterSnapshot } from '../command/commandCenter';
 import { RadiationField, type RadiationSnapshot, type RadiationOccupant } from '../radiation/radiation';
 import { ResearchScheduler, type ResearchSnapshot } from '../research/research';
 import { ELEVATOR_DEFINITION } from '../world/elevators';
@@ -16,7 +17,8 @@ import { AchievementTracker, type AchievementSnapshot } from '../achievements/ac
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 7;
+  schemaVersion: 8;
+  commandCenter: CommandCenterSnapshot;
   radiation: RadiationSnapshot;
   research: ResearchSnapshot;
   water: WaterSnapshot;
@@ -40,6 +42,17 @@ export interface UpgradeDetails {
 type SpendKind = 'build' | 'dig' | 'floor' | 'upgrade';
 
 export class GameSession {
+  private commandState=new CapabilityGate();
+  get commandCenter():CapabilityGate{return this.commandState;}
+  commandStatus(){return this.commandState.status(this.world.rooms,this.resources.snapshot().stock.power);}
+  canBuild(type:BuildableRoomType,x:number,y:number):CommandResult {
+    const placement=this.world.canPlace(type,x,y);if(!placement.ok)return placement;
+    const capability=this.commandState.forRoom(type);
+    const block=capability?this.commandState.block(capability,this.world.rooms,this.resources.snapshot().stock.power):null;
+    return block?{ok:false,reason:CAPABILITY_REASONS[block]}:{ok:true};
+  }
+  moveRoom(id:string,x:number,y:number):CommandResult {this.commandStatus();const result=this.world.move(id,x,y);this.commandStatus();return result;}
+  removeRoom(id:string):CommandResult {this.commandStatus();const result=this.world.remove(id);this.commandStatus();return result;}
   private radiationState = new RadiationField();
   private radiationOccupants: readonly RadiationOccupant[] = [];
   get radiation():RadiationField {return this.radiationState;}
@@ -70,6 +83,7 @@ export class GameSession {
     this.bonusClaimed = claimed;
     this.resourceState = resources;
     this.achievementState = achievements;
+    this.commandStatus();
   }
 
   static create(): GameSession {
@@ -79,13 +93,13 @@ export class GameSession {
   static restore(raw: unknown): GameSession | null {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
-    if ((value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4 && value.schemaVersion !== 5 && value.schemaVersion !== 6 && value.schemaVersion !== 7) ||
+    if ((value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4 && value.schemaVersion !== 5 && value.schemaVersion !== 6 && value.schemaVersion !== 7 && value.schemaVersion !== 8) ||
         typeof value.demoBonusClaimed !== 'boolean') return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
-    const resources = (value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7)
+    const resources = (value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8)
       ? ResourceEngine.restore(value.resources) : ResourceEngine.create();
-    const achievements = (value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7)
+    const achievements = (value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8)
       ? AchievementTracker.restore(value.achievements) : new AchievementTracker();
     if (!world || !wallet || !resources || !achievements) return null;
     resources.reconcileCapacity(world.rooms);
@@ -93,22 +107,27 @@ export class GameSession {
     if ((value.demoBonusClaimed && bonusCount !== 1) ||
         (!value.demoBonusClaimed && bonusCount !== 0)) return null;
     const session = new GameSession(world, wallet, value.demoBonusClaimed, resources, achievements);
-    if (value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7) {
+    if (value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8) {
       const water = WaterProductionProcessor.restore(value.water);
       if (!water) return null;
       session.waterState = water;
     }
-    if(value.schemaVersion===6 || value.schemaVersion===7) {
+    if(value.schemaVersion===6 || value.schemaVersion===7 || value.schemaVersion===8) {
       const research=ResearchScheduler.restore(value.research);if(!research)return null;
       if(research.snapshot().nowMs!==resources.tickCount*5000)return null;
       session.researchState=research;
     } else session.researchState=ResearchScheduler.restore({...session.researchState.snapshot(),nowMs:resources.tickCount*5000})!;
     if(!session.researchState)return null;
-    if(value.schemaVersion===7) {
+    if(value.schemaVersion===7 || value.schemaVersion===8) {
       const radiation=RadiationField.restore(value.radiation);if(!radiation||radiation.snapshot().nowMs!==resources.tickCount*5000)return null;
       session.radiationState=radiation;
     } else session.radiationState=RadiationField.restore({...session.radiationState.snapshot(),nowMs:resources.tickCount*5000})!;
     if(!session.radiationState)return null;
+    if(value.schemaVersion===8) {
+      const command=CapabilityGate.restore(value.commandCenter);if(!command)return null;
+      session.commandState=command;
+    }
+    session.commandStatus();
     session.waterState.sync(world.rooms);
     return session;
   }
@@ -150,7 +169,8 @@ export class GameSession {
   upgradeDetails(id: string): UpgradeDetails | null {
     const room = this.world.rooms.find((r) => r.id === id);
     if (!room) return null;
-    const blockedReason = this.world.canEditRoom(room) ? null : LEGACY_SURFACE_READ_ONLY_REASON;
+    const blockedReason = !this.world.canEditRoom(room) ? LEGACY_SURFACE_READ_ONLY_REASON :
+      room.type==='command'&&!this.commandStatus().powered ? 'فرماندهی برق کافی ندارد.' : null;
     const available = room.level < MAX_ROOM_LEVEL && !blockedReason;
     return {
       id: room.id, label: ROOM_DEFINITIONS[room.type].label, level: room.level,
@@ -181,6 +201,7 @@ export class GameSession {
   }
 
   build(type: BuildableRoomType, x: number, y: number): CommandResult {
+    const valid=this.canBuild(type,x,y);if(!valid.ok)return valid;
     return this.execute(this.buildCost(type), 'build', (world) => world.place(type, x, y));
   }
 
@@ -195,14 +216,19 @@ export class GameSession {
     return this.execute(this.floorCost(), 'floor', (world) => world.unlockFloor());
   }
 
-  upgradeRoom(id: string): CommandResult {
+  upgradeRoom(id: string, operationId?: string): CommandResult {
     const details = this.upgradeDetails(id);
     if (!details) return { ok: false, reason: 'اتاق انتخاب‌شده وجود ندارد.' };
     if (!this.world.canEditRoom(this.world.rooms.find((room) => room.id === id)!))
       return { ok: false, reason: LEGACY_SURFACE_READ_ONLY_REASON };
-    if (details.cost === null) return { ok: false, reason: 'اتاق به حداکثر سطح رسیده است.' };
+    if (details.cost === null) return { ok: false, reason: details.blockedReason ?? 'اتاق به حداکثر سطح رسیده است.' };
+    const isCommand=this.world.rooms.find(r=>r.id===id)?.type==='command';
+    if(isCommand && (!this.commandStatus().powered || (operationId!==undefined&&this.commandState.hasOperation(operationId))))
+      return {ok:false,reason:'ارتقای فرماندهی به برق و درخواست جدید نیاز دارد.'};
     // The session recalculates the price; a previously shown preview is not trusted.
-    return this.execute(details.cost, 'upgrade', (world) => world.upgrade(id));
+    const result=this.execute(details.cost, 'upgrade', (world) => world.upgrade(id));
+    if(result.ok&&isCommand) {if(operationId!==undefined)this.commandState.recordOperation(operationId);this.commandStatus();}
+    return result;
   }
 
   upgradeAt(x: number, y: number): CommandResult {
@@ -220,6 +246,7 @@ export class GameSession {
   }
 
   reset(): void {
+    this.commandState=new CapabilityGate();
     this.radiationState = new RadiationField();
     this.radiationOccupants = [];
     this.researchState = new ResearchScheduler();
@@ -233,6 +260,7 @@ export class GameSession {
 
   snapshot(): GameSnapshot {
     this.resourceState.reconcileCapacity(this.world.rooms);
+    this.commandStatus();
     this.waterState.sync(this.world.rooms);
     this.radiationState.reconcileRooms(this.world.rooms);
     const base = this.world.snapshot();
@@ -240,7 +268,8 @@ export class GameSession {
     const resources = this.resourceState.snapshot();
     this.achievementState.evaluate({ base, wallet, resources });
     return {
-      schemaVersion: 7,
+      schemaVersion: 8,
+      commandCenter: this.commandState.snapshot(),
       radiation: this.radiationState.snapshot(),
       research: this.researchState.snapshot(),
       water: this.waterState.snapshot(),

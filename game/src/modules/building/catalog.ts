@@ -1,5 +1,5 @@
 export type RoomType = 'command' | 'habitat' | 'generator' | 'hydroponics' | 'medbay' | 'workshop' | 'storage' | 'mine' | 'waterTreatment' | 'laboratory';
-export type BuildableRoomType = Exclude<RoomType, 'command'>;
+export type BuildableRoomType = RoomType;
 
 export interface RoomDefinition {
   readonly label: string;

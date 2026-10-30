@@ -1,3 +1,4 @@
+import { mountCommandPanel } from './app/ui/commandPanel';
 import { mountRadiationPanel } from './app/ui/radiationPanel';
 import { mountResearchPanel } from './app/ui/researchPanel';
 import { mountWaterPanel } from './app/ui/waterPanel';
@@ -103,7 +104,7 @@ function renderUpgradePanel(): void {
       (latestBalance < details.cost ? ' — ' + t('موجودی کافی نیست.') : '');
   if (confirmUpgrade) {
     confirmUpgrade.disabled = details.cost === null || latestBalance < details.cost;
-    confirmUpgrade.textContent = details.cost === null ? t('حداکثر سطح') :
+    confirmUpgrade.textContent = details.cost === null ? (details.blockedReason ? t('ارتقا در دسترس نیست') : t('حداکثر سطح')) :
       t('تأیید ارتقا · {value} سکه', { value: formatCoins(details.cost) });
   }
 }
@@ -140,6 +141,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   renderWater(snapshot);
   renderResearch(snapshot);
   renderRadiation(snapshot);
+  renderCommand(snapshot);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
     setButtonLabel(bonusButton, snapshot.demoBonusClaimed
@@ -161,6 +163,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   }
   if (status) status.textContent = localizeGameMessage(saved ? message : message + ' (ذخیرهٔ محلی در دسترس نیست)');
 }
+const renderCommand = mountCommandPanel(document.querySelector<HTMLElement>('#command-panel')!,()=>scene.commandPopulation(),()=>scene.upgradeCommandCenter());
 const renderRadiation = mountRadiationPanel(document.querySelector<HTMLElement>('#radiation-panel')!,()=>{scene.toggleRadiation();if(lastSnapshot)renderRadiation(lastSnapshot);gameDock.showSheet(null);},()=>scene.radiationView(),()=>scene.cleanupRadiation(),()=>scene.filterRadiation());
 const renderResearch = mountResearchPanel(document.querySelector<HTMLElement>('#research-panel')!,id=>scene.startResearch(id));
 const renderWater = mountWaterPanel(document.querySelector<HTMLElement>('#water-panel')!, () => scene.collectWater(), id => scene.toggleWater(id));
