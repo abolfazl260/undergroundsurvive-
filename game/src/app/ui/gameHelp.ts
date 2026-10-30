@@ -9,12 +9,13 @@ export const ROOM_GUIDE: Readonly<Record<RoomType, RoomGuide>> = {
   command: { fa: 'اتاق فرماندهی', en: 'Command center', purposeFa: 'مدیریت پناهگاه؛ فقط یک اتاق مجاز است. سطح ۲ مجوز صنعت را باز می‌کند؛ مجوز حفظ می‌شود و استفاده از آن به فرماندهی فعال و دارای برق کافی نیاز دارد.', purposeEn: 'Shelter management; only one is allowed. Level 2 earns Industry access; permission persists but use requires an active powered command center.' },
   habitat: { fa: 'خوابگاه / اتاق مسکونی', en: 'Habitat', purposeFa: 'افزایش ظرفیت اسکان بازماندگان.', purposeEn: 'Increases survivor housing capacity.' },
   generator: { fa: 'نیروگاه', en: 'Generator', purposeFa: 'تولید برق. قفل پژوهشی مجزا ندارد؛ شرایط ساخت عمومی اعمال می‌شوند.', purposeEn: 'Produces power. No separate research gate; standard build checks apply.' },
-  hydroponics: { fa: 'گلخانه', en: 'Hydroponics', purposeFa: 'تولید غذا در چرخه‌های منابع.', purposeEn: 'Produces food in resource cycles.' },
+  hydroponics: { fa: 'گلخانه', en: 'Hydroponics', purposeFa: 'تولید مواد خوراکی خام در چرخه‌های منابع؛ برای آماده‌سازی جیره باید آشپزخانه ساخته شود.', purposeEn: 'Produces raw food through resource cycles; a kitchen prepares it as consumable meals.' },
   medbay: { fa: 'درمانگاه', en: 'Medbay', purposeFa: 'ظرفیت درمان و پشتیبانی ساکنان.', purposeEn: 'Provides treatment capacity and survivor support.' },
   workshop: { fa: 'کارگاه', en: 'Workshop', purposeFa: 'تجهیزات و تولید صنعتی؛ نیازمند مجوز صنعت (قابل کسب از سطح ۲) و فرماندهی فعال با برق کافی.', purposeEn: 'Industrial supplies; requires Industry permission and an active powered command center.' },
   storage: { fa: 'انبار', en: 'Storage', purposeFa: 'افزایش ظرفیت ذخیرهٔ منابع.', purposeEn: 'Increases resource storage capacity.' },
   mine: { fa: 'معدن', en: 'Mine', purposeFa: 'استخراج سنگ معدن؛ نیازمند فرماندهی فعال سطح ۲ با برق کافی.', purposeEn: 'Extracts ore; requires a powered, active level-2 command center.' },
   waterTreatment: { fa: 'تصفیهٔ آب', en: 'Water treatment', purposeFa: 'تصفیهٔ آب برای پناهگاه، با توجه به منابع و شرایط عملیاتی.', purposeEn: 'Treats shelter water subject to resources and operating conditions.' },
+  kitchen: { fa: 'آشپزخانه', en: 'Kitchen', purposeFa: 'تبدیل غذا و آب تمیز به جیرهٔ قابل مصرف، با دستور پخت، آشپز حاضر، برق و زمان؛ ارتقا بازده را افزایش می‌دهد.', purposeEn: 'Converts raw food and clean water into meals using a staffed, powered and timed recipe; upgrades increase yield.' },
   laboratory: { fa: 'آزمایشگاه', en: 'Laboratory', purposeFa: 'زیرساخت پژوهش؛ سطح آزمایشگاه و برق در شرایط فناوری‌ها اثر دارند.', purposeEn: 'Research facility; lab level and power affect technology requirements.' }
 };
 
