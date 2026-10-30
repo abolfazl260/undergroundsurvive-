@@ -100,6 +100,20 @@
         <button id="startup-retry" type="button" hidden>تلاش مجدد</button>
       </div>
     </section>
+    <script>
+      // The fallback also works when the game JavaScript never downloads.
+      window.setTimeout(function () {
+        var splash = document.getElementById('startup-screen');
+        if (!splash || splash.hasAttribute('data-boot-mounted')) return;
+        var stage = document.getElementById('startup-stage');
+        var retry = document.getElementById('startup-retry');
+        if (stage) stage.textContent = 'راه‌اندازی بازی طول کشیده است. اتصال را بررسی کنید.';
+        if (retry) {
+          retry.hidden = false;
+          retry.addEventListener('click', function () { window.location.reload(); }, { once:true });
+        }
+      }, 30000);
+    </script>
     <noscript><p style="position:fixed;bottom:8px;inset-inline:16px;z-index:2147483647;color:#fff;text-align:center;background:#4d302f;padding:12px">
       برای اجرای بازی باید JavaScript را فعال کنید.
     </p></noscript>
