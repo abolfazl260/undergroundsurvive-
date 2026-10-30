@@ -3,6 +3,7 @@ import { GameSession } from './session';
 import { Wallet } from './wallet';
 import { DIG_COST, getBuildCost, getFloorCost, getUpgradeCost, STARTING_COINS } from './pricing';
 import { BuildingLayout } from '../building/layout';
+import { LEGACY_SURFACE_POLICY } from '../building/constructionPolicy';
 
 describe('economy price catalog', () => {
   it('uses consistent positive integer prices', () => {
@@ -18,22 +19,24 @@ describe('economy price catalog', () => {
 });
 
 describe('local wallet and transactional commands', () => {
-  it('charges room construction once and leaves money unchanged on failed placement', () => {
+  it('charges underground builds once; surface/upper attempts are atomic and free', () => {
     const game = GameSession.create();
-    const start = game.wallet.balance;
-    const before = game.layout.rooms.length;
-    expect(game.build('habitat', 7, 0).ok).toBe(true);
-    expect(game.wallet.balance).toBe(start - 120);
-    expect(game.layout.rooms.length).toBe(before + 1);
+    const before = game.snapshot();
     expect(game.build('habitat', 7, 0).ok).toBe(false);
-    expect(game.wallet.balance).toBe(start - 120);
-    expect(game.wallet.transactions).toHaveLength(2);
+    expect(game.build('habitat', 7, 1).ok).toBe(false);
+    expect(game.snapshot()).toEqual(before);
+    expect(game.build('habitat', 8, -1).ok).toBe(true);
+    expect(game.wallet.balance).toBe(STARTING_COINS - 120);
+    const after = game.snapshot();
+    expect(game.build('habitat', 8, -1).ok).toBe(false);
+    expect(game.snapshot()).toEqual(after);
   });
 
-  it('charges excavation only when the target can be dug', () => {
+  it('charges excavation only after successful underground excavation', () => {
     const game = GameSession.create();
     const before = game.wallet.balance;
     expect(game.dig(5, -4).ok).toBe(false);
+    expect(game.dig(5, 0).ok).toBe(false);
     expect(game.wallet.balance).toBe(before);
     expect(game.dig(5, -2).ok).toBe(true);
     expect(game.wallet.balance).toBe(before - DIG_COST);
@@ -41,41 +44,42 @@ describe('local wallet and transactional commands', () => {
     expect(game.wallet.balance).toBe(before - DIG_COST);
   });
 
-  it('charges sequential floor unlocks and stops at world limit', () => {
+  it('blocks the legacy upward floor command without charging or changing saved state', () => {
     const game = GameSession.create();
-    expect(game.unlockFloor().ok).toBe(true);
-    expect(game.layout.terrain.highestFloor).toBe(1);
-    expect(game.wallet.balance).toBe(STARTING_COINS - 300);
-    expect(game.unlockFloor().ok).toBe(true);
-    expect(game.wallet.balance).toBe(STARTING_COINS - 750);
+    const before = game.snapshot();
     expect(game.unlockFloor().ok).toBe(false);
-    expect(game.wallet.balance).toBe(STARTING_COINS - 750);
+    expect(game.layout.unlockFloor().ok).toBe(false);
+    expect(game.layout.terrain.unlockNextFloor().ok).toBe(false);
+    expect(game.snapshot()).toEqual(before);
   });
 
-  it('prevents overspending and negative balances without changing the world', () => {
+  it('prevents overspending and maximum-level upgrades without changing the world', () => {
     const game = GameSession.create();
-    expect(game.upgradeAt(5, -1).ok).toBe(true); // command 250 * 2 = 500
-    expect(game.upgradeAt(5, -1).ok).toBe(true); // command 250 * 3 = 750
+    expect(game.upgradeAt(5, -1).ok).toBe(true);
+    expect(game.upgradeAt(5, -1).ok).toBe(true);
     expect(game.wallet.balance).toBe(250);
     const before = game.snapshot();
-    const attempt = game.unlockFloor(); // 300
-    expect(attempt.ok).toBe(false);
+    expect(game.build('generator', 8, 0).ok).toBe(false);
+    expect(game.upgradeAt(5, -1).ok).toBe(false);
     expect(game.snapshot()).toEqual(before);
-    expect(game.upgradeAt(5, -1).ok).toBe(false); // max level
-    expect(game.snapshot()).toEqual(before);
+    expect(game.build('generator', 8, -1).ok).toBe(true);
+    const after = game.snapshot();
+    expect(game.build('mine', 10, -1).ok).toBe(false);
+    expect(game.snapshot()).toEqual(after);
   });
 
-  it('preserves coins when moving or removing rooms for free', () => {
+  it('moves and removes ordinary underground rooms without charging coins', () => {
     const game = GameSession.create();
-    expect(game.build('storage', 7, 0).ok).toBe(true);
-    const coinBalance = game.wallet.balance;
-    const id = game.layout.getRoomAt(7, 0)!.id;
-    expect(game.layout.move(id, 8, 0).ok).toBe(true);
+    expect(game.build('storage', 8, -1).ok).toBe(true);
+    const balance = game.wallet.balance;
+    const id = game.layout.getRoomAt(8, -1)!.id;
+    expect(game.layout.move(id, 9, -1).ok).toBe(true);
+    expect(game.layout.move(id, 9, 0).ok).toBe(false);
     expect(game.layout.remove(id).ok).toBe(true);
-    expect(game.wallet.balance).toBe(coinBalance);
+    expect(game.wallet.balance).toBe(balance);
   });
 
-  it('awards the demo bonus once only, including after reload', () => {
+  it('awards demo coins once, surviving reload', () => {
     const game = GameSession.create();
     expect(game.claimDemoBonus().ok).toBe(true);
     expect(game.wallet.balance).toBe(2000);
@@ -86,51 +90,53 @@ describe('local wallet and transactional commands', () => {
     expect(restored.wallet.balance).toBe(2000);
   });
 
-  it('keeps paid commands and reload working after moving onto a later-created support', () => {
+  it('saves and restores legitimate underground upgrades', () => {
     const game = GameSession.create();
-    expect(game.unlockFloor().ok).toBe(true);
-    expect(game.build('habitat', 2, 1).ok).toBe(true);
-    const upperId = game.layout.getRoomAt(2, 1)!.id;
-    expect(game.build('storage', 8, 0).ok).toBe(true);
-    expect(game.layout.move(upperId, 8, 1).ok).toBe(true);
-
-    const before = game.snapshot();
-    expect(GameSession.restore(before)?.snapshot()).toEqual(before);
-    expect(game.upgradeRoom(upperId).ok).toBe(true);
-    expect(game.wallet.balance).toBe(STARTING_COINS - 300 - 120 - 100 - 240);
-
+    expect(game.build('medbay', 8, -1).ok).toBe(true);
+    const id = game.layout.getRoomAt(8, -1)!.id;
+    expect(game.upgradeRoom(id).ok).toBe(true);
     const saved = game.snapshot();
-    const restored = GameSession.restore(saved);
-    expect(restored?.snapshot()).toEqual(saved);
-    expect(restored?.upgradeRoom(upperId).ok).toBe(true);
-    expect(restored?.wallet.balance).toBe(game.wallet.balance - 360);
+    const restored = GameSession.restore(saved)!;
+    expect(restored.snapshot()).toEqual(saved);
+    expect(restored.upgradeRoom(id).ok).toBe(true);
+    expect(restored.layout.getRoomAt(8, -1)?.level).toBe(3);
   });
 
-  it('resets the world and balance together', () => {
+  it('restores v1 surface buildings without permitting edits or charging invalid upgrades', () => {
+    const old = new BuildingLayout(undefined, LEGACY_SURFACE_POLICY);
+    expect(old.place('medbay', 8, 0).ok).toBe(true);
+    const migrated = GameSession.fromSave(old.snapshot());
+    const room = migrated.layout.getRoomAt(8, 0)!;
+    const before = migrated.snapshot();
+    expect(migrated.upgradeDetails(room.id)?.cost).toBeNull();
+    expect(migrated.upgradeRoom(room.id).ok).toBe(false);
+    expect(migrated.layout.move(room.id, 10, 0).ok).toBe(false);
+    expect(migrated.layout.remove(room.id).ok).toBe(false);
+    expect(migrated.build('habitat', 10, 0).ok).toBe(false);
+    expect(migrated.snapshot()).toEqual(before);
+    expect(migrated.build('habitat', 8, -1).ok).toBe(true);
+  });
+
+  it('resets the underground layout, money, and bonus together', () => {
     const game = GameSession.create();
-    game.build('habitat', 7, 0);
+    game.build('habitat', 8, -1);
     game.claimDemoBonus();
     game.reset();
     expect(game.wallet.balance).toBe(STARTING_COINS);
     expect(game.wallet.transactions).toHaveLength(1);
     expect(game.demoBonusClaimed).toBe(false);
     expect(game.layout.rooms).toHaveLength(4);
+    expect(game.layout.rooms.every((room) => room.y < 0)).toBe(true);
   });
 
-  it('restores v2 snapshots, migrates existing v1 layouts, and rejects tampered wallet snapshots', () => {
+  it('restores v2 and rejects tampered wallet snapshots', () => {
     const game = GameSession.create();
-    game.build('habitat', 7, 0);
+    game.build('habitat', 8, -1);
     const snapshot = game.snapshot();
     expect(GameSession.restore(snapshot)?.snapshot()).toEqual(snapshot);
     const bad = JSON.parse(JSON.stringify(snapshot)) as typeof snapshot;
     bad.wallet.balance += 500;
     expect(GameSession.restore(bad)).toBeNull();
     expect(Wallet.restore(bad.wallet)).toBeNull();
-    const oldLayout = new BuildingLayout();
-    expect(oldLayout.place('medbay', 7, 0).ok).toBe(true);
-    const migrated = GameSession.fromSave(oldLayout.snapshot());
-    expect(migrated.layout.rooms.length).toBe(5);
-    expect(migrated.wallet.balance).toBe(STARTING_COINS);
   });
 });
-
