@@ -36,7 +36,7 @@ it('preserves remaining time through facility/power loss and reload, rejects tim
  expect(ResearchScheduler.restore({...before,activeResearchId:'food-1',startedAt:0,completeAt:NaN})).toBeNull();
 });
 it('integrates actual output, upgrade/reload, frame partitioning and legacy migration',()=>{
- const a=GameSession.create();expect(a.build('laboratory',3,-1).ok).toBe(true);
+ const a=GameSession.create();expect(a.build('laboratory',8,-1).ok).toBe(true);
  const baseline=GameSession.restore(a.snapshot())!;
  expect(a.startResearch('power-1','one')).toBe(true);expect(a.startResearch('power-1','one')).toBe(false);
  a.advanceTime(15000);baseline.advanceTime(15000);
