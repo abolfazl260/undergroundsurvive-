@@ -35,3 +35,7 @@ Browser CI captures rest assignment/release and both 100% and 225% scene zoom.
 Tests cover admission, no auto-spawn, unique beds, physical arrival, incompatible
 jobs, simultaneous rest, room/survivor removal, upgrades, fatigue bounds, reload,
 legacy migration, orphan claims and deterministic frame partitions.
+
+CI installation is reproducible through package-lock.json and a tslib 2.8.1 override.
+This avoids the registry's missing 2.9.1 tarball; a clean install, 185 tests, production
+build and offline mobile verification succeeded with the locked dependency graph.

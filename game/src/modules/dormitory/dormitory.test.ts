@@ -71,3 +71,10 @@ it('matches rest and stats across frame partitions without wall-clock gains',()=
  a.s.advanceTime(12000);for(let i=0;i<120;i++)b.s.advanceTime(100);
  expect(a.s.snapshot()).toEqual(b.s.snapshot());
 });
+it('releases residence and rest on relocation without teleporting the resident',()=>{
+ const {s,id}=setup();s.startRest('resident-3',id,'a');s.advanceTime(600);
+ const before=s.survivors.traffic.getResident('resident-3')!.position;
+ expect(s.dig(4,-2).ok).toBe(true);expect(s.moveRoom(id,3,-2).ok).toBe(true);
+ expect(s.dormitory.assignments).toHaveLength(0);expect(s.survivors.assignment('resident-3')).toBeUndefined();
+ expect(s.survivors.traffic.getResident('resident-3')!.position).toEqual(before);
+});
