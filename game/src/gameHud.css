@@ -74,7 +74,7 @@
 .topbar > #hud-save-status { right:auto; left:55px; bottom:4px; width:7px; height:7px; }
 .story-navigation {
   position:absolute; z-index:22; top:calc(81px + var(--game-safe-top)); left:max(9px,env(safe-area-inset-left));
-  right:auto; inset-inline:auto; width:77px; margin:0; padding:0; display:flex; flex-direction:column; gap:7px;
+  right:auto; width:77px; margin:0; padding:0; display:flex; flex-direction:column; gap:7px;
   pointer-events:auto;
 }
 .story-navigation > button {

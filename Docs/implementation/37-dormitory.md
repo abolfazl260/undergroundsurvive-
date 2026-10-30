@@ -39,3 +39,6 @@ legacy migration, orphan claims and deterministic frame partitions.
 CI installation is reproducible through package-lock.json and a tslib 2.8.1 override.
 This avoids the registry's missing 2.9.1 tarball; a clean install, 185 tests, production
 build and offline mobile verification succeeded with the locked dependency graph.
+The browser regression also caught an RTL logical inset overriding the story rail's
+physical position. Removing that override keeps the story/achievement rail opposite
+the zoom controls, so zoom buttons remain touchable in short landscape viewports.
