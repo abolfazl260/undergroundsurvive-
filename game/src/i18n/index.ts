@@ -4,6 +4,12 @@ export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
   "دستاوردها": "Achievements",
+  "دسته‌بندی دستاوردها": "Achievement categories",
+  "پیشرفت کل دستاوردها": "Overall achievement progress",
+  "همه": "All",
+  "کاوش": "Exploration",
+  "تولید": "Production",
+  "جمعیت": "Community",
   "دستاوردهای پناهگاه": "Shelter achievements",
   "بستن دستاوردها": "Close achievements",
   "فهرست دستاوردها": "Achievement list",
