@@ -111,7 +111,11 @@ export class GameScene extends Phaser.Scene {
     private readonly onAudioCue: (cue: AudioCue) => void = () => {},
     private readonly onAudioActivate: () => void = () => {},
     private readonly onUpgradeSelection: (details: UpgradeDetails | null) => void = () => {},
-    private readonly onCycleProgress: (remainingSeconds: number) => void = () => {}
+    private readonly onCycleProgress: (remainingSeconds: number) => void = () => {},
+    private readonly onAssetProgress: (progress: number) => void = () => {},
+    private readonly onAssetUnavailable: (key: string) => void = () => {},
+    private readonly onAssetsComplete: () => void = () => {},
+    private readonly onBootReady: () => void = () => {}
   ) {
     super({ key: 'UndergroundScene' });
     this.recoveryFailed = saved != null && !GameSession.restore(saved) && !BuildingLayout.restore(saved);
@@ -119,6 +123,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload(): void {
+    // Phaser's real file loader progress drives the startup indicator.
+    this.load.on('progress', (value: number) => this.onAssetProgress(value));
+    this.load.on('loaderror', (file: { key: string }) => this.onAssetUnavailable(file.key));
+    this.load.once('complete', () => this.onAssetsComplete());
     this.assets.preload(this.load, this.textures);
   }
 
@@ -199,6 +207,8 @@ export class GameScene extends Phaser.Scene {
       this.notify('ذخیرهٔ قدیمی دارای اتاق‌های جداافتاده است؛ اتاق‌ها حفظ شده‌اند. برای اصلاح، آن‌ها را به شبکهٔ آسانسور منتقل کنید.');
     else this.notify('ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.');
     if (this.gameplayPaused) this.scene.pause();
+    // Only now is saved world state, artwork, and initial scene rendering ready.
+    this.onBootReady();
   }
 
   /** Pause scene updates, resident animations and world interactions. */
