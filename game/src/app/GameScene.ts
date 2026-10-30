@@ -32,6 +32,15 @@ export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
   // Transient presentation state; constructed rooms remain saved immediately.
   private readonly construction = new TwoCellConstructionAnimation();
+  private readonly constructionViews = new Map<string, {
+    current: Phaser.GameObjects.Image;
+    incoming: Phaser.GameObjects.Image;
+    effects: Phaser.GameObjects.Graphics;
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  }>();
   private readonly assets = new AssetManager(
     [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, TWO_CELL_CONSTRUCTION_ART_ASSET], import.meta.env.BASE_URL,
     Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
@@ -194,6 +203,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gameplayPaused) return;
     // Phaser's scene update automatically pauses animation with the game.
     if (this.construction.advance(delta)) this.paintRooms();
+    else if (this.construction.active) this.refreshConstructionViews();
     this.session.setRadiationOccupants((this.traffic?.residents??[]).map(r=>({id:r.id,x:r.cell.x,y:r.cell.y,protection:0})));
     const researchBefore=this.session.research.snapshot().activeResearchId;
     const completed = this.session.advanceTime(delta);
@@ -710,6 +720,8 @@ export class GameScene extends Phaser.Scene {
   private paintRooms(): void {
     if (!this.roomLayer) return;
     this.roomLayer.removeAll(true);
+    // Graphics are recreated on structural redraw only, not on every fade tick.
+    this.constructionViews.clear();
     this.roomBadges = [];
     this.airBadges = [];
     for (const room of this.layout.rooms) {
@@ -717,25 +729,39 @@ export class GameScene extends Phaser.Scene {
       const { left, top } = toPixels(room.x, room.y);
       const width = room.width * WORLD.cellSize - 4;
       const height = room.height * WORLD.cellSize - 4;
-      const constructionFrame = this.construction.frame(room.id);
-      const constructionArt = constructionFrame === null ? null : this.assets.resolve(
-        TWO_CELL_CONSTRUCTION_ART_ASSET.key, this.textures, constructionFrame
+      const constructionVisual = this.construction.visual(room.id);
+      const constructionArt = constructionVisual === null ? null : this.assets.resolve(
+        TWO_CELL_CONSTRUCTION_ART_ASSET.key, this.textures, constructionVisual.frame
       );
-      if (constructionArt) {
-        // In-progress art *replaces* the finished interior until frame eight.
-        // Every frame uses exactly the same two-cell footprint.
-        const constructionSprite = this.add.image(left + 2, top + 2, constructionArt.key, constructionArt.frame)
-          .setOrigin(0, 0).setDisplaySize(width, height);
-        this.roomLayer.add(constructionSprite);
-        const progress = this.add.graphics();
-        progress.fillStyle(0x09131f, 0.72).fillRect(left + 5, top + height - 5, width - 6, 3);
-        progress.fillStyle(0xffbe4a, 0.96).fillRect(
-          left + 5, top + height - 5, (width - 6) * (constructionFrame! + 1) / CONSTRUCTION_FRAMES, 3
-        );
-        this.roomLayer.add(progress);
-        continue; // Do not reveal the completed artwork or its badge early.
+      if (constructionArt && constructionVisual) {
+        // Draw the finished interior underneath, so the last frame dissolves
+        // naturally into the correct room instead of popping into existence.
+        const completeArt = roomArtCandidates(room.type, room.level)
+          .map(({ key, frame }) => this.assets.resolve(key, this.textures, frame))
+          .find((resolved) => resolved !== null) ?? null;
+        if (completeArt) {
+          this.roomLayer.add(this.add.image(left + 2, top + 2, completeArt.key, completeArt.frame)
+            .setOrigin(0, 0).setDisplaySize(width, height));
+        } else {
+          const backing = this.add.graphics();
+          backing.fillStyle(definition.color).fillRoundedRect(left + 2, top + 2, width, height, 4);
+          backing.fillStyle(definition.accent, 0.21).fillRect(left + 10, top + 9, width - 16, 8);
+          this.roomLayer.add(backing);
+        }
+        const constructionSprite = this.add.image(
+          left + 2, top + 2, constructionArt.key, constructionVisual.frame
+        ).setOrigin(0, 0).setDisplaySize(width, height);
+        const incoming = this.add.image(
+          left + 2, top + 2, constructionArt.key, constructionVisual.nextFrame
+        ).setOrigin(0, 0).setDisplaySize(width, height).setAlpha(0);
+        const effects = this.add.graphics();
+        this.roomLayer.add([constructionSprite, incoming, effects]);
+        this.constructionViews.set(room.id, {
+          current: constructionSprite, incoming, effects, left, top, width, height
+        });
+        continue; // Do not reveal the finished room's nameplate until completion.
       }
-      if (constructionFrame !== null) this.construction.cancel(room.id);
+      if (constructionVisual !== null) this.construction.cancel(room.id);
       // Level 2 receives its own illustrated interior; missing assets safely
       // fall back to the original Level 1 sheet (or basic room graphics).
       const texture = roomArtCandidates(room.type, room.level)
@@ -803,6 +829,40 @@ export class GameScene extends Phaser.Scene {
     }
     this.updateBadgeScale();
     this.updateAirBadges();
+    this.refreshConstructionViews();
+  }
+
+  /** Updates only a handful of existing sprites, keeping mobile redraws cheap. */
+  private refreshConstructionViews(): void {
+    for (const [roomId, view] of this.constructionViews) {
+      const state = this.construction.visual(roomId);
+      if (!state) continue;
+      view.current.setFrame(state.frame).setAlpha(1 - state.reveal);
+      view.incoming.setFrame(state.nextFrame).setAlpha(state.blend * (1 - state.reveal));
+
+      // A quiet warm construction lamp, two drifting dust motes and a thin
+      // yellow progress strip. No large flash, emitter or new texture.
+      const g = view.effects;
+      g.clear().setAlpha(1 - state.reveal);
+      const progressWidth = view.width - 8;
+      const x = view.left + 6;
+      const bottom = view.top + view.height - 5;
+      g.fillStyle(0x07131a, 0.64).fillRect(x, bottom, progressWidth, 2);
+      g.fillStyle(0xffbf54, 0.85).fillRect(x, bottom, progressWidth * state.progress, 2);
+
+      if (state.frame > 0 && state.reveal === 0) {
+        const pulse = 0.5 + 0.5 * Math.sin(state.elapsedMs * 0.006);
+        const lampX = view.left + view.width * 0.68;
+        g.fillStyle(0xffc16b, 0.07 + 0.12 * pulse)
+          .fillEllipse(lampX, view.top + 9, 22, 7);
+        for (let i = 0; i < 2; i++) {
+          const drift = (state.elapsedMs * (0.018 + i * 0.006) + i * 31) % (view.width - 18);
+          const rise = (state.elapsedMs * 0.009 + i * 19) % Math.max(12, view.height - 20);
+          g.fillStyle(0xffd39b, 0.12 + 0.1 * (1 - pulse))
+            .fillCircle(view.left + 9 + drift, view.top + view.height - 9 - rise, 0.65);
+        }
+      }
+    }
   }
 
   private updateAirBadges(): void {
