@@ -97,12 +97,12 @@ describe('explicit deterministic power topology',()=>{
     const initial=session.snapshot();
     expect(session.installCable(5,-4).ok).toBe(false);
     expect(session.snapshot()).toEqual(initial);
-    expect(session.installCable(8,-1).ok).toBe(true);
+    expect(session.installCable(0,-1).ok).toBe(true);
     expect(session.wallet.balance).toBe(initial.wallet.balance-15);
     const paid=session.snapshot();
-    expect(session.installCable(8,-1).ok).toBe(false);
+    expect(session.installCable(0,-1).ok).toBe(false);
     expect(session.snapshot()).toEqual(paid);
-    expect(session.removeCable(8,-1).ok).toBe(true);
+    expect(session.removeCable(0,-1).ok).toBe(true);
     expect(GameSession.restore(session.snapshot())?.snapshot()).toEqual(session.snapshot());
 
     const original=GameSession.create().snapshot();
