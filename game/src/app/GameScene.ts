@@ -652,7 +652,7 @@ export class GameScene extends Phaser.Scene {
       this.add.image(0, 600, background.key)
         .setOrigin(0, 0)
         .setCrop(0, 1000, 1920, 200)
-        .setDisplaySize(GAME_VIEW.worldWidth, GAME_VIEW.worldHeight - 600)
+        .setScale(GAME_VIEW.worldWidth / 1920, (GAME_VIEW.worldHeight - 600) / 200)
         .setDepth(0);
     }
     this.add.text(20, 20, 'SURFACE / CONSTRUCTION LOCKED', { fontSize: '13px', color: '#e2e5ed' }).setDepth(2);
