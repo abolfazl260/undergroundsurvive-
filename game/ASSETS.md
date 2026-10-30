@@ -41,3 +41,22 @@ URLs are automatically prefixed with Vite `BASE_URL` for GitHub Pages.
 **Implementation scope:** The manager only changes image loading and texture
 selection. It does not modify layouts, camera logic, UI placement, economy,
 missions, persistence, or the existing artwork files.
+
+## Dedicated kitchen, ventilation, recreation and guard-post art
+
+The four previously missing or shared Level 1 interiors live in a separate
+four-frame vertically stacked WebP atlas (kitchen, ventilation, recreation,
+guard post), without characters, text or a redundant colored border.
+
+- `public/assets/rooms/missing-room-atlas.webp`: 1× frames, 160 × 53 each.
+- `public/assets/rooms/missing-room-atlas-hd.webp`: 3× frames, 480 × 159 each.
+
+`src/app/roomArt.ts` maps these four room types to independent, stable frames
+and the existing `AssetManager` chooses the variant for pixel density. The
+approved Level 2 kitchen image stays higher priority. If a texture is missing,
+`GameScene` continues to display its safe colored fallback. Gameplay, save
+schema, geometry and the other room atlases are unchanged.
+
+The illustration is derived from the image-generation comparison board; only
+the four finished room interiors were cropped, excluding comparison labels.
+See `Docs/implementation/94-missing-room-art.md` for review criteria.

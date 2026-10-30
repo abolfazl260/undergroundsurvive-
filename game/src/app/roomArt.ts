@@ -16,14 +16,37 @@ export const ROOM_ART_ASSET: TextureAsset = {
 };
 
 export const ROOM_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
-  recreation: 0,
-  guardPost: 1,
   habitat: 0,
   command: 1,
   workshop: 2,
   storage: 3,
   generator: 4,
   mine: 5
+};
+
+/**
+ * Distinct two-cell Level 1 interiors. Frames are vertically stacked:
+ * kitchen, ventilation, recreation and guard post.
+ * Both WebP variants are produced from one approved illustration sheet;
+ * never remap these rooms to another room type's artwork.
+ */
+export const MISSING_ROOM_ART_ASSET: TextureAsset = {
+  key: 'missing-room-art',
+  kind: 'spritesheet',
+  frameWidth: 160,
+  frameHeight: 53,
+  filter: 'linear',
+  variants: [
+    { scale: 1, path: 'assets/rooms/missing-room-atlas.webp' },
+    { scale: 3, path: 'assets/rooms/missing-room-atlas-hd.webp', frameWidth: 480, frameHeight: 159 }
+  ]
+};
+
+export const MISSING_ROOM_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
+  kitchen: 0,
+  ventilation: 1,
+  recreation: 2,
+  guardPost: 3
 };
 
 /** Two illustrated rooms, in order: hydroponics, medbay. */
@@ -91,6 +114,10 @@ export interface RoomArtCandidate { readonly key: string; readonly frame: number
  */
 export function roomArtCandidates(type: RoomType, level: number): RoomArtCandidate[] {
   const upgradedFrame = level >= 2 ? LEVEL_TWO_FRAME_BY_TYPE[type] : undefined;
+  const missingRoomFrame = MISSING_ROOM_FRAME_BY_TYPE[type];
+  const dedicated: RoomArtCandidate[] = missingRoomFrame === undefined
+    ? []
+    : [{ key: MISSING_ROOM_ART_ASSET.key, frame: missingRoomFrame }];
   const labWaterFrame = LAB_WATER_FRAME_BY_TYPE[type];
   const gardenMedbayFrame = GARDEN_MEDBAY_FRAME_BY_TYPE[type];
   const standardFrame = ROOM_FRAME_BY_TYPE[type];
@@ -102,6 +129,6 @@ export function roomArtCandidates(type: RoomType, level: number): RoomArtCandida
         ? [{ key: ROOM_ART_ASSET.key, frame: standardFrame }]
         : [];
   return upgradedFrame === undefined
-    ? legacy
-    : [{ key: LEVEL_TWO_ROOM_ART_ASSET.key, frame: upgradedFrame }, ...legacy];
+    ? [...dedicated, ...legacy]
+    : [{ key: LEVEL_TWO_ROOM_ART_ASSET.key, frame: upgradedFrame }, ...dedicated, ...legacy];
 }
