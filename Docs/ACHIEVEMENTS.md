@@ -37,6 +37,6 @@ Dialog Escape and close-button behavior, the existing unlock toast, RTL Persian/
 
 ## Individual milestone illustrations
 
-Each of the eleven achievements has a dedicated panoramic scene in `game/public/assets/achievements/milestone-scenes.svg`, rendered by the presentation layer from a single lightweight sprite sheet. Frame ordering is explicitly defined by `ACHIEVEMENT_ARTWORK` in `game/src/app/achievementsUi.ts`. The scene remains in full color, including before unlocking the achievement; only the border, medal, label and progress meter communicate unlock state.
+Each of the eleven achievements has a dedicated panoramic scene in `game/public/assets/achievements/milestone-scenes-hd.webp`, rendered by the presentation layer from a single lightweight sprite sheet. Frame ordering is explicitly defined by `ACHIEVEMENT_ARTWORK` in `game/src/app/achievementsUi.ts`. The scene remains in full color, including before unlocking the achievement; only the border, medal, label and progress meter communicate unlock state.
 
 Achievement cards devote more width to imagery on large screens and use a full-width 3:1 image row on mobile, with no off-screen clipping or grayscale effects. The existing achievement rules, catalog, economy, translations, and save data remain unchanged. Tests assert a distinct frame for every achievement.
