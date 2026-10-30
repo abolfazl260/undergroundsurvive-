@@ -153,6 +153,19 @@
 }
 .achievement-item.is-unlocked .achievement-item-status { color:#f4cd7d; }
 .achievement-state-icon { display:inline-block; font-size:18px; font-weight:900; line-height:1; }
+.achievement-reward {
+  display:inline-flex; align-items:center; gap:6px; width:fit-content; max-width:100%;
+  margin-top:8px; padding:4px 9px; border-radius:7px;
+  color:#ffdf91; border:1px solid #8c6c31; background:#322914b8;
+  font-size:11px; font-weight:800; line-height:1.5;
+}
+.achievement-reward svg { flex:none; width:16px; height:16px; }
+.achievement-reward.is-received { color:#bbf1c5; border-color:#3c8764; background:#19382e; }
+.achievement-toast:not([hidden]) { animation:achievement-reward-pop .25s ease-out both; }
+@keyframes achievement-reward-pop {
+  from { opacity:0; transform:translate(-50%,-9px) scale(.96); }
+  to { opacity:1; transform:translate(-50%,0) scale(1); }
+}
 .achievement-toast {
   position:fixed; z-index:1100; top:calc(15px + env(safe-area-inset-top));
   left:50%; transform:translateX(-50%); width:min(92vw,420px);
@@ -208,6 +221,7 @@ html[dir="ltr"] .achievements-filters button { text-align:left; }
   .achievements-crest { display:none; }
 }
 @media(prefers-reduced-motion:reduce) {
+  .achievement-toast:not([hidden]) { animation:none; }
   .achievements-filters button { transition:none; }
   .achievements-dialog::backdrop { backdrop-filter:none; }
 }
