@@ -17,6 +17,7 @@ import { ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, LAB_WATER_ART_ASSET, LEVEL_TWO
 import { SURVIVOR_ART, survivorGeometry, survivorFrame, hitSurvivor } from './survivorArt';
 import { AssetManager } from './assets/assetManager';
 import { TWO_CELL_CONSTRUCTION_ART_ASSET, TwoCellConstructionAnimation } from './twoCellConstruction';
+import { DIGGING_ART_ASSET, DiggingAnimation } from './diggingAnimation';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
 import { clampZoom, constrainScroll, fitCameraZoom, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport, type ZoomLimits } from './viewport';
 
@@ -32,6 +33,15 @@ export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
   // Transient presentation state; constructed rooms remain saved immediately.
   private readonly construction = new TwoCellConstructionAnimation();
+  private readonly digging = new DiggingAnimation();
+  private readonly diggingViews = new Map<string, {
+    current: Phaser.GameObjects.Image;
+    incoming: Phaser.GameObjects.Image;
+    effects: Phaser.GameObjects.Graphics;
+    left: number;
+    top: number;
+  }>();
+  private diggingLayer?: Phaser.GameObjects.Container;
   private readonly constructionViews = new Map<string, {
     current: Phaser.GameObjects.Image;
     incoming: Phaser.GameObjects.Image;
@@ -42,7 +52,7 @@ export class GameScene extends Phaser.Scene {
     height: number;
   }>();
   private readonly assets = new AssetManager(
-    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, TWO_CELL_CONSTRUCTION_ART_ASSET], import.meta.env.BASE_URL,
+    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, TWO_CELL_CONSTRUCTION_ART_ASSET, DIGGING_ART_ASSET], import.meta.env.BASE_URL,
     Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
   );
   private get layout(): BuildingLayout { return this.session.layout; }
@@ -145,6 +155,7 @@ export class GameScene extends Phaser.Scene {
     this.elevatorCarLayer = this.add.graphics().setDepth(3.8);
     this.radiationLayer=this.add.graphics().setDepth(5);
     this.roomLayer = this.add.container(0, 0).setDepth(3);
+    this.diggingLayer = this.add.container(0, 0).setDepth(2.9);
     this.preview = this.add.graphics().setDepth(6);
     this.paintTerrain();
     this.paintRooms();
@@ -207,6 +218,10 @@ export class GameScene extends Phaser.Scene {
       this.construction.clear();
       if (this.sceneReady) this.paintRooms();
     }
+    if (settings.reducedMotion) {
+      this.digging.clear();
+      this.clearDiggingViews();
+    }
     this.session.survivors.setReducedMotion(settings.reducedMotion);
     // Reduced motion resolves one traversable step per update without
     // skipping terrain boundaries or elevator ride phases.
@@ -220,6 +235,8 @@ export class GameScene extends Phaser.Scene {
     // Phaser's scene update automatically pauses animation with the game.
     if (this.construction.advance(delta)) this.paintRooms();
     else if (this.construction.active) this.refreshConstructionViews();
+    for (const key of this.digging.advance(delta)) this.removeDiggingView(key);
+    if (this.digging.active) this.refreshDiggingViews();
     this.session.setRadiationOccupants((this.traffic?.residents??[]).map(r=>({id:r.id,x:r.cell.x,y:r.cell.y,protection:0})));
     const researchBefore=this.session.research.snapshot().activeResearchId;
     const completed = this.session.advanceTime(delta);
@@ -517,6 +534,8 @@ export class GameScene extends Phaser.Scene {
 
   resetLayout(): void {
     this.construction.clear();
+    this.digging.clear();
+    this.clearDiggingViews();
     this.session.reset();
     this.lastCycleCountdown = -1;
     this.onCycleProgress(5);
@@ -669,6 +688,7 @@ export class GameScene extends Phaser.Scene {
       }
       this.paintTerrain();
       this.paintRooms();
+      if (this.mode === 'dig') this.startDigging(x, y);
       this.refreshResidentPath();
     }
     this.hovered = cell;
@@ -730,6 +750,67 @@ export class GameScene extends Phaser.Scene {
     }
     paintElevatorShaft(g, this.layout.terrain.elevators);
     this.paintElevatorMotion();
+  }
+
+  /** One-cell excavation animation; no building scaffold or finished room. */
+  private startDigging(x: number, y: number): void {
+    if (!this.diggingLayer || this.menuSettings.reducedMotion) return;
+    const texture = this.assets.resolve(DIGGING_ART_ASSET.key, this.textures, 0);
+    if (!texture) return; // Never block excavation if artwork failed to load.
+    const key = x + ':' + y;
+    if (!this.digging.start(key)) return;
+    this.removeDiggingView(key);
+    const { left, top } = toPixels(x, y);
+    const current = this.add.image(left + 1, top + 1, texture.key, 0)
+      .setOrigin(0, 0).setDisplaySize(WORLD.cellSize - 2, WORLD.cellSize - 2);
+    const incoming = this.add.image(left + 1, top + 1, texture.key, 1)
+      .setOrigin(0, 0).setDisplaySize(WORLD.cellSize - 2, WORLD.cellSize - 2).setAlpha(0);
+    const effects = this.add.graphics();
+    this.diggingLayer.add([current, incoming, effects]);
+    this.diggingViews.set(key, { current, incoming, effects, left, top });
+    this.refreshDiggingViews();
+  }
+
+  private removeDiggingView(key: string): void {
+    const view = this.diggingViews.get(key);
+    if (!view) return;
+    view.current.destroy();
+    view.incoming.destroy();
+    view.effects.destroy();
+    this.diggingViews.delete(key);
+  }
+
+  private clearDiggingViews(): void {
+    for (const key of this.diggingViews.keys()) this.removeDiggingView(key);
+  }
+
+  /** Reuse sprites and update opacity instead of repainting the world each tick. */
+  private refreshDiggingViews(): void {
+    for (const [key, view] of this.diggingViews) {
+      const state = this.digging.visual(key);
+      if (!state) {
+        this.removeDiggingView(key);
+        continue;
+      }
+      view.current.setFrame(state.frame).setAlpha(1 - state.reveal);
+      view.incoming.setFrame(state.nextFrame).setAlpha(state.blend * (1 - state.reveal));
+      const g = view.effects;
+      g.clear().setAlpha(1 - state.reveal);
+      const x = view.left + 4;
+      const bottom = view.top + WORLD.cellSize - 4;
+      const barWidth = WORLD.cellSize - 8;
+      g.fillStyle(0x0a1015, 0.68).fillRect(x, bottom, barWidth, 2);
+      g.fillStyle(0xf2b14c, 0.95).fillRect(x, bottom, barWidth * state.progress, 2);
+      // Low-cost deterministic rock dust; no emitters, particles or extra textures.
+      if (state.frame < 7 && state.reveal === 0) {
+        for (let i = 0; i < 3; i++) {
+          const drift = (state.elapsedMs * (0.011 + i * 0.003) + 11 * i) % (WORLD.cellSize - 12);
+          const lift = (state.elapsedMs * (0.007 + i * 0.002) + 9 * i) % (WORLD.cellSize - 14);
+          g.fillStyle(0xe7b985, 0.12 + 0.08 * Math.sin(state.elapsedMs * 0.007 + i) ** 2)
+            .fillCircle(view.left + 6 + drift, view.top + WORLD.cellSize - 8 - lift, 0.7);
+        }
+      }
+    }
   }
 
   private paintRooms(): void {
