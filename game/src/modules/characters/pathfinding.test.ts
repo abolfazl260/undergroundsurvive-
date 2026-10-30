@@ -22,11 +22,12 @@ describe('room pathfinding', () => {
     expect(layout.place('habitat', 2, 1).ok).toBe(true);
     expect(canWalkBetween(layout, { x: 2, y: 0 }, { x: 2, y: 1 })).toBe(false);
     const upper = layout.getRoomAt(2, 1)!;
+    // An unlocked upper floor is not an aerial walkway. Without a lift or
+    // staircase the room is built but not reachable from the ground.
     const route = findRoomPath(layout, { x: 6, y: -1 }, upper.id);
-    expect(route).not.toBeNull();
-    for (let i = 1; i < route!.length; i++) {
-      expect(canWalkBetween(layout, route![i - 1], route![i])).toBe(true);
-    }
+    expect(route).toBeNull();
+    expect(canWalkBetween(layout, { x: 2, y: 1 }, { x: 3, y: 1 })).toBe(true);
+    expect(canWalkBetween(layout, { x: 3, y: 1 }, { x: 4, y: 1 })).toBe(false);
   });
 
   it('returns null for unknown, invalid or disconnected room destinations', () => {
