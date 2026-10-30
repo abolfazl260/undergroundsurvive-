@@ -89,10 +89,13 @@ describe('multi-resident physical navigation', () => {
     expect(traffic.goToRoom('a', 'initial-garden')).toBe(true);
     expect(traffic.goToRoom('a', 'absent')).toBe(false);
     expect(traffic.getResident('a')!.destinationId).toBe('initial-garden');
-    expect(layout.move('initial-garden', 8, -1).ok).toBe(true);
+    expect(layout.move('initial-garden', 8, -1).ok).toBe(false);
     expect(traffic.refresh()).toEqual([]);
+    expect(layout.place('habitat', 8, -1).ok).toBe(true);
+    const addedId = layout.getRoomAt(8, -1)!.id;
+    expect(traffic.goToRoom('a', addedId)).toBe(true);
     expect(traffic.getResident('a')!.remainingCells.at(-1)).toBeDefined();
-    expect(layout.remove('initial-garden').ok).toBe(true);
+    expect(layout.remove(addedId).ok).toBe(true);
     expect(traffic.refresh()).toContain('a');
     expect(traffic.getResident('a')!.destinationId).toBeNull();
   });
