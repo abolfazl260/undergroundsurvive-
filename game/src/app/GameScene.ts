@@ -55,7 +55,9 @@ export class GameScene extends Phaser.Scene {
   private selectedResidentId = 'resident-1';
   private readonly residentWaitMs = new Map<string, number>();
   private readonly patrolCursors = new Map<string, number>();
-  private viewportSize = { width: GAME_VIEW.width, height: GAME_VIEW.height };
+  private viewportSize: { width: number; height: number } = {
+    width: GAME_VIEW.width, height: GAME_VIEW.height
+  };
 
   constructor(
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
