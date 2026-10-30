@@ -30,6 +30,7 @@ export interface LifeSupportSnapshot {
   oxygenLots: Record<string, number>;
   legacyWater: number;
   legacyOxygen: number;
+  waterLedgerSeen: number;
   closedLinks: string[];
   ticks: number;
   graceTicks: number;
@@ -44,6 +45,7 @@ export interface LifeSupportWater {
   available(): number;
   capacity(): number;
   spend(amount: number): boolean;
+  records?(): readonly {id:number;roomId?:string;clean:number}[];
 }
 export interface LifeSupportOccupancy { population(): number }
 export interface LifeSupportPower { powered(roomId: string): boolean }
@@ -181,7 +183,7 @@ export class LifeSupportService {
   private state: LifeSupportSnapshot = {
     schemaVersion: 2, oxygen: LIFE_SUPPORT_CONFIG.initialOxygen,
     oxygenLots: {}, waterLots: {}, legacyOxygen: LIFE_SUPPORT_CONFIG.initialOxygen,
-    legacyWater: 0, closedLinks: [],
+    legacyWater: 0, waterLedgerSeen: 0, closedLinks: [],
     ticks: 0, graceTicks: LIFE_SUPPORT_CONFIG.legacyGraceTicks,
     lastProduced: 0, lastWaterUsed: 0, lastOxygenUsed: 0, events: [], roomStatuses: []
   };
@@ -198,7 +200,7 @@ export class LifeSupportService {
     if (s.schemaVersion !== 2 || !validNumber(s.oxygen) || !validNumber(s.ticks) ||
       !validNumber(s.graceTicks) || (s.graceTicks ?? Infinity) > LIFE_SUPPORT_CONFIG.legacyGraceTicks ||
       !lotsValid(s.waterLots) || !lotsValid(s.oxygenLots) ||
-      !validNumber(s.legacyWater) || !validNumber(s.legacyOxygen) ||
+      !validNumber(s.legacyWater) || !validNumber(s.legacyOxygen) || !validNumber(s.waterLedgerSeen) ||
       (s.legacyOxygen! + Object.values(s.oxygenLots!).reduce((a,b)=>a+b,0)) !== s.oxygen ||
       !validNumber(s.lastProduced) || !validNumber(s.lastWaterUsed) || !validNumber(s.lastOxygenUsed) ||
       !Array.isArray(s.closedLinks) || s.closedLinks.length > 500 ||
@@ -253,36 +255,52 @@ export class LifeSupportService {
    * existing clean-water units live, never an additional inventory balance.
    * Kitchen/other consumption is reconciled at each simulation tick. */
   private reconcileWater(rooms: readonly Room[], water: LifeSupportWater): void {
-    const excess = Math.max(0, water.available() - water.capacity());
-    if (excess) water.spend(excess); // storage was demolished: clamp stock to legal capacity
-    const actual = water.available();
-    let recorded = this.state.legacyWater + Object.values(this.state.waterLots).reduce((n,v)=>n+v,0);
-    if (recorded > actual) {
-      let deficit = recorded - actual;
-      const reserved = Math.min(deficit, this.state.legacyWater);
-      this.state.legacyWater -= reserved; deficit -= reserved;
-      for (const id of Object.keys(this.state.waterLots).sort().reverse()) {
-        if (deficit === 0) break;
-        const debit = Math.min(deficit, this.state.waterLots[id]);
-        this.state.waterLots[id] -= debit; deficit -= debit;
-      }
-    } else if (actual > recorded) {
-      const difference = actual - recorded;
-      const producer = [...rooms].filter(r=>r.type==='waterTreatment').sort((a,b)=>a.id.localeCompare(b.id))[0];
-      const storage = [...rooms].filter(r=>r.type==='storage').sort((a,b)=>a.id.localeCompare(b.id))[0];
-      const source = producer ?? storage;
-      if (source) this.state.waterLots[source.id] = (this.state.waterLots[source.id] ?? 0) + difference;
-      else this.state.legacyWater += difference;
+    const excess=Math.max(0,water.available()-water.capacity());
+    if(excess)water.spend(excess); // a demolished tank may lower capacity
+    const actual=water.available();
+    const records=(water.records?.()??[]).filter(r=>validNumber(r.id)&&validNumber(r.clean))
+      .sort((a,b)=>a.id-b.id);
+    const maxId=records.at(-1)?.id??this.state.waterLedgerSeen;
+    const producers=[...rooms].filter(r=>r.type==='waterTreatment').sort((a,b)=>a.id.localeCompare(b.id));
+    const storage=[...rooms].filter(r=>r.type==='storage').sort((a,b)=>a.id.localeCompare(b.id));
+    const defaultSource=producers[0]??storage[0];
+    const allocation=(id:string|undefined,amount:number)=>{
+      if(!amount)return;
+      if(id && rooms.some(r=>r.id===id&&(r.type==='waterTreatment'||r.type==='storage')))
+        this.state.waterLots[id]=(this.state.waterLots[id]??0)+amount;
+      else if(defaultSource)
+        this.state.waterLots[defaultSource.id]=(this.state.waterLots[defaultSource.id]??0)+amount;
+      else this.state.legacyWater+=amount;
+    };
+    // Previous saves had no allocation metadata, and historical ledger entries must
+    // not be credited twice when importing such a save.
+    if(this.state.ticks===0 && this.state.waterLedgerSeen===0 &&
+       this.state.legacyWater===0 && Object.keys(this.state.waterLots).length===0) {
+      allocation(defaultSource?.id,actual);
+      this.state.waterLedgerSeen=maxId;
+    } else {
+      for(const record of records)if(record.id>this.state.waterLedgerSeen)
+        allocation(record.roomId,record.clean);
+      this.state.waterLedgerSeen=Math.max(this.state.waterLedgerSeen,maxId);
+      let recorded=this.state.legacyWater+Object.values(this.state.waterLots).reduce((n,v)=>n+v,0);
+      if(recorded>actual) {
+        let deficit=recorded-actual;
+        const old=Math.min(deficit,this.state.legacyWater);
+        this.state.legacyWater-=old;deficit-=old;
+        for(const id of Object.keys(this.state.waterLots).sort().reverse()) {
+          if(!deficit)break;
+          const n=Math.min(deficit,this.state.waterLots[id]);
+          this.state.waterLots[id]-=n;deficit-=n;
+        }
+      } else if(actual>recorded)allocation(defaultSource?.id,actual-recorded);
     }
-    // Migrate previous save's emergency pool into the earliest real tank/producer.
-    const home = [...rooms].filter(r=>r.type==='storage'||r.type==='waterTreatment')
-      .sort((a,b)=>a.id.localeCompare(b.id))[0];
-    if (home && this.state.legacyWater) {
-      this.state.waterLots[home.id]=(this.state.waterLots[home.id]??0)+this.state.legacyWater;
+    // Rescue virtual legacy water into one physical tank if one becomes available.
+    if(defaultSource&&this.state.legacyWater) {
+      this.state.waterLots[defaultSource.id]=(this.state.waterLots[defaultSource.id]??0)+this.state.legacyWater;
       this.state.legacyWater=0;
     }
-    recorded = this.state.legacyWater + Object.values(this.state.waterLots).reduce((n,v)=>n+v,0);
-    if (recorded !== actual) throw new Error('Water allocation invariant violated');
+    const allocated=this.state.legacyWater+Object.values(this.state.waterLots).reduce((n,v)=>n+v,0);
+    if(allocated!==actual)throw new Error('Water allocation invariant violated');
   }
   /** No physical room can spend from a virtual emergency pool.
    * Transfer the old virtual oxygen reserve to the earliest real tank or vent. */
