@@ -1,0 +1,14 @@
+#kitchen-panel { margin-block: 14px; padding: 12px; border: 1px solid rgba(240,189,121,.22); border-radius: 14px; background: rgba(22,25,37,.75); color: #edf0f2; }
+#kitchen-panel h3 { font-size: 1rem; margin: 0 0 8px; }
+#kitchen-panel h4 { font-size: .9rem; margin: 8px 0; }
+#kitchen-panel p { font-size: .85rem; line-height: 1.7; margin: 7px 0; }
+#kitchen-panel .kitchen-room { padding: 10px 0; border-top: 1px solid rgba(255,255,255,.13); }
+#kitchen-panel .kitchen-recipe { display: grid; gap: 6px; margin-block: 9px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,.045); }
+#kitchen-panel .kitchen-recipe p { margin: 0; }
+#kitchen-panel .kitchen-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+#kitchen-panel button { min-height: 44px; min-width: 112px; max-width: 100%; padding: 10px 14px; color: #f8f5ea; background: #41566b; border: 1px solid rgba(255,255,255,.22); border-radius: 9px; font: inherit; cursor: pointer; touch-action: manipulation; }
+#kitchen-panel button:disabled { cursor: not-allowed; opacity: .5; }
+#kitchen-panel .kitchen-recipe button:not(:disabled) { background: #426954; }
+#kitchen-panel small, #kitchen-panel .kitchen-hint { opacity: .83; font-size: .78rem; }
+#kitchen-panel progress { width: 100%; height: 12px; accent-color: #e7ba65; }
+@media (max-width: 560px) { #kitchen-panel { padding: 10px; } #kitchen-panel button { width: 100%; } #kitchen-panel .kitchen-actions > button { flex: 1 1 120px; } }
