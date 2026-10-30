@@ -5,6 +5,7 @@ import {
 } from '../modules/achievements/achievements';
 import { formatNumber, getLocale, t } from '../i18n';
 import { assetUrl } from './assets/assetManager';
+import { createIcon } from '../ui/icons';
 
 /** Presentation-only groups. Game rules and saved achievements remain unchanged. */
 export type AchievementCategory = 'all' | 'construction' | 'exploration' | 'production' | 'community';
@@ -44,7 +45,7 @@ export function achievementArtPaths(
   };
 }
 
-/** Responsive, keyboard-accessible dialog; badges never award coins or resources. */
+/** Responsive, keyboard-accessible dialog; rewards are granted only by GameSession. */
 export function mountAchievements(root: Document): (snapshot: GameSnapshot) => void {
   const get = <T extends HTMLElement>(selector: string): T => {
     const node = root.querySelector<T>(selector);
@@ -61,7 +62,7 @@ export function mountAchievements(root: Document): (snapshot: GameSnapshot) => v
   const filters = get<HTMLElement>('#achievements-filters');
   const list = get<HTMLUListElement>('#achievements-list');
   const toast = get<HTMLElement>('#achievement-toast');
-  let priorUnlocks: Set<string> | null = null;
+  let priorRewardTransactions: Set<number> | null = null;
   let toastTimer: number | undefined;
   let activeFilter: AchievementCategory = 'all';
   let latestViews: AchievementView[] = [];
@@ -97,6 +98,7 @@ export function mountAchievements(root: Document): (snapshot: GameSnapshot) => v
     status: HTMLElement;
     medal: HTMLElement;
     statusIcon: HTMLElement;
+    reward: HTMLElement;
   };
   const cards = new Map<AchievementId, CardRef>();
   let renderedKey = '';
@@ -121,7 +123,10 @@ export function mountAchievements(root: Document): (snapshot: GameSnapshot) => v
     statusIcon.className = 'achievement-state-icon';
     statusIcon.setAttribute('aria-hidden', 'true');
     status.append(statusText, statusIcon);
-    detail.append(title, description, progress, status);
+    const reward = root.createElement('span');
+    reward.className = 'achievement-reward';
+    reward.append(createIcon('coin', 16), root.createElement('span'));
+    detail.append(title, description, progress, status, reward);
 
     const art = root.createElement('img');
     art.className = 'achievement-art';
@@ -137,7 +142,7 @@ export function mountAchievements(root: Document): (snapshot: GameSnapshot) => v
     item.append(medal, detail, art);
 
     return { element: item, title, description, progress, status: statusText,
-      medal, statusIcon };
+      medal, statusIcon, reward };
   }
 
   function updateCard(view: AchievementView, ref: CardRef): void {
@@ -161,6 +166,12 @@ export function mountAchievements(root: Document): (snapshot: GameSnapshot) => v
     if (ref.statusIcon.textContent !== icon) ref.statusIcon.textContent = icon;
     const medal = view.unlocked ? '★' : '◇';
     if (ref.medal.textContent !== medal) ref.medal.textContent = medal;
+    ref.reward.classList.toggle('is-received', view.rewardGranted);
+    const rewardLabel = view.rewardGranted
+      ? t('+{value} سکه دریافت شد', { value: formatNumber(view.rewardCoins) })
+      : t('پاداش: {value} سکه', { value: formatNumber(view.rewardCoins) });
+    const rewardText = ref.reward.lastElementChild;
+    if (rewardText && rewardText.textContent !== rewardLabel) rewardText.textContent = rewardLabel;
   }
 
   /** Reuse existing cards across resource ticks; images keep their current request and decode state. */
@@ -239,18 +250,29 @@ export function mountAchievements(root: Document): (snapshot: GameSnapshot) => v
     updateFilters();
     renderList();
 
-    const current = new Set(snapshot.achievements.unlocked);
-    if (priorUnlocks !== null) {
-      const unlockedNow = latestViews.filter((view) => current.has(view.id) && !priorUnlocks!.has(view.id));
-      if (unlockedNow.length > 0) {
-        toast.textContent = unlockedNow.length === 1
-          ? t('دستاورد جدید: {name}', { name: t(unlockedNow[0].title) })
-          : t('{count} دستاورد جدید باز شد', { count: formatNumber(unlockedNow.length) });
-        toast.hidden = false;
-        if (toastTimer !== undefined) window.clearTimeout(toastTimer);
-        toastTimer = window.setTimeout(() => { toast.hidden = true; }, 4500);
-      }
+    const paid = snapshot.wallet.transactions.filter((entry) =>
+      entry.kind === 'achievement-reward' && entry.achievementId
+    );
+    // On the initial render the saved ledger is only a baseline; old toasts
+    // never replay on reload. Subsequent payments trigger one concise toast.
+    const newlyPaid = priorRewardTransactions === null ? [] :
+      paid.filter((entry) => !priorRewardTransactions!.has(entry.id));
+    if (newlyPaid.length > 0) {
+      const total = newlyPaid.reduce((sum, entry) => sum + entry.delta, 0);
+      const only = newlyPaid.length === 1
+        ? latestViews.find((entry) => entry.id === newlyPaid[0].achievementId)
+        : null;
+      toast.textContent = only
+        ? t('دستاورد باز شد: {name}؛ +{value} سکه', {
+            name: t(only.title), value: formatNumber(total)
+          })
+        : t('{count} دستاورد باز شد؛ +{value} سکه', {
+            count: formatNumber(newlyPaid.length), value: formatNumber(total)
+          });
+      toast.hidden = false;
+      if (toastTimer !== undefined) window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => { toast.hidden = true; }, 4500);
     }
-    priorUnlocks = current;
+    priorRewardTransactions = new Set(paid.map((entry) => entry.id));
   };
 }
