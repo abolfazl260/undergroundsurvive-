@@ -2,7 +2,7 @@
 
 Independent feature under game/src/modules/achievements/.
 
-Achievements award cosmetic badges only, not currency or resources.
+Achievements award **one-time coins** through the game's existing wallet. All eleven rewards are catalog-defined positive integers, displayed on the card before unlock, and marked received after payment.
 
 ## Milestones
 
@@ -19,9 +19,11 @@ Failed actions do not count. Starter rooms and excavated starter cells do not co
 
 ## Persistence and compatibility
 
-GameSession uses snapshot schema version 4 with a nested version-1 achievements state containing unlocked badge IDs. Existing v2 and v3 snapshots and layout-only v1 saves are accepted; historical milestones are reconstructed using existing transactions, floor unlocks, resource tick counts, and room types. Bad v4 achievement payloads with duplicate or unknown IDs fail validation. New games clear badge progress.
+GameSession now persists **schema version 14** with nested achievement **schema version 2**. The achievement state stores both unlocked IDs and `rewardGrantedAchievementIds`. Each credit is also an `achievement-reward` entry in the existing wallet transaction log, keyed by the stable achievement ID. The wallet refuses duplicate credits, non-positive/unsafe amounts, and overflow. On v14 restore, the set of granted IDs must match the log (including catalog amounts), or the corrupt save is rejected.
 
-The Achievements action opens an accessible native dialog with progress bars and a live unlock notification. Its layout is mobile-first and language-specific strings are available in Persian and English.
+Prior v2–v13 snapshots and layout-only v1 saves remain supported. On the first load of a legacy save, any already-unlocked or reconstructable milestones are credited **once**, then the paired wallet/achievement snapshot is saved in a single JSON localStorage write. If saving fails, the prior save remains unchanged; on next launch the migration replays from that unchanged starting balance, not on top of an unpersisted payment. Fresh games clear progress and rewards.
+
+The Achievements action opens an accessible native dialog with progress bars, per-card coin rewards and a live payment toast. Existing saved payments never replay notifications after reload. Its layout is mobile-first and language-specific strings are available in Persian and English.
 
 ## Test commands
 
@@ -31,7 +33,7 @@ From the game directory, run: npm test, then npm run build. The achievement suit
 
 The achievements modal uses the same full-screen mobile-first visual design on the web and mobile. It features an illustrated header, overall completion meter, category filters, localized milestone details, accessible progress elements, and unlocked-state medals. Larger screens arrange filters beside the cards; narrow screens make them a horizontal, touch-friendly strip. The list scrolls inside the modal without moving the game canvas.
 
-Categories are presentation-only: construction (builds, digs, upgrades), exploration (upper floors), production (resource cycles), and community (distinct room types). Their totals are derived from the existing 11 achievement definitions. No badge ID, unlock rule, save schema, reward or economy value is modified. Card artwork reuses the already packaged HD room atlases; no additional downloaded artwork is required.
+Categories are presentation-only: construction (builds, digs, upgrades), exploration (upper floors), production (resource cycles), and community (distinct room types). Their totals are derived from the existing 11 achievement definitions. Badge IDs, unlock rules, and artwork stay unchanged; game economy and save schema incorporate the reward feature. Card artwork reuses the already packaged HD room atlases; no additional downloaded artwork is required.
 
 Dialog Escape and close-button behavior, the existing unlock toast, RTL Persian/LTR English layouts, and local-save progress are preserved. The display also supports reduced-motion preferences.
 
@@ -61,7 +63,7 @@ reproducible authoring, not as a served asset. Run
 `node game/scripts/check-achievement-webp.mjs` to verify file presence,
 WebP validity, uniqueness and the asset-size budget. This check also runs in web CI.
 
-No achievement rule, badge ID, economy field or save-schema value changes.
+No achievement rule, badge ID, or artwork file changes.
 
 
 ## Asset URLs on GitHub Pages
@@ -79,3 +81,21 @@ that project URL. The existing preloaded room images and WebP files are unchange
 
 Regression tests cover local root hosting, relative hosting, explicit project
 subpaths, both resolution variants, and every achievement ID.
+
+## Coin rewards (issue #80)
+
+| Achievement | Coins |
+| --- | ---: |
+| first-room | 40 |
+| builder | 150 |
+| first-dig | 25 |
+| excavator | 160 |
+| first-upgrade | 30 |
+| upgrader | 75 |
+| upper-floor | 100 |
+| skyline | 220 |
+| first-cycles | 60 |
+| steady-shelter | 140 |
+| diverse-shelter | 180 |
+
+Amounts are managed in `game/src/modules/achievements/achievements.ts`; change that catalog for balancing, never the dialog. Unlocks and payments are settled by `GameSession` on successful actions, resource-cycle completion, snapshot reconciliation, and restoration, irrespective of whether the achievement screen is open. Overflow leaves a reward pending; it is never marked granted before a successful wallet credit. The HUD and recent transaction list consume the updated wallet snapshot. The toast shows newly posted wallet credits, not changes detected while filtering or reopening the dialog.
