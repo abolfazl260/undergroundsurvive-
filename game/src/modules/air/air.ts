@@ -9,7 +9,7 @@ export const AIR_CONFIG = {
   industrialEmission: 0.15, overloadDecay: 0.10, purificationPerLevel: 1.6,
   capacityBase: 5, capacityPerLevel: 3, powerBase: 1,
   maxEmissions: 20, maxPopulation: 100, maxUnits: 160,
-  wearPerTick: 0.005, repairCoins: 60,
+  wearPerTick: 0.01, repairCoins: 60,
   efficiencyWarning: 0.9, efficiencyCritical: 0.7,
   welfareWarning: 0.9, welfareCritical: 0.65,
 } as const;
