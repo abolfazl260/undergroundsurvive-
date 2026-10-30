@@ -17,15 +17,19 @@ it('maps exactly five level-two rooms to five distinct approved art frames', () 
   });
   expect(new Set(Object.values(LEVEL_TWO_FRAME_BY_TYPE)).size).toBe(5);
   expect(LEVEL_TWO_ROOM_ART_ASSET.kind).toBe('spritesheet');
-  expect(LEVEL_TWO_ROOM_ART_ASSET.frameWidth).toBe(400);
-  expect(LEVEL_TWO_ROOM_ART_ASSET.frameHeight).toBe(132);
+  expect(LEVEL_TWO_ROOM_ART_ASSET.frameWidth).toBe(160);
+  expect(LEVEL_TWO_ROOM_ART_ASSET.frameHeight).toBe(53);
+  expect(LEVEL_TWO_ROOM_ART_ASSET.variants.map((v) => v.scale)).toEqual([1, 4]);
+  expect(LEVEL_TWO_ROOM_ART_ASSET.variants[1]).toEqual({
+    scale: 4, path: 'assets/rooms/room-level-2-hd.webp', frameWidth: 640, frameHeight: 212
+  });
   for (const variant of LEVEL_TWO_ROOM_ART_ASSET.variants) {
     const file = 'public/' + variant.path;
     expect(existsSync(file)).toBe(true);
     const bytes = readFileSync(file);
     expect(bytes.toString('ascii', 0, 4)).toBe('RIFF');
     expect(bytes.toString('ascii', 8, 12)).toBe('WEBP');
-    expect(bytes.length).toBeLessThan(120_000);
+    expect(bytes.length).toBeLessThan(160_000);
   }
 });
 it('preserves level-one art, upgrades level two, and falls back on failed loads', () => {
