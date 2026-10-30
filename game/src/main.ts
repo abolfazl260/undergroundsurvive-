@@ -18,6 +18,7 @@ import { MAX_ROOM_LEVEL } from './modules/building/upgrades';
 import type { UpgradeDetails } from './modules/economy/session';
 import type { TransactionKind } from './modules/economy/wallet';
 import type { GameSnapshot } from './modules/economy/session';
+import { mountResourcePanel } from './app/ui/resourcePanel';
 import { formatNumber, loadLocale, localizeGameMessage, mountStaticTranslations, setLocale, subscribeLocaleChange, t } from './i18n';
 
 setLocale(loadLocale());
@@ -28,6 +29,7 @@ const audio = new AudioManager();
 const status = document.querySelector<HTMLElement>('#status');
 const unlockButton = document.querySelector<HTMLButtonElement>('#unlock-floor');
 const renderHud = mountHud(document);
+const resourcePanel = mountResourcePanel(document);
 const bonusButton = document.querySelector<HTMLButtonElement>('#demo-bonus');
 const historyNode = document.querySelector<HTMLElement>('#transaction-list');
 const digButton = document.querySelector<HTMLButtonElement>('[data-tool="dig"]');
@@ -121,6 +123,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   latestBalance = snapshot.wallet.balance;
   renderUpgradePanel();
   renderHud(snapshot, saved);
+  resourcePanel.render(snapshot);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
     setButtonLabel(bonusButton, snapshot.demoBonusClaimed
@@ -166,7 +169,7 @@ const scene = new GameScene((snapshot, message) => {
 }, (cue) => audio.play(cue), () => audio.activate(), (details) => {
   upgradeSelection = details;
   renderUpgradePanel();
-});
+}, (seconds) => resourcePanel.renderCountdown(seconds));
 
 createGame(scene);
 setupGameMenu(scene, savedGame !== null, audio, renderAudioControls);

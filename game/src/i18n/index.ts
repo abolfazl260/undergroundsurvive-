@@ -192,7 +192,25 @@ const english: Readonly<Record<string, string>> = {
   "فصل‌ها قابل بارگذاری نیستند. فایل‌های محتوا را بررسی کنید.": "Could not load chapters. Check the content files.",
   "هنوز فصل فعالی وجود ندارد.": "No active chapters yet.",
   "دریافت محتوای داستان ناموفق بود. اتصال اینترنت یا انتشار فایل‌های محتوا را بررسی کنید.": "Story content failed to load. Check your connection and deployed content files.",
-  "خطای بارگذاری": "Loading error"
+  "خطای بارگذاری": "Loading error",
+  "منابع و چرخهٔ زمانی پناهگاه": "Shelter resources and timed cycles",
+  "تولید و مصرف منابع": "Resource production and consumption",
+  "چرخه": "Cycle",
+  "· چرخهٔ بعد در": "· Next cycle in",
+  "ثانیه": "seconds",
+  "برق": "Power",
+  "غذا": "Food",
+  "سنگ معدن": "Ore",
+  "تجهیزات": "Supplies",
+  "تولید هر ۵ ثانیه از زمان فعال بازی محاسبه می‌شود.": "Resources are processed every 5 seconds of active gameplay.",
+  "چرخهٔ اخیر بدون کمبود منابع انجام شد. هنگام توقف بازی تولید متوقف می‌شود.": "The last cycle had no shortages. Production pauses when the game is paused.",
+  "کمبود {resources} · {rooms} اتاق در چرخهٔ اخیر غیرفعال بود.": "Shortage: {resources} · {rooms} room(s) inactive in the latest cycle.",
+  "چرخهٔ منابع انجام شد؛ برخی اتاق‌ها به‌علت کمبود منابع متوقف شدند.": "Resource cycle completed. Some rooms stopped due to shortages.",
+  "چرخهٔ تولید و مصرف منابع انجام شد.": "Production and consumption cycle completed.",
+  "مسیریابی آدمک": "Character navigation",
+  "اتاق مقصد را لمس کنید تا آدمک از راهروهای قابل‌عبور به آن برسد.": "Tap a destination room to send the character along a reachable path.",
+  "مسیر قابل‌عبوری به این اتاق وجود ندارد.": "No traversable path to this room.",
+  "ابتدا یک اتاق مقصد انتخاب کنید.": "Select a destination room first."
 };
 let active: GameLocale = DEFAULT_LOCALE;
 const listeners = new Set<() => void>();
@@ -276,6 +294,8 @@ export function mountStaticTranslations(root: ParentNode = document): () => void
 }
 
 const dynamicMessages: readonly [RegExp, (parts: RegExpMatchArray) => string][] = [
+  [/^مقصد آدمک: (.+)\.$/,
+    (m) => 'Character destination: ' + m[1] + '.'],
   [/^طبقهٔ جدید با پرداخت (.+) سکه آزاد شد؛ برای ساخت تکیه‌گاه لازم است\.$/,
     (m) => 'New floor unlocked for ' + m[1] + ' coins. Rooms still need support.'],
   [/^۵۰۰ سکهٔ کمک‌هزینهٔ آزمایشی دریافت شد\.$/,
