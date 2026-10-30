@@ -39,6 +39,18 @@ describe('language preferences', () => {
     expect(localizeGameMessage('اتاق ساخته شد. هزینه: 200 سکه.')).toBe('Room built. Cost: 200 coins.');
   });
 
+  it('translates cinematic pause-menu actions and accessible labels', () => {
+    expect(t('بازگشت به پناهگاه')).toBe('بازگشت به پناهگاه');
+    setLocale('en', { setItem: () => {} });
+    expect(t('ورود به پناهگاه')).toBe('Enter the shelter');
+    expect(t('بازگشت به پناهگاه')).toBe('Return to the shelter');
+    expect(t('ساخت یک پناهگاه تازه')).toBe('Create a fresh shelter');
+    expect(t('صدا، زبان و حرکت')).toBe('Audio, language and motion');
+    expect(t('بازگشت به صفحهٔ شروع')).toBe('Back to the start screen');
+    expect(t('ذخیرهٔ محلی روی این دستگاه')).toBe('Local save on this device');
+    expect(t('بستن منوی توقف و ادامهٔ بازی')).toBe('Close pause menu and resume');
+  });
+
   it('notifies subscribers only for an actual change', () => {
     let calls = 0;
     const unsubscribe = subscribeLocaleChange(() => { calls++; });
