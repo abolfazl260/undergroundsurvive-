@@ -17,6 +17,7 @@ it('maps exactly five level-two rooms to five distinct approved art frames', () 
   });
   expect(new Set(Object.values(LEVEL_TWO_FRAME_BY_TYPE)).size).toBe(5);
   expect(LEVEL_TWO_ROOM_ART_ASSET.kind).toBe('spritesheet');
+  if (LEVEL_TWO_ROOM_ART_ASSET.kind !== 'spritesheet') throw new Error('Room art must be a spritesheet');
   expect(LEVEL_TWO_ROOM_ART_ASSET.frameWidth).toBe(160);
   expect(LEVEL_TWO_ROOM_ART_ASSET.frameHeight).toBe(53);
   expect(LEVEL_TWO_ROOM_ART_ASSET.variants.map((v) => v.scale)).toEqual([1, 4]);
