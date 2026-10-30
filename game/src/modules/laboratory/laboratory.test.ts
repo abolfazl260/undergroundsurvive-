@@ -6,7 +6,7 @@ function setup(){const s=GameSession.create();expect(s.build('laboratory',8,-1).
 it('rejects unstaffed research without charging and waits for real arrival',()=>{
  const s=setup(),id=s.layout.rooms.find(r=>r.type==='laboratory')!.id,balance=s.wallet.balance;
  expect(s.startResearch('power-1','no-staff')).toBe(false);expect(s.wallet.balance).toBe(balance);
- expect(s.assignScientist('resident-1',id,'staff')).toBeNull();
+ expect(s.assignScientist('resident-3',id,'staff')).toBeNull();
  expect(s.startResearch('power-1','in-transit')).toBe(false);
  for(let i=0;i<10;i++)s.advanceTime(500);expect(s.researchFacility()).toMatchObject({level:1,powered:true,staffed:true});
  expect(s.startResearch('power-1','research')).toBe(true);
@@ -14,7 +14,7 @@ it('rejects unstaffed research without charging and waits for real arrival',()=>
 });
 it('suspends on removal and resumes with progress and payment intact after rebuilding',()=>{
  const s=setup(),id=s.layout.rooms.find(r=>r.type==='laboratory')!.id;
- s.assignScientist('resident-1',id,'staff');for(let i=0;i<10;i++)s.advanceTime(500);s.startResearch('power-1','research');for(let i=0;i<10;i++)s.advanceTime(500);
+ s.assignScientist('resident-3',id,'staff');for(let i=0;i<10;i++)s.advanceTime(500);s.startResearch('power-1','research');for(let i=0;i<10;i++)s.advanceTime(500);
  const before=s.research.snapshot(),remaining=before.completeAt!-before.nowMs,balance=s.wallet.balance;
  expect(s.removeRoom(id).ok).toBe(true);s.advanceTime(10000);
  expect(s.research.snapshot().completeAt!-s.research.snapshot().nowMs).toBe(remaining);
@@ -22,14 +22,14 @@ it('suspends on removal and resumes with progress and payment intact after rebui
  const loaded=GameSession.restore(s.snapshot())!;
  expect(loaded.research.snapshot()).toEqual(s.research.snapshot());
  expect(loaded.build('laboratory',8,-1).ok).toBe(true);const newId=loaded.layout.rooms.at(-1)!.id;
- expect(loaded.assignScientist('resident-1',newId,'new-staff')).toBeNull();for(let i=0;i<30;i++)loaded.advanceTime(500);
+ expect(loaded.assignScientist('resident-3',newId,'new-staff')).toBeNull();for(let i=0;i<30;i++)loaded.advanceTime(500);
  expect(loaded.research.snapshot().unlockedTechnologyIds).toContain('power-1');
  expect(loaded.research.snapshot().operations).toEqual(['research']);
 });
 it('enforces unique scientists and capacity, and applies a single facility modifier',()=>{
  const s=setup(),id=s.layout.rooms.find(r=>r.type==='laboratory')!.id;
- s.assignScientist('resident-1',id,'staff');
- expect(s.assignScientist('resident-1',id,'again')).toBe('busy');
+ s.assignScientist('resident-3',id,'staff');
+ expect(s.assignScientist('resident-3',id,'again')).toBe('busy');
  expect(s.assignScientist('resident-2',id,'full')).toBe('capacity');
  expect(s.upgradeRoom(id).ok).toBe(true);
  expect(s.assignScientist('resident-2',id,'second')).toBeNull();for(let i=0;i<10;i++)s.advanceTime(500);
