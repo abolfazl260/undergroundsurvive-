@@ -16,14 +16,22 @@ export function walkPoint(cell: GridPosition): WalkPoint {
 }
 
 /**
- * Cells inside rooms and excavated corridors are walkable. In this prototype,
- * a vertical connection is a free (unoccupied) shaft, or the command room's
- * built-in elevator. Other stacked rooms do not form a passage through floors.
+ * Empty upper floors are air, not walkable terrain. Only built upper-floor
+ * cells have a physical surface; unexcavated ground and the map edge are solid.
+ */
+export function isWalkableCell(layout: BuildingLayout, cell: GridPosition): boolean {
+  return isInsideWorld(cell.x, cell.y) && layout.terrain.isOpen(cell.x, cell.y) &&
+    (cell.y <= 0 || layout.getRoomAt(cell.x, cell.y) !== undefined);
+}
+
+/**
+ * Horizontal walking requires two real walkable cells. Vertical crossings use
+ * excavated shafts or the command room's built-in access; no floating stairs.
  */
 export function canWalkBetween(layout: BuildingLayout, from: GridPosition, to: GridPosition): boolean {
   if (!isInsideWorld(from.x, from.y) || !isInsideWorld(to.x, to.y) ||
       Math.abs(from.x - to.x) + Math.abs(from.y - to.y) !== 1 ||
-      !layout.terrain.isOpen(from.x, from.y) || !layout.terrain.isOpen(to.x, to.y)) return false;
+      !isWalkableCell(layout, from) || !isWalkableCell(layout, to)) return false;
   if (from.y === to.y) return true;
   const a = layout.getRoomAt(from.x, from.y);
   const b = layout.getRoomAt(to.x, to.y);
@@ -32,9 +40,10 @@ export function canWalkBetween(layout: BuildingLayout, from: GridPosition, to: G
 
 /** Breadth-first search finds the shortest traversable path to any cell of a room. */
 export function findRoomPath(
-  layout: BuildingLayout, start: GridPosition, roomId: string
+  layout: BuildingLayout, start: GridPosition, roomId: string,
+  blocked: ReadonlySet<string> = new Set()
 ): GridPosition[] | null {
-  if (!layout.terrain.isOpen(start.x, start.y) ||
+  if (!isWalkableCell(layout, start) ||
       !layout.rooms.some((room) => room.id === roomId)) return null;
   const queue: GridPosition[] = [start];
   const seen = new Set<string>([key(start)]);
@@ -55,7 +64,7 @@ export function findRoomPath(
     for (const direction of directions) {
       const next = { x: current.x + direction.x, y: current.y + direction.y };
       const nextKey = key(next);
-      if (seen.has(nextKey) || !canWalkBetween(layout, current, next)) continue;
+      if (seen.has(nextKey) || blocked.has(nextKey) || !canWalkBetween(layout, current, next)) continue;
       seen.add(nextKey);
       previous.set(nextKey, key(current));
       cells.set(nextKey, next);
