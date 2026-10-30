@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { toPixels, WORLD, type GridPosition } from '../modules/world/grid';
+import { toPixels, type GridPosition } from '../modules/world/grid';
 import type { ElevatorCarView } from '../modules/characters/traffic';
 
 /** Industrial cross-section at exactly one 54px grid cell per shaft segment.
