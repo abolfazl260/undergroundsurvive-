@@ -108,10 +108,16 @@ export class BuildingLayout {
       const type = r.type as RoomType, def = ROOM_DEFINITIONS[type];
       if (!Number.isInteger(r.x) || !Number.isInteger(r.y) ||
           !isInsideWorld(r.x, r.y) || r.width !== def.width || r.height !== def.height ||
-          !Number.isInteger(r.level) || r.level < 1 || r.level > MAX_ROOM_LEVEL ||
-          !validatePlacement(rooms, type, r.x, r.y, terrain).ok) return null;
+          !Number.isInteger(r.level) || r.level < 1 || r.level > MAX_ROOM_LEVEL) return null;
       rooms.push({ ...r });
       ids.add(r.id);
+    }
+    // Validate against the full set, not only rooms encountered earlier in the
+    // snapshot. A moved upper room may rely on a support constructed later.
+    // Exclude the current room to check collisions without self-overlap.
+    for (const room of rooms) {
+      const others = rooms.filter((other) => other.id !== room.id);
+      if (!validatePlacement(others, room.type, room.x, room.y, terrain).ok) return null;
     }
     if (!rooms.some((r) => r.id === 'initial-command' && r.type === 'command') ||
         !hasStructuralSupport(rooms, terrain)) return null;

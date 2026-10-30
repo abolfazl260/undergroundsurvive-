@@ -67,6 +67,46 @@ describe('building placement, floors and terrain', () => {
     expect(layout.remove('initial-command').ok).toBe(false);
   });
 
+  it('restores upper rooms supported by later-built rooms regardless of snapshot order', () => {
+    const layout = new BuildingLayout();
+    expect(layout.unlockFloor().ok).toBe(true);
+    expect(layout.place('habitat', 2, 1).ok).toBe(true);
+    const upperId = layout.getRoomAt(2, 1)!.id;
+    expect(layout.place('storage', 8, 0).ok).toBe(true);
+    const supportId = layout.getRoomAt(8, 0)!.id;
+    expect(layout.move(upperId, 8, 1).ok).toBe(true);
+
+    const saved = layout.snapshot();
+    expect(saved.rooms.findIndex((r) => r.id === upperId))
+      .toBeLessThan(saved.rooms.findIndex((r) => r.id === supportId));
+    expect(BuildingLayout.restore(saved)?.snapshot()).toEqual(saved);
+
+    // Restoring must not require any particular ordering of valid rooms.
+    const reversed = { ...saved, rooms: [...saved.rooms].reverse() };
+    expect(BuildingLayout.restore(reversed)?.snapshot()).toEqual(reversed);
+  });
+
+  it('rejects overlapping, unsupported and unexcavated rooms after full-set validation', () => {
+    const layout = new BuildingLayout();
+    expect(layout.unlockFloor().ok).toBe(true);
+    expect(layout.place('habitat', 2, 1).ok).toBe(true);
+    const saved = layout.snapshot();
+
+    const overlap = structuredClone(saved);
+    overlap.rooms.push({ ...overlap.rooms[0], id: 'overlapping-command' });
+    expect(BuildingLayout.restore(overlap)).toBeNull();
+
+    const unsupported = structuredClone(saved);
+    unsupported.rooms.find((r) => r.y === 1)!.x = 8;
+    expect(BuildingLayout.restore(unsupported)).toBeNull();
+
+    const unexcavated = structuredClone(saved);
+    const habitat = unexcavated.rooms.find((r) => r.id === 'initial-habitat')!;
+    habitat.x = 5;
+    habitat.y = -3;
+    expect(BuildingLayout.restore(unexcavated)).toBeNull();
+  });
+
   it('saves, loads, checks malformed data and resets the map', () => {
     const layout = new BuildingLayout();
     layout.dig(5, -2);
