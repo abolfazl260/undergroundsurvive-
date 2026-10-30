@@ -80,6 +80,34 @@ describe('life-support graph and deterministic distribution', () => {
     expect(s.service.snapshot().lastOxygenUsed).toBe(0);
     expect(s.service.snapshot().roomStatuses.find(r=>r.id==='home')?.status).toBe('degraded');
   });
+
+  it('keeps separate water and oxygen stocks in physically isolated networks', () => {
+    const east=[room('waterTreatment','water2',10),room('habitat','home2',12),room('ventilation','vent2',14)];
+    const both=[...rooms,...east];
+    const life=new LifeSupportService();
+    let balance=20;
+    const ledger: {id:number;roomId:string;clean:number}[]=[];
+    const w={available:()=>balance,capacity:()=>80,
+      spend:(n:number)=>{if(balance<n)return false;balance-=n;return true;},
+      records:()=>ledger};
+    const step=()=>life.tick(both,w,{population:()=>4},{powered:()=>true},
+      [{id:'vent',powered:true},{id:'vent2',powered:true}]);
+    step();
+    balance+=10;ledger.push({id:1,roomId:'water2',clean:10});step();
+    for(let i=2;i<36;i++)step();
+    expect(life.snapshot().waterLots.water2).toBe(10);
+    expect(life.view(both,w).zones).toHaveLength(2);
+    step();
+    const states=life.snapshot().roomStatuses;
+    expect(states.find(r=>r.id==='home')?.status).toBe('online');
+    expect(states.find(r=>r.id==='home2')?.status).toBe('online');
+    // Closing west water supply does not let west steal from east.
+    expect(life.toggleLink('water','home',both)).toBe(true);
+    step();
+    expect(life.snapshot().roomStatuses.find(r=>r.id==='home')?.status).toBe('degraded');
+    expect(life.snapshot().roomStatuses.find(r=>r.id==='home2')?.status).toBe('online');
+    expect(LifeSupportService.restore(life.snapshot())?.snapshot()).toEqual(life.snapshot());
+  });
   it('clamps capacity, invalidates stale links, and rejects corrupted persisted values', () => {
     const s=setup(), initial=s.service.snapshot();
     expect(oxygenCapacity([room('storage','store',10,2)])).toBe(80);
