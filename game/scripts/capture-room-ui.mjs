@@ -9,9 +9,10 @@ for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
   page.on('pageerror', error=>errors.push(error.message));
   await page.goto(base);
   await page.locator('#menu-continue').click();
-  await page.locator('canvas').waitFor();
+  await page.locator('#game-canvas canvas').waitFor();
   await page.waitForTimeout(800);
   await page.screenshot({path:`${output}/${mode}-${width}x${height}-scene.png`});
+  if(mode==='after') await page.locator('#dock-tools').click();
   await page.locator('[data-tool="upgrade"]').click();
   await page.locator('#upgrade-panel').waitFor({state:'visible'});
   if(mode==='after') {
