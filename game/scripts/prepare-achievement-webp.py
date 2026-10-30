@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "game" / "artwork-sources" / "milestone-scenes-hd.webp"
@@ -34,6 +34,20 @@ def main() -> None:
     total_bytes = 0
     for index, name in enumerate(NAMES):
         image = colors.crop((0, index * 180, 540, (index + 1) * 180))
+        if name == "skyline":
+            # The supplied skyline and upper-floor art in the source sheet are
+            # visually identical. Build a distinct surface-expansion panorama:
+            # the game's ruined city above a lit multi-floor shelter section.
+            city_path = ROOT / "game" / "public" / "assets" / "backgrounds" / "ruined-city-hd.webp"
+            with Image.open(city_path) as city_source:
+                city = ImageOps.fit(city_source.convert("RGB"), (540, 180))
+            upper_modules = colors.crop((0, 180, 540, 360))
+            mask = Image.new("L", (540, 180), 0)
+            for y in range(53, 180):
+                alpha = min(255, max(0, int((y - 53) / 21 * 255)))
+                for x in range(540):
+                    mask.putpixel((x, y), alpha)
+            image = Image.composite(upper_modules, city, mask)
         fingerprint = sha256(image.tobytes()).hexdigest()
         if fingerprint in unique_images:
             raise RuntimeError(f"Duplicate illustration for achievement {name}")
