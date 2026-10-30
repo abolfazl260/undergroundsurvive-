@@ -8,7 +8,7 @@ export type WaterBlock = 'paused' | 'raw' | 'power' | 'capacity' | 'producing';
 export interface WaterCycle { id: string; level: number; elapsedMs: number; enabled: boolean }
 export interface WaterSnapshot {
   schemaVersion: 1; raw: number; clean: number; reserve: number; cycles: WaterCycle[];
-  completed: number; ledger: { id: number; raw: number; clean: number; power: number }[];
+  completed: number; ledger: { id: number; raw: number; clean: number; power: number; roomId?: string }[];
   operations: string[];
 }
 export interface WaterPower { available(): number; spend(amount: number): boolean }
@@ -64,7 +64,7 @@ export class WaterProductionProcessor {
         if (!power.spend(recipe.power)) break;
         this.state.raw -= recipe.raw; this.state.clean += recipe.clean;
         cycle.elapsedMs -= recipe.durationMs;
-        this.state.ledger.push({ id: ++this.state.completed, raw: -recipe.raw, clean: recipe.clean, power: -recipe.power });
+        this.state.ledger.push({ id: ++this.state.completed, raw: -recipe.raw, clean: recipe.clean, power: -recipe.power, roomId: cycle.id });
         this.state.ledger = this.state.ledger.slice(-100);
       }
     }
@@ -80,7 +80,8 @@ export class WaterProductionProcessor {
       !s.cycles.every(c => c && typeof c === 'object') || !s.ledger.every(e => e && typeof e === 'object') ||
       new Set(s.cycles.map(c=>c.id)).size !== s.cycles.length ||
       !s.cycles.every(c => typeof c.id === 'string' && [1,2,3].includes(c.level) && typeof c.enabled === 'boolean' && Number.isFinite(c.elapsedMs) && c.elapsedMs >= 0 && c.elapsedMs <= WATER_CONFIG.recipe.durationMs) ||
-      !s.ledger.every((e,i) => Number.isSafeInteger(e.id) && e.id > 0 && e.id <= s.completed && (!i || e.id > s.ledger[i-1].id) && e.raw === -2 && e.power === -2 && [2,4,6].includes(e.clean))) return null;
+      !s.ledger.every((e,i) => Number.isSafeInteger(e.id) && e.id > 0 && e.id <= s.completed && (!i || e.id > s.ledger[i-1].id) && e.raw === -2 && e.power === -2 && [2,4,6].includes(e.clean) &&
+        (e.roomId === undefined || (typeof e.roomId === 'string' && e.roomId.length > 0 && e.roomId.length < 200)))) return null;
     const p = new WaterProductionProcessor(); p.state = structuredClone(s); return p;
   }
 }
