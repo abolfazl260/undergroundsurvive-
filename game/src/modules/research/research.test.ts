@@ -37,7 +37,7 @@ it('preserves remaining time through facility/power loss and reload, rejects tim
 });
 it('integrates actual output, upgrade/reload, frame partitioning and legacy migration',()=>{
  const a=GameSession.create();expect(a.build('laboratory',8,-1).ok).toBe(true);
- expect(a.assignScientist('resident-1',a.layout.rooms.find(r=>r.type==='laboratory')!.id,'scientist')).toBeNull();
+ expect(a.assignScientist('resident-3',a.layout.rooms.find(r=>r.type==='laboratory')!.id,'scientist')).toBeNull();
  for(let i=0;i<10;i++)a.advanceTime(500);
  const baseline=GameSession.restore(a.snapshot())!;
  expect(a.startResearch('power-1','one')).toBe(true);expect(a.startResearch('power-1','one')).toBe(false);
