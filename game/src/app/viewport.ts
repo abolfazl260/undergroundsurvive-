@@ -1,22 +1,9 @@
 /** Pure camera geometry shared by mouse, touch and UI controls. Phaser-independent. */
 export const ZOOM = { min: 0.75, max: 2.5, initial: 1, step: 0.25 } as const;
 
-/** Only used as the Phaser boot size; the canvas resizes to its parent. The world is unchanged. */
+/** One portrait screen and one unchanged 960×600 world on every device. */
 export const GAME_VIEW = { width: 480, height: 600, worldWidth: 960, worldHeight: 600 } as const;
 
-/**
- * At UI zoom 100%, uniformly cover the physical canvas with the 960×600 artwork.
- * The camera crops excess world on aspect-ratio changes instead of stretching
- * room textures, changing the construction grid, or leaving letterbox gutters.
- */
-export function responsiveBaseZoom(width: number, height: number): number {
-  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
-    return ZOOM.initial;
-  }
-  return Math.max(width / GAME_VIEW.worldWidth, height / GAME_VIEW.worldHeight);
-}
-
-export interface ZoomLimits { min: number; max: number }
 export interface Point { x: number; y: number }
 export interface Viewport {
   width: number;
@@ -29,9 +16,8 @@ export interface Viewport {
   scrollY: number;
 }
 
-export function clampZoom(value: number, limits: ZoomLimits = ZOOM): number {
-  const finite = Number.isFinite(value) ? value : ZOOM.initial;
-  return Math.min(limits.max, Math.max(limits.min, finite));
+export function clampZoom(value: number): number {
+  return Number.isFinite(value) ? Math.min(ZOOM.max, Math.max(ZOOM.min, value)) : ZOOM.initial;
 }
 
 /** Camera origin is fixed at the center of its viewport. */
@@ -59,10 +45,8 @@ export function constrainScroll(view: Viewport): Pick<Viewport, 'scrollX' | 'scr
 }
 
 /** Keep a world position beneath a given screen point while changing zoom. */
-export function zoomToWorldAnchor(
-  view: Viewport, proposedZoom: number, world: Point, screen: Point, limits: ZoomLimits = ZOOM
-): Viewport {
-  const zoom = clampZoom(proposedZoom, limits);
+export function zoomToWorldAnchor(view: Viewport, proposedZoom: number, world: Point, screen: Point): Viewport {
+  const zoom = clampZoom(proposedZoom);
   const result: Viewport = {
     ...view,
     zoom,
@@ -72,8 +56,8 @@ export function zoomToWorldAnchor(
   return { ...result, ...constrainScroll(result) };
 }
 
-export function zoomAt(view: Viewport, proposedZoom: number, screen: Point, limits: ZoomLimits = ZOOM): Viewport {
-  return zoomToWorldAnchor(view, proposedZoom, screenToWorld(view, screen), screen, limits);
+export function zoomAt(view: Viewport, proposedZoom: number, screen: Point): Viewport {
+  return zoomToWorldAnchor(view, proposedZoom, screenToWorld(view, screen), screen);
 }
 
 /** Dragging the picture right moves the camera left (screen pixels / zoom). */
@@ -87,12 +71,10 @@ export function panBy(view: Viewport, screenDelta: Point): Viewport {
 }
 
 /** Keep the same world point at screen center when the browser resizes or rotates. */
-export function resizeViewport(view: Viewport, width: number, height: number, zoom = view.zoom): Viewport {
+export function resizeViewport(view: Viewport, width: number, height: number): Viewport {
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return view;
   const next: Viewport = {
-    ...view, width, height, zoom,
-    // Phaser scroll is an unzoomed top-left: preserve the world *center* even
-    // when the camera's responsive baseline changes on rotation.
+    ...view, width, height,
     scrollX: view.scrollX + (view.width - width) / 2,
     scrollY: view.scrollY + (view.height - height) / 2
   };

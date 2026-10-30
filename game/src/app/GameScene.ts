@@ -16,7 +16,7 @@ import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MED
 import { SURVIVOR_ART, survivorGeometry, survivorFrame, hitSurvivor } from './survivorArt';
 import { AssetManager } from './assets/assetManager';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
-import { constrainScroll, GAME_VIEW, responsiveBaseZoom, resizeViewport, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
+import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
@@ -68,8 +68,6 @@ export class GameScene extends Phaser.Scene {
   private viewportSize: { width: number; height: number } = {
     width: GAME_VIEW.width, height: GAME_VIEW.height
   };
-  /** Actual Phaser zoom = responsive baseline × UI zoom (100% = 1). */
-  private baseZoom: number = ZOOM.initial;
 
   constructor(
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
@@ -93,28 +91,20 @@ export class GameScene extends Phaser.Scene {
     this.assets.configureFilters(
       this.textures, Phaser.Textures.FilterMode.LINEAR, Phaser.Textures.FilterMode.NEAREST
     );
-    // Fit the 960×600 cutaway to the available canvas without scaling world
-    // coordinates or stretching sprites; 100% now means the responsive baseline.
-    const camera = this.cameras.main;
-    this.baseZoom = responsiveBaseZoom(camera.width, camera.height);
-    camera.setZoom(this.baseZoom);
-    const centered = {
-      ...this.currentView(),
-      scrollX: (GAME_VIEW.worldWidth - camera.width) / 2,
-      scrollY: (GAME_VIEW.worldHeight - camera.height) / 2
-    };
-    const initialScroll = constrainScroll(centered);
-    camera.setScroll(initialScroll.scrollX, initialScroll.scrollY);
-    this.viewportSize = { width: camera.width, height: camera.height };
-    // Preserve the focal world position and the user's relative zoom on resize.
+    // The visual window is portrait; the map and every stored grid coordinate stay unchanged.
+    this.cameras.main.setScroll(
+      (GAME_VIEW.worldWidth - this.cameras.main.width) / 2,
+      (GAME_VIEW.worldHeight - this.cameras.main.height) / 2
+    );
+    this.viewportSize = { width: this.cameras.main.width, height: this.cameras.main.height };
+    // RESIZE keeps the camera centered on the same world location on rotation.
     const resizeView = (size: Phaser.Structs.Size): void => {
       if (size.width <= 0 || size.height <= 0) return;
+      const camera = this.cameras.main;
       const previous = { ...this.currentView(), ...this.viewportSize };
-      const relativeZoom = previous.zoom / this.baseZoom;
-      this.baseZoom = responsiveBaseZoom(size.width, size.height);
       camera.setSize(size.width, size.height);
       this.viewportSize = { width: size.width, height: size.height };
-      this.applyView(resizeViewport(previous, size.width, size.height, this.baseZoom * relativeZoom));
+      this.applyView(resizeViewport(previous, size.width, size.height));
     };
     this.scale.on('resize', resizeView);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', resizeView));
@@ -151,11 +141,13 @@ export class GameScene extends Phaser.Scene {
       event: WheelEvent
     ) => {
       event.preventDefault();
-      if (dy !== 0) this.setZoomAt(this.cameras.main.zoom + (dy < 0 ? 0.15 : -0.15) * this.baseZoom, { x: pointer.x, y: pointer.y });
+      if (dy !== 0) this.setZoomAt(this.cameras.main.zoom + (dy < 0 ? 0.15 : -0.15), { x: pointer.x, y: pointer.y });
     });
-    this.onZoomChange(this.cameras.main.zoom / this.baseZoom);
+    this.onZoomChange(this.cameras.main.zoom);
     this.onCycleProgress(Math.ceil(this.session.resources.remainingMs / 1000));
     if(this.recoveryFailed) this.notify('ذخیره قابل بازیابی نیست؛ نسخهٔ اصلی برای بازیابی نگهداری شد.');
+    else if (this.layout.disconnectedRoomIds.length)
+      this.notify('ذخیرهٔ قدیمی دارای اتاق‌های جداافتاده است؛ اتاق‌ها حفظ شده‌اند. برای اصلاح، آن‌ها را به شبکهٔ آسانسور منتقل کنید.');
     else this.notify('ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.');
     if (this.gameplayPaused) this.scene.pause();
   }
@@ -224,7 +216,7 @@ export class GameScene extends Phaser.Scene {
 
   /** Exposed to the responsive HTML zoom controls. */
   zoomBy(amount: number): void {
-    this.setZoomAt(this.cameras.main.zoom + amount * this.baseZoom, {
+    this.setZoomAt(this.cameras.main.zoom + amount, {
       x: this.cameras.main.width / 2,
       y: this.cameras.main.height / 2
     });
@@ -233,7 +225,7 @@ export class GameScene extends Phaser.Scene {
   resetZoom(): void {
     const view = this.currentView();
     const centered = {
-      ...view, zoom: this.baseZoom,
+      ...view, zoom: ZOOM.initial,
       scrollX: (GAME_VIEW.worldWidth - view.width) / 2,
       scrollY: (GAME_VIEW.worldHeight - view.height) / 2
     };
@@ -256,7 +248,7 @@ export class GameScene extends Phaser.Scene {
     camera.setScroll(view.scrollX, view.scrollY);
     if (changedZoom) {
       this.updateBadgeScale();
-      this.onZoomChange(view.zoom / this.baseZoom);
+      this.onZoomChange(view.zoom);
     }
     if (this.contacts.size === 0) this.updateHover(this.input.activePointer);
     else {
@@ -266,11 +258,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private setZoomAt(zoom: number, screen: Point): void {
-    this.applyView(zoomAt(this.currentView(), zoom, screen, this.zoomLimits()));
-  }
-
-  private zoomLimits(): { min: number; max: number } {
-    return { min: this.baseZoom * ZOOM.min, max: this.baseZoom * ZOOM.max };
+    this.applyView(zoomAt(this.currentView(), zoom, screen));
   }
 
   private pointToCell(screen: Point): GridPosition | null {
@@ -326,7 +314,7 @@ export class GameScene extends Phaser.Scene {
       const midpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
       const distance = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
       const targetZoom = this.pinch.initialZoom * distance / this.pinch.initialDistance;
-      this.applyView(zoomToWorldAnchor(this.currentView(), targetZoom, this.pinch.worldAnchor, midpoint, this.zoomLimits()));
+      this.applyView(zoomToWorldAnchor(this.currentView(), targetZoom, this.pinch.worldAnchor, midpoint));
       return;
     }
 
@@ -374,7 +362,7 @@ export class GameScene extends Phaser.Scene {
     this.paintPreview();
     const messages: Record<ToolMode, string> = {
       elevator: 'آسانسور را در خانهٔ مجاور شفت امتداد دهید.',
-      build: 'برای ساخت، یک خانهٔ خالی و آماده را انتخاب کنید.',
+      build: 'جایگاه‌های سبز کنار آسانسور یا اتاق‌های متصل را برای ساخت انتخاب کنید.',
       dig: 'برای حفاری روی زمین بستهٔ زیرزمینی مجاور فضای باز بزنید.',
       move: 'ابتدا اتاق را انتخاب کنید و سپس مکان جدید آن را لمس کنید.',
       remove: 'برای تخریب روی اتاق کلیک کنید. مجوزهای کسب‌شده حفظ می‌شوند.',
@@ -522,6 +510,8 @@ export class GameScene extends Phaser.Scene {
     if (this.mode === 'elevator') {
       const result=this.session.buildElevator(x,y);
       if(result.ok) { this.paintTerrain(); this.refreshResidentPath(); }
+      this.hovered = cell;
+      this.paintPreview();
       this.notify(result.ok ? 'آسانسور ساخته و طبقه آزاد شد.' : result.reason); return;
     }
     if (this.mode === 'navigate') {
@@ -627,8 +617,8 @@ export class GameScene extends Phaser.Scene {
 
   private drawBackdrop(): void {
     // Keep an oversized solid fallback behind the artwork for panning, zooming
-    // out, or a failed texture request. Artwork remains a 960×600 world image;
-    // only camera zoom changes to cover the viewport, preserving aspect ratio.
+    // out, or a failed texture request. The artwork itself maps 1:1 onto the
+    // 960×600 world, even though the mobile-first viewing window is portrait.
     const fallback = this.add.graphics().setDepth(-1);
     fallback.fillStyle(0x211f2a).fillRect(-600, -400, 2160, WORLD.groundLineY + 400);
     fallback.fillStyle(0x33271e).fillRect(-600, WORLD.groundLineY, 2160, 1000);
@@ -846,6 +836,22 @@ export class GameScene extends Phaser.Scene {
     const g = this.preview;
     g.clear();
     this.previewReason?.setVisible(false);
+    // Show eligible anchors even before a touch; preview works identically on mobile and web.
+    if (this.mode === 'build' && this.session.canAfford(this.session.buildCost(this.selectedRoom))) {
+      const definition = ROOM_DEFINITIONS[this.selectedRoom];
+      for (let y = WORLD.minY; y < 0; y++) {
+        for (let x = 0; x <= WORLD.cols - definition.width; x++) {
+          if (!this.session.canBuild(this.selectedRoom, x, y).ok) continue;
+          const { left, top } = toPixels(x, y);
+          g.fillStyle(0x6acdad, 0.13);
+          g.fillRect(left + 3, top + 3,
+            definition.width * WORLD.cellSize - 6, definition.height * WORLD.cellSize - 6);
+          g.lineStyle(1, 0x89e5bd, 0.55);
+          g.strokeRect(left + 3, top + 3,
+            definition.width * WORLD.cellSize - 6, definition.height * WORLD.cellSize - 6);
+        }
+      }
+    }
     const selected = this.mode === 'upgrade'
       ? this.layout.rooms.find((room) => room.id === this.selectedUpgradeId)
       : undefined;
@@ -860,6 +866,7 @@ export class GameScene extends Phaser.Scene {
     if (y >= 0 && (this.mode === 'build' || this.mode === 'dig' || this.mode === 'move')) return;
     const room = this.layout.getRoomAt(x, y);
     let width = 1, height = 1, startX = x, startY = y, valid = false;
+    let rejection: string | null = null;
     if (this.mode === 'elevator') {
       const result=this.layout.canBuildElevator(x,y);
       valid=result.ok && this.session.canAfford(ELEVATOR_DEFINITION.cost);
@@ -871,26 +878,43 @@ export class GameScene extends Phaser.Scene {
     } else if (this.mode === 'build') {
       const d = ROOM_DEFINITIONS[this.selectedRoom];
       width = d.width; height = d.height;
-      valid = this.session.canBuild(this.selectedRoom, x, y).ok &&
-        this.session.canAfford(this.session.buildCost(this.selectedRoom));
+      const result = this.session.canBuild(this.selectedRoom, x, y);
+      valid = result.ok && this.session.canAfford(this.session.buildCost(this.selectedRoom));
+      if (!valid) rejection = result.ok ? 'سکهٔ کافی برای این عملیات ندارید.' : result.reason;
     } else if (this.mode === 'dig') {
       valid = this.layout.terrain.canDig(x, y).ok && this.session.canAfford(this.session.digCost());
     } else if (this.mode === 'move' && this.pendingMoveId) {
       const selected = this.layout.rooms.find((r) => r.id === this.pendingMoveId);
       if (!selected) return;
       width = selected.width; height = selected.height;
-      valid = this.layout.canMove(selected.id, x, y).ok;
+      const result = this.layout.canMove(selected.id, x, y);
+      valid = result.ok;
+      if (!result.ok) rejection = result.reason;
     } else if (room) {
       startX = room.x; startY = room.y;
       width = room.width; height = room.height;
-      valid = this.mode === 'upgrade' ?
+      valid = this.mode === 'remove' ? this.layout.canRemove(room.id).ok :
+        this.mode === 'upgrade' ?
         this.session.upgradeCostAt(x, y) !== null &&
         this.session.canAfford(this.session.upgradeCostAt(x, y)!) :
         this.mode === 'navigate' ?
           !!this.traffic?.getResident(this.selectedResidentId) &&
           findRoomPath(this.layout, this.traffic.getResident(this.selectedResidentId)!.cell, room.id) !== null :
           this.layout.canEditRoom(room);
+      if (this.mode === 'remove' && !valid) {
+        const result = this.layout.canRemove(room.id);
+        if (!result.ok) rejection = result.reason;
+      }
     } else return;
+    if (rejection) {
+      const point = toPixels(startX, startY);
+      this.previewReason ??= this.add.text(0, 0, '', {
+        fontSize: '12px', color: '#ffffff', backgroundColor: '#641c30',
+        wordWrap: { width: 190 }, padding: { x: 5, y: 5 }
+      }).setDepth(7).setResolution(3);
+      this.previewReason.setText(localizeGameMessage(rejection))
+        .setPosition(point.left + 10, point.top - 36).setVisible(true);
+    }
     const { left, top } = toPixels(startX, startY);
     const w = width * WORLD.cellSize - 4, h = height * WORLD.cellSize - 4;
     g.fillStyle(valid ? 0x6acdad : 0xe48384, 0.25);

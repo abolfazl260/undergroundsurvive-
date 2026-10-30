@@ -73,7 +73,7 @@ describe('local wallet and transactional commands', () => {
     expect(game.build('storage', 8, -1).ok).toBe(true);
     const balance = game.wallet.balance;
     const id = game.layout.getRoomAt(8, -1)!.id;
-    expect(game.layout.move(id, 9, -1).ok).toBe(true);
+    expect(game.layout.move(id, 9, -1).ok).toBe(false);
     expect(game.layout.move(id, 9, 0).ok).toBe(false);
     expect(game.layout.remove(id).ok).toBe(true);
     expect(game.wallet.balance).toBe(balance);

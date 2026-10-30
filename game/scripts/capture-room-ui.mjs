@@ -11,17 +11,6 @@ for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
   await page.locator('#menu-continue').click();
   await page.locator('canvas').waitFor();
   await page.waitForTimeout(800);
-  if(mode==='after') {
-    const canvasFits=await page.evaluate(()=>{
-      const canvas=document.querySelector('#game-canvas canvas').getBoundingClientRect();
-      const host=document.querySelector('#game-canvas').getBoundingClientRect();
-      return Math.abs(canvas.width-host.width)<2 && Math.abs(canvas.height-host.height)<2 &&
-        Math.abs(canvas.left-host.left)<2 && Math.abs(canvas.top-host.top)<2 &&
-        Math.abs(host.width-innerWidth)<2 && Math.abs(host.height-innerHeight)<2 &&
-        document.querySelector('#zoom-level').textContent==='100%';
-    });
-    if(!canvasFits) throw new Error(`Canvas does not cover the viewport at 100% for ${width}x${height}`);
-  }
   await page.screenshot({path:`${output}/${mode}-${width}x${height}-scene.png`});
   await page.locator('[data-tool="upgrade"]').click();
   await page.locator('#upgrade-panel').waitFor({state:'visible'});
