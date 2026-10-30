@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BuildingLayout } from '../building/layout';
+import { LEGACY_SURFACE_POLICY } from '../building/constructionPolicy';
 import { isWalkableCell, walkPoint } from './pathfinding';
 import { ResidentTraffic } from './traffic';
 import type { GridPosition } from '../world/grid';
@@ -88,7 +89,7 @@ describe('multi-resident physical navigation', () => {
     expect(traffic.goToRoom('a', 'initial-garden')).toBe(true);
     expect(traffic.goToRoom('a', 'absent')).toBe(false);
     expect(traffic.getResident('a')!.destinationId).toBe('initial-garden');
-    expect(layout.move('initial-garden', 8, 0).ok).toBe(true);
+    expect(layout.move('initial-garden', 8, -1).ok).toBe(true);
     expect(traffic.refresh()).toEqual([]);
     expect(traffic.getResident('a')!.remainingCells.at(-1)).toBeDefined();
     expect(layout.remove('initial-garden').ok).toBe(true);
@@ -97,8 +98,11 @@ describe('multi-resident physical navigation', () => {
   });
 
   it('rejects sky cells, solid ground, duplicate spawns, and walks only on built upper floors', () => {
-    const layout = new BuildingLayout();
-    expect(layout.unlockFloor().ok).toBe(true);
+    const current = new BuildingLayout().snapshot();
+    const layout = new BuildingLayout({
+      ...current, terrain: { ...current.terrain, highestFloor: 1 }
+    }, LEGACY_SURFACE_POLICY);
+    expect(layout.place('habitat', 2, 0).ok).toBe(true);
     expect(layout.place('habitat', 2, 1).ok).toBe(true);
     expect(isWalkableCell(layout, { x: 2, y: 1 })).toBe(true);
     expect(isWalkableCell(layout, { x: 4, y: 1 })).toBe(false);
