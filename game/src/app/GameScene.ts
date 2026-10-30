@@ -16,7 +16,7 @@ import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MED
 import { SURVIVOR_ART, survivorGeometry, survivorFrame, hitSurvivor } from './survivorArt';
 import { AssetManager } from './assets/assetManager';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
-import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
+import { constrainScroll, GAME_VIEW, responsiveBaseZoom, resizeViewport, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
@@ -68,6 +68,8 @@ export class GameScene extends Phaser.Scene {
   private viewportSize: { width: number; height: number } = {
     width: GAME_VIEW.width, height: GAME_VIEW.height
   };
+  /** Actual Phaser zoom = responsive baseline × UI zoom (100% = 1). */
+  private baseZoom: number = ZOOM.initial;
 
   constructor(
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
@@ -91,20 +93,28 @@ export class GameScene extends Phaser.Scene {
     this.assets.configureFilters(
       this.textures, Phaser.Textures.FilterMode.LINEAR, Phaser.Textures.FilterMode.NEAREST
     );
-    // The visual window is portrait; the map and every stored grid coordinate stay unchanged.
-    this.cameras.main.setScroll(
-      (GAME_VIEW.worldWidth - this.cameras.main.width) / 2,
-      (GAME_VIEW.worldHeight - this.cameras.main.height) / 2
-    );
-    this.viewportSize = { width: this.cameras.main.width, height: this.cameras.main.height };
-    // RESIZE keeps the camera centered on the same world location on rotation.
+    // Fit the 960×600 cutaway to the available canvas without scaling world
+    // coordinates or stretching sprites; 100% now means the responsive baseline.
+    const camera = this.cameras.main;
+    this.baseZoom = responsiveBaseZoom(camera.width, camera.height);
+    camera.setZoom(this.baseZoom);
+    const centered = {
+      ...this.currentView(),
+      scrollX: (GAME_VIEW.worldWidth - camera.width) / 2,
+      scrollY: (GAME_VIEW.worldHeight - camera.height) / 2
+    };
+    const initialScroll = constrainScroll(centered);
+    camera.setScroll(initialScroll.scrollX, initialScroll.scrollY);
+    this.viewportSize = { width: camera.width, height: camera.height };
+    // Preserve the focal world position and the user's relative zoom on resize.
     const resizeView = (size: Phaser.Structs.Size): void => {
       if (size.width <= 0 || size.height <= 0) return;
-      const camera = this.cameras.main;
       const previous = { ...this.currentView(), ...this.viewportSize };
+      const relativeZoom = previous.zoom / this.baseZoom;
+      this.baseZoom = responsiveBaseZoom(size.width, size.height);
       camera.setSize(size.width, size.height);
       this.viewportSize = { width: size.width, height: size.height };
-      this.applyView(resizeViewport(previous, size.width, size.height));
+      this.applyView(resizeViewport(previous, size.width, size.height, this.baseZoom * relativeZoom));
     };
     this.scale.on('resize', resizeView);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', resizeView));
@@ -141,9 +151,9 @@ export class GameScene extends Phaser.Scene {
       event: WheelEvent
     ) => {
       event.preventDefault();
-      if (dy !== 0) this.setZoomAt(this.cameras.main.zoom + (dy < 0 ? 0.15 : -0.15), { x: pointer.x, y: pointer.y });
+      if (dy !== 0) this.setZoomAt(this.cameras.main.zoom + (dy < 0 ? 0.15 : -0.15) * this.baseZoom, { x: pointer.x, y: pointer.y });
     });
-    this.onZoomChange(this.cameras.main.zoom);
+    this.onZoomChange(this.cameras.main.zoom / this.baseZoom);
     this.onCycleProgress(Math.ceil(this.session.resources.remainingMs / 1000));
     if(this.recoveryFailed) this.notify('ذخیره قابل بازیابی نیست؛ نسخهٔ اصلی برای بازیابی نگهداری شد.');
     else this.notify('ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.');
@@ -213,7 +223,7 @@ export class GameScene extends Phaser.Scene {
 
   /** Exposed to the responsive HTML zoom controls. */
   zoomBy(amount: number): void {
-    this.setZoomAt(this.cameras.main.zoom + amount, {
+    this.setZoomAt(this.cameras.main.zoom + amount * this.baseZoom, {
       x: this.cameras.main.width / 2,
       y: this.cameras.main.height / 2
     });
@@ -222,7 +232,7 @@ export class GameScene extends Phaser.Scene {
   resetZoom(): void {
     const view = this.currentView();
     const centered = {
-      ...view, zoom: ZOOM.initial,
+      ...view, zoom: this.baseZoom,
       scrollX: (GAME_VIEW.worldWidth - view.width) / 2,
       scrollY: (GAME_VIEW.worldHeight - view.height) / 2
     };
@@ -245,7 +255,7 @@ export class GameScene extends Phaser.Scene {
     camera.setScroll(view.scrollX, view.scrollY);
     if (changedZoom) {
       this.updateBadgeScale();
-      this.onZoomChange(view.zoom);
+      this.onZoomChange(view.zoom / this.baseZoom);
     }
     if (this.contacts.size === 0) this.updateHover(this.input.activePointer);
     else {
@@ -255,7 +265,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private setZoomAt(zoom: number, screen: Point): void {
-    this.applyView(zoomAt(this.currentView(), zoom, screen));
+    this.applyView(zoomAt(this.currentView(), zoom, screen, this.zoomLimits()));
+  }
+
+  private zoomLimits(): { min: number; max: number } {
+    return { min: this.baseZoom * ZOOM.min, max: this.baseZoom * ZOOM.max };
   }
 
   private pointToCell(screen: Point): GridPosition | null {
@@ -311,7 +325,7 @@ export class GameScene extends Phaser.Scene {
       const midpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
       const distance = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
       const targetZoom = this.pinch.initialZoom * distance / this.pinch.initialDistance;
-      this.applyView(zoomToWorldAnchor(this.currentView(), targetZoom, this.pinch.worldAnchor, midpoint));
+      this.applyView(zoomToWorldAnchor(this.currentView(), targetZoom, this.pinch.worldAnchor, midpoint, this.zoomLimits()));
       return;
     }
 
@@ -597,8 +611,8 @@ export class GameScene extends Phaser.Scene {
 
   private drawBackdrop(): void {
     // Keep an oversized solid fallback behind the artwork for panning, zooming
-    // out, or a failed texture request. The artwork itself maps 1:1 onto the
-    // 960×600 world, even though the mobile-first viewing window is portrait.
+    // out, or a failed texture request. Artwork remains a 960×600 world image;
+    // only camera zoom changes to cover the viewport, preserving aspect ratio.
     const fallback = this.add.graphics().setDepth(-1);
     fallback.fillStyle(0x211f2a).fillRect(-600, -400, 2160, WORLD.groundLineY + 400);
     fallback.fillStyle(0x33271e).fillRect(-600, WORLD.groundLineY, 2160, 1000);

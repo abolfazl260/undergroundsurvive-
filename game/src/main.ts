@@ -12,6 +12,7 @@ import './ui/ui.css';
 import './fullscreen.css';
 import './gameHud.css';
 import './gameMenu.css';
+import './gameHelp.css';
 import './achievements.css';
 import { createIcon } from './ui/icons';
 import { enhanceIcons, setButtonLabel, setPressed } from './ui/components';
