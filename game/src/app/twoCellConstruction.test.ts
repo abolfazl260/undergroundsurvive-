@@ -111,7 +111,7 @@ describe('generic two-cell construction art', () => {
     expect(scene).toContain('this.construction.start(');
     expect(scene).toContain('this.construction.advance(delta)');
     expect(scene).toContain('this.construction.clear()');
-    expect(scene).toContain('if (constructionArt) {');
+    expect(scene).toContain('if (constructionArt && constructionVisual) {');
     expect(scene).toContain('this.constructionViews.set(room.id,');
     expect(scene).toContain('this.refreshConstructionViews()');
     expect(scene).toContain('this.roomLayer.add([constructionSprite, incoming, effects])');
