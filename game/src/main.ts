@@ -1,8 +1,10 @@
 import './style.css';
+import { mountGameDock } from './app/gameDock';
 import { mountStoryViewer } from './modules/narrative/viewer';
 import { setupGameMenu } from './app/gameMenu';
 import './audio.css';
 import './ui/ui.css';
+import './fullscreen.css';
 import { createIcon } from './ui/icons';
 import { enhanceIcons, setButtonLabel, setPressed } from './ui/components';
 import { createGame } from './app/createGame';
@@ -10,6 +12,7 @@ import { GameScene, type ToolMode } from './app/GameScene';
 import { ZOOM } from './app/viewport';
 import { AudioManager } from './modules/audio/AudioManager';
 import { mountHud } from './app/ui/hud';
+import { mountAchievements } from './app/achievementsUi';
 import { WORLD } from './modules/world/grid';
 import type { BuildableRoomType } from './modules/building/catalog';
 import { loadLocalBase, saveLocalBase } from './platform/localSave';
@@ -24,12 +27,14 @@ import { formatNumber, loadLocale, localizeGameMessage, mountStaticTranslations,
 setLocale(loadLocale());
 mountStaticTranslations(document);
 enhanceIcons();
+const gameDock = mountGameDock();
 
 const audio = new AudioManager();
 const status = document.querySelector<HTMLElement>('#status');
 const unlockButton = document.querySelector<HTMLButtonElement>('#unlock-floor');
 const renderHud = mountHud(document);
 const resourcePanel = mountResourcePanel(document);
+const renderAchievements = mountAchievements(document);
 const bonusButton = document.querySelector<HTMLButtonElement>('#demo-bonus');
 const historyNode = document.querySelector<HTMLElement>('#transaction-list');
 const digButton = document.querySelector<HTMLButtonElement>('[data-tool="dig"]');
@@ -123,6 +128,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   latestBalance = snapshot.wallet.balance;
   renderUpgradePanel();
   renderHud(snapshot, saved);
+  renderAchievements(snapshot);
   resourcePanel.render(snapshot);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
@@ -252,6 +258,7 @@ roomButtons.forEach((button) => {
     activeTool = 'build';
     scene.selectRoom(type);
     updateSelectedButtons();
+    gameDock.showSheet(null);
   });
 });
 
@@ -259,8 +266,17 @@ toolButtons.forEach((button) => {
   button.addEventListener('click', () => {
     const tool = button.dataset.tool as ToolMode | undefined;
     if (!tool) return;
-    activeTool = tool;
-    scene.setTool(tool);
+    if (tool === 'build') {
+      const alreadyBuilding = activeTool === 'build';
+      activeTool = 'build';
+      scene.selectRoom(activeRoom);
+      if (alreadyBuilding) gameDock.toggleSheet('rooms');
+      else gameDock.showSheet('rooms');
+    } else {
+      activeTool = tool;
+      scene.setTool(tool);
+      gameDock.showSheet(null);
+    }
     updateSelectedButtons();
   });
 });

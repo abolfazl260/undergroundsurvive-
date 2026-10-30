@@ -8,13 +8,15 @@ import {
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../building/catalog';
 import { getRoomPerformance, MAX_ROOM_LEVEL, type RoomPerformance } from '../building/upgrades';
 import type { PlacementResult } from '../building/placement';
+import { AchievementTracker, type AchievementSnapshot } from '../achievements/achievements';
 
 export interface GameSnapshot {
-  schemaVersion: 3;
+  schemaVersion: 4;
   base: BaseSnapshot;
   wallet: WalletSnapshot;
   resources: ResourceSnapshot;
   demoBonusClaimed: boolean;
+  achievements: AchievementSnapshot;
 }
 
 export type CommandResult = PlacementResult;
@@ -33,13 +35,15 @@ export class GameSession {
   private purse: Wallet;
   private bonusClaimed = false;
   private resourceState: ResourceEngine;
+  private achievementState: AchievementTracker;
 
   private constructor(layout: BuildingLayout, wallet: Wallet, claimed = false,
-                      resources = ResourceEngine.create()) {
+                      resources = ResourceEngine.create(), achievements = new AchievementTracker()) {
     this.world = layout;
     this.purse = wallet;
     this.bonusClaimed = claimed;
     this.resourceState = resources;
+    this.achievementState = achievements;
   }
 
   static create(): GameSession {
@@ -49,17 +53,20 @@ export class GameSession {
   static restore(raw: unknown): GameSession | null {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
-    if ((value.schemaVersion !== 2 && value.schemaVersion !== 3) ||
+    if ((value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4) ||
         typeof value.demoBonusClaimed !== 'boolean') return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
-    const resources = value.schemaVersion === 3 ? ResourceEngine.restore(value.resources) : ResourceEngine.create();
-    if (!world || !wallet || !resources) return null;
+    const resources = (value.schemaVersion === 3 || value.schemaVersion === 4)
+      ? ResourceEngine.restore(value.resources) : ResourceEngine.create();
+    const achievements = value.schemaVersion === 4
+      ? AchievementTracker.restore(value.achievements) : new AchievementTracker();
+    if (!world || !wallet || !resources || !achievements) return null;
     resources.reconcileCapacity(world.rooms);
     const bonusCount = wallet.transactions.filter((t) => t.kind === 'demo-bonus').length;
     if ((value.demoBonusClaimed && bonusCount !== 1) ||
         (!value.demoBonusClaimed && bonusCount !== 0)) return null;
-    return new GameSession(world, wallet, value.demoBonusClaimed, resources);
+    return new GameSession(world, wallet, value.demoBonusClaimed, resources, achievements);
   }
 
   // Existing v1 browser saves contain only a layout; migrate without losing rooms.
@@ -152,16 +159,20 @@ export class GameSession {
     this.purse = Wallet.create(STARTING_COINS);
     this.bonusClaimed = false;
     this.resourceState = ResourceEngine.create();
+    this.achievementState = new AchievementTracker();
   }
 
   snapshot(): GameSnapshot {
     this.resourceState.reconcileCapacity(this.world.rooms);
+    const base = this.world.snapshot();
+    const wallet = this.purse.snapshot();
+    const resources = this.resourceState.snapshot();
+    this.achievementState.evaluate({ base, wallet, resources });
     return {
-      schemaVersion: 3,
-      base: this.world.snapshot(),
-      wallet: this.purse.snapshot(),
-      resources: this.resourceState.snapshot(),
-      demoBonusClaimed: this.bonusClaimed
+      schemaVersion: 4,
+      base, wallet, resources,
+      demoBonusClaimed: this.bonusClaimed,
+      achievements: this.achievementState.snapshot()
     };
   }
 }
