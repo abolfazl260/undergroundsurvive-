@@ -9,7 +9,7 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
   dialog.className = 'story-dialog';
   dialog.setAttribute('aria-label', 'سناریوهای تصویری و ویدیویی');
   dialog.innerHTML = `
-    <section class="story-panel" dir="rtl">
+    <section class="story-panel">
       <header class="story-head">
         <div><span class="story-eyebrow">UNDERGROUND SURVIVE</span><h2>داستان و روایت</h2></div>
         <button type="button" class="story-close" aria-label="بستن داستان">×</button>

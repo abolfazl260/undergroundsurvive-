@@ -31,3 +31,5 @@
   .story-toolbar{padding:8px 12px}.story-toolbar select{max-width:210px}
   .story-actions{gap:5px;padding:9px}.story-actions button{padding:7px 9px}
   .story-open{font-size:11px;padding:7px 9px}}
+
+html[dir="ltr"] .story-navigation {direction:ltr}

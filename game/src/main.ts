@@ -18,7 +18,7 @@ import { MAX_ROOM_LEVEL } from './modules/building/upgrades';
 import type { UpgradeDetails } from './modules/economy/session';
 import type { TransactionKind } from './modules/economy/wallet';
 import type { GameSnapshot } from './modules/economy/session';
-import { formatNumber, getLocale, loadLocale, localizeGameMessage, mountStaticTranslations, setLocale, subscribeLocaleChange, t } from './i18n';
+import { formatNumber, loadLocale, localizeGameMessage, mountStaticTranslations, setLocale, subscribeLocaleChange, t } from './i18n';
 
 setLocale(loadLocale());
 mountStaticTranslations(document);

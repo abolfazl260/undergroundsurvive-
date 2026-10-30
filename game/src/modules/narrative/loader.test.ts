@@ -25,6 +25,26 @@ describe('story catalog loader', () => {
     expect(urls[0]).toBe('https://example.org/game/content/manifest.json');
   });
 
+  it('loads the independent English manifest and matching chapter', async () => {
+    const paths: string[] = [];
+    const request = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      paths.push(url);
+      if (url.endsWith('manifest.en.json')) {
+        return new Response(JSON.stringify({ schemaVersion: 1, contentVersion: 1,
+          locale: 'en-US', chapters: [{ id: 'en-demo', src: 'story/en-demo.json' }] }));
+      }
+      return new Response(JSON.stringify({ ...good, id: 'en-demo', locale: 'en-US' }));
+    }) as typeof fetch;
+    const result = await loadStoryCatalog('./', 'https://example.org/game/', request, 'en');
+    expect(result.chapters).toHaveLength(1);
+    expect(result.chapters[0].locale).toBe('en-US');
+    expect(paths).toEqual([
+      'https://example.org/game/content/manifest.en.json',
+      'https://example.org/game/content/story/en-demo.json'
+    ]);
+  });
+
   it('rejects invalid manifests before reading any chapter', async () => {
     const request = (async () => new Response('{"schemaVersion": 7}', { status: 200 })) as typeof fetch;
     await expect(loadStoryCatalog('./', 'https://example.org/game/', request)).rejects.toThrow();

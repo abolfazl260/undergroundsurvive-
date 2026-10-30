@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GameSession } from '../../modules/economy/session';
 import { WORLD } from '../../modules/world/grid';
 import { toHudView } from './hud';
+import { setLocale } from '../../i18n';
 
 const format = (value: number): string => new Intl.NumberFormat('fa-IR').format(value);
 
@@ -36,6 +37,20 @@ describe('HUD snapshot projection', () => {
     expect(view.lastChange).toBe('−' + format(300));
     expect(view.changeKind).toBe('spent');
     expect(view.floors).toBe(format(1) + ' / ' + format(WORLD.maxY));
+  });
+
+  it('renders English digits and save status on a language switch without mutating the snapshot', () => {
+    const snapshot = GameSession.create().snapshot();
+    setLocale('en', { setItem: () => {} });
+    try {
+      const view = toHudView(snapshot, true);
+      expect(view.balance).toBe('1,500');
+      expect(view.saveLabel).toBe('Saved on this device');
+      expect(view.rooms).toBe(String(snapshot.base.rooms.length));
+    } finally {
+      setLocale('fa', { setItem: () => {} });
+    }
+    expect(snapshot.wallet.balance).toBe(1500);
   });
 
   it('does not claim success when browser persistence fails', () => {
