@@ -1,9 +1,51 @@
 import { describe, expect, it } from 'vitest';
-import { clampZoom, constrainScroll, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, resizeViewport, ZOOM, type Viewport } from './viewport';
+import { clampZoom, constrainScroll, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, resizeViewport, responsiveBaseZoom, ZOOM, type Viewport } from './viewport';
 
 const base: Viewport = { width: 960, height: 600, zoom: 1, scrollX: 0, scrollY: 0 };
 
 describe('camera zoom and pan', () => {
+  it('covers phone, tablet and wide screens at 100% without stretching the world', () => {
+    expect(responsiveBaseZoom(1920, 1080)).toBe(2);
+    expect(responsiveBaseZoom(390, 844)).toBeCloseTo(844 / GAME_VIEW.worldHeight);
+    expect(responsiveBaseZoom(768, 1024)).toBeCloseTo(1024 / GAME_VIEW.worldHeight);
+    expect(responsiveBaseZoom(844, 390)).toBeCloseTo(844 / GAME_VIEW.worldWidth);
+    expect(responsiveBaseZoom(0, 844)).toBe(ZOOM.initial);
+    for (const [width, height] of [[390, 844], [844, 390], [768, 1024], [1920, 1080]]) {
+      const zoom = responsiveBaseZoom(width, height);
+      expect(zoom * GAME_VIEW.worldWidth).toBeGreaterThanOrEqual(width - 0.001);
+      expect(zoom * GAME_VIEW.worldHeight).toBeGreaterThanOrEqual(height - 0.001);
+    }
+  });
+
+  it('supports UI-relative zoom limits on a physically scaled camera', () => {
+    const zoom = responsiveBaseZoom(1920, 1080);
+    const view: Viewport = {
+      width: 1920, height: 1080, worldWidth: 960, worldHeight: 600,
+      zoom, scrollX: -480, scrollY: -240
+    };
+    const center = { x: 960, y: 540 };
+    const target = screenToWorld(view, center);
+    const limits = { min: zoom * ZOOM.min, max: zoom * ZOOM.max };
+    const zoomed = zoomAt(view, zoom * 10, center, limits);
+    expect(zoomed.zoom / zoom).toBe(ZOOM.max);
+    expect(screenToWorld(zoomed, center)).toEqual(target);
+    const restored = zoomAt(zoomed, zoom, center, limits);
+    expect(restored.zoom / zoom).toBe(1);
+    expect(screenToWorld(restored, center)).toEqual(target);
+  });
+
+  it('preserves the world focus and the UI zoom level during responsive resize', () => {
+    const previous: Viewport = {
+      width: 1920, height: 1080, worldWidth: 960, worldHeight: 600,
+      zoom: responsiveBaseZoom(1920, 1080) * 1.25, scrollX: -480, scrollY: -190
+    };
+    const worldCenter = screenToWorld(previous, { x: 960, y: 540 });
+    const nextBase = responsiveBaseZoom(390, 844);
+    const resized = resizeViewport(previous, 390, 844, nextBase * 1.25);
+    expect(resized.zoom / nextBase).toBeCloseTo(1.25);
+    expect(screenToWorld(resized, { x: 195, y: 422 })).toEqual(worldCenter);
+  });
+
   it('clamps zoom to safe limits', () => {
     expect(clampZoom(0.1)).toBe(ZOOM.min);
     expect(clampZoom(12)).toBe(ZOOM.max);
