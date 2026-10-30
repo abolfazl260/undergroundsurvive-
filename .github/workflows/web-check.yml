@@ -1,0 +1,30 @@
+name: Web prototype checks
+
+on:
+  push:
+    paths:
+      - "game/**"
+      - ".github/workflows/web-check.yml"
+  pull_request:
+    paths:
+      - "game/**"
+      - ".github/workflows/web-check.yml"
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: game
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Unit tests
+        run: npm test
+      - name: Typecheck and build
+        run: npm run build
+
