@@ -5,6 +5,7 @@ import type { AudioCue } from '../modules/audio/AudioManager';
 import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/grid';
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
 import { BuildingLayout } from '../modules/building/layout';
+import { LEGACY_SURFACE_READ_ONLY_REASON } from '../modules/building/constructionPolicy';
 import { findRoomPath, walkPoint } from '../modules/characters/pathfinding';
 import { ResidentTraffic } from '../modules/characters/traffic';
 import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
@@ -448,6 +449,7 @@ export class GameScene extends Phaser.Scene {
       this.paintPreview();
       this.onAudioCue(preview ? 'select' : 'error');
       this.notify(!preview ? 'در این موقعیت اتاقی وجود ندارد.' :
+        room && !this.layout.canEditRoom(room) ? LEGACY_SURFACE_READ_ONLY_REASON :
         preview.cost === null ? 'این اتاق در بالاترین سطح قرار دارد.' :
         'جزئیات ارتقا نمایش داده شد؛ با دکمهٔ تأیید پرداخت کنید.');
       return;
@@ -468,9 +470,10 @@ export class GameScene extends Phaser.Scene {
     } else if (this.mode === 'move') {
       const room = this.layout.getRoomAt(x, y);
       if (!this.pendingMoveId) {
-        if (!room || room.type === 'command') {
+        if (!room || room.type === 'command' || !this.layout.canEditRoom(room)) {
           this.onAudioCue('error');
-          this.notify('برای جابه‌جایی ابتدا یک اتاق معمولی انتخاب کنید.');
+          this.notify(room && !this.layout.canEditRoom(room) ? LEGACY_SURFACE_READ_ONLY_REASON :
+            'برای جابه‌جایی ابتدا یک اتاق معمولی انتخاب کنید.');
           return;
         }
         this.pendingMoveId = room.id;
@@ -529,7 +532,7 @@ export class GameScene extends Phaser.Scene {
         .setDisplaySize(GAME_VIEW.worldWidth, GAME_VIEW.worldHeight)
         .setDepth(0);
     }
-    this.add.text(20, 20, 'SURFACE / BUILD ABOVE', { fontSize: '13px', color: '#e2e5ed' }).setDepth(2);
+    this.add.text(20, 20, 'SURFACE / CONSTRUCTION LOCKED', { fontSize: '13px', color: '#e2e5ed' }).setDepth(2);
     this.add.text(20, 566, 'UNDERGROUND / EXCAVATE BELOW', { fontSize: '13px', color: '#cbb7a0' }).setDepth(2);
   }
 
@@ -747,6 +750,8 @@ export class GameScene extends Phaser.Scene {
     }
     if (!this.hovered) return;
     const { x, y } = this.hovered;
+    // Do not render build/dig/move ghosts over the non-buildable surface.
+    if (y >= 0 && (this.mode === 'build' || this.mode === 'dig' || this.mode === 'move')) return;
     const room = this.layout.getRoomAt(x, y);
     let width = 1, height = 1, startX = x, startY = y, valid = false;
     if (this.mode === 'build') {
@@ -770,7 +775,7 @@ export class GameScene extends Phaser.Scene {
         this.mode === 'navigate' ?
           !!this.traffic?.getResident(this.selectedResidentId) &&
           findRoomPath(this.layout, this.traffic.getResident(this.selectedResidentId)!.cell, room.id) !== null :
-          room.type !== 'command';
+          room.type !== 'command' && this.layout.canEditRoom(room);
     } else return;
     const { left, top } = toPixels(startX, startY);
     const w = width * WORLD.cellSize - 4, h = height * WORLD.cellSize - 4;
