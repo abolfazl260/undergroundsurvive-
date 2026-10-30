@@ -42,7 +42,7 @@ describe('explicit deterministic power topology',()=>{
   it('cutting a cable only isolates the downstream rooms; reconnect restores service',()=>{
     const rooms=[room('generator','g',1),room('command','c',3),room('habitat','h',6)];
     const complete=cables([1,2,3,4,5,6]);
-    const cut=removeWire(complete,4)!;
+    const cut=removeWire(complete,4,-1)!;
     expect(status(allocatePower(cut,rooms,modifiers),'c')).toBe('online');
     expect(status(allocatePower(cut,rooms,modifiers),'h')).toBe('shed');
     const fixed=installWire(cut,new TerrainMap(),4,-1)!;
