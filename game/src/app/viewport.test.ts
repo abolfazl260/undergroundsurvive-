@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampZoom, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Viewport } from './viewport';
+import { clampZoom, constrainScroll, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Viewport } from './viewport';
 
 const base: Viewport = { width: 960, height: 600, zoom: 1, scrollX: 0, scrollY: 0 };
 
@@ -37,6 +37,28 @@ describe('camera zoom and pan', () => {
     const result = zoomToWorldAnchor(base, 1.6, anchor, newMidpoint);
     expect(screenToWorld(result, newMidpoint).x).toBeCloseTo(anchor.x);
     expect(screenToWorld(result, newMidpoint).y).toBeCloseTo(anchor.y);
+  });
+
+  it('uses the same portrait geometry on phones, tablets, and desktop', () => {
+    expect(GAME_VIEW).toMatchObject({ width: 480, height: 600, worldWidth: 960, worldHeight: 600 });
+    const portrait: Viewport = {
+      width: GAME_VIEW.width, height: GAME_VIEW.height,
+      worldWidth: GAME_VIEW.worldWidth, worldHeight: GAME_VIEW.worldHeight,
+      zoom: 1, scrollX: 240, scrollY: 0
+    };
+    expect(screenToWorld(portrait, { x: 240, y: 300 })).toEqual({ x: 480, y: 300 });
+    expect(constrainScroll(portrait)).toEqual({ scrollX: 240, scrollY: 0 });
+    expect(panBy(portrait, { x: -5000, y: -5000 })).toMatchObject({ scrollX: 480, scrollY: 0 });
+    expect(panBy(portrait, { x: 5000, y: 5000 })).toMatchObject({ scrollX: 0, scrollY: 0 });
+    const zoomed = zoomAt(portrait, 2, { x: 240, y: 300 });
+    expect(screenToWorld(zoomed, { x: 240, y: 300 })).toEqual({ x: 480, y: 300 });
+  });
+
+  it('keeps a smaller world centered instead of placing it at the left edge', () => {
+    expect(constrainScroll({
+      width: 480, height: 600, worldWidth: 960, worldHeight: 600,
+      zoom: 0.75, scrollX: 99999, scrollY: 99999
+    })).toEqual({ scrollX: 400, scrollY: 0 });
   });
 
   it('maintains grid selection after zoom and pan', () => {
