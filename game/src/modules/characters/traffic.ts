@@ -228,6 +228,36 @@ export class ResidentTraffic {
     return true;
   }
 
+  /** Ask an obstructing survivor to make room without overlapping grid cells.
+   * Idle or waiting residents can yield one physical horizontal cell. When the
+   * corridor contains a queue, move its farthest occupant first; the others
+   * advance only after their destination cell is actually free. No teleport. */
+  private requestCorridorClearance(requester: ResidentState, destination: GridPosition): void {
+    const visited = new Set<string>([key(requester.cell)]);
+    const clear = (cell: GridPosition): void => {
+      const resident = this.agents.find((a) => key(a.cell) === key(cell));
+      if (!resident || resident.id === requester.id || resident.next || visited.has(key(cell))) return;
+      visited.add(key(cell));
+      const preferred = Math.sign(cell.x - requester.cell.x) || 1;
+      const candidates = [preferred, -preferred].map((dx) => ({ x: cell.x + dx, y: cell.y }));
+      for (const next of candidates) {
+        if (visited.has(key(next)) || !canWalkBetween(this.layout, resident.cell, next)) continue;
+        const reserved = this.heldCells(resident.id);
+        if (reserved.has(key(next))) {
+          const blocking = this.agents.find((a) => key(a.cell) === key(next));
+          if (blocking && !blocking.next && blocking.id !== requester.id) clear(next);
+          return;
+        }
+        // Retain the original goal, but recompute its path from the new spot.
+        resident.next = { ...next };
+        resident.route = [];
+        resident.waiting = false;
+        return;
+      }
+    };
+    clear(destination);
+  }
+
   private reached(agent: ResidentState): boolean {
     return !!agent.destinationId && agent.next === null &&
       this.layout.getRoomAt(agent.cell.x, agent.cell.y)?.id === agent.destinationId &&
@@ -312,6 +342,7 @@ export class ResidentTraffic {
       const next = agent.route[0];
       if (!next || blocked.has(key(next)) || !canWalkBetween(this.layout, anchor, next)) {
         agent.waiting = true;
+        if (next && blocked.has(key(next))) this.requestCorridorClearance(agent, next);
         continue;
       }
       const isLift = next.y !== anchor.y;
