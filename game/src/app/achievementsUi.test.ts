@@ -31,7 +31,10 @@ describe('achievement presentation categories', () => {
     const paths = achievementArtPaths('first-room');
     expect(paths.small).toBe(import.meta.env.BASE_URL + 'assets/achievements/first-room-360.webp');
     expect(paths.large).toBe(import.meta.env.BASE_URL + 'assets/achievements/first-room-540.webp');
-    expect(new URL(paths.large, 'https://example.org/undergroundsurvive-/').pathname)
+    // Vite's test runner uses root hosting, while GitHub Pages serves the
+    // production build from a project subdirectory with relative base './'.
+    const projectPath = achievementArtPaths('first-room', './').large;
+    expect(new URL(projectPath, 'https://example.org/undergroundsurvive-/').pathname)
       .toBe('/undergroundsurvive-/assets/achievements/first-room-540.webp');
   });
 
