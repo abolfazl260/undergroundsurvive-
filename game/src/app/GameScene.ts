@@ -11,7 +11,7 @@ import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE, GARDEN_MEDBAY_ART_ASSET, GARDEN_MEDBAY_FRAME_BY_TYPE } from './roomArt';
 import { AssetManager } from './assets/assetManager';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
-import { constrainScroll, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
+import { constrainScroll, GAME_VIEW, resizeViewport, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
@@ -50,6 +50,7 @@ export class GameScene extends Phaser.Scene {
   private navigator?: ResidentNavigator;
   private residentWaitMs = 1400;
   private patrolCursor = 0;
+  private viewportSize = { width: GAME_VIEW.width, height: GAME_VIEW.height };
 
   constructor(
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
@@ -77,6 +78,18 @@ export class GameScene extends Phaser.Scene {
       (GAME_VIEW.worldWidth - this.cameras.main.width) / 2,
       (GAME_VIEW.worldHeight - this.cameras.main.height) / 2
     );
+    this.viewportSize = { width: this.cameras.main.width, height: this.cameras.main.height };
+    // RESIZE updates canvas and camera in CSS pixels; preserve the same world center.
+    const resizeView = (size: Phaser.Structs.Size): void => {
+      if (size.width <= 0 || size.height <= 0) return;
+      const camera = this.cameras.main;
+      const previous = { ...this.currentView(), ...this.viewportSize };
+      camera.setSize(size.width, size.height);
+      this.viewportSize = { width: size.width, height: size.height };
+      this.applyView(resizeViewport(previous, size.width, size.height));
+    };
+    this.scale.on('resize', resizeView);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', resizeView));
     this.drawBackdrop();
     this.terrainLayer = this.add.graphics().setDepth(1);
     this.roomLayer = this.add.container(0, 0).setDepth(3);
