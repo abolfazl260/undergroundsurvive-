@@ -60,7 +60,7 @@ export class AchievementTracker {
 
   static restore(input: unknown): AchievementTracker | null {
     if (!input || typeof input !== 'object') return null;
-    const value = input as Partial<AchievementSnapshot>;
+    const value = input as Partial<AchievementSnapshot> & { schemaVersion?: number };
     if ((value.schemaVersion !== 1 && value.schemaVersion !== 2) ||
         !Array.isArray(value.unlocked) ||
         value.unlocked.length > ACHIEVEMENTS.length ||
