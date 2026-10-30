@@ -276,3 +276,110 @@ html[dir="ltr"] .game-menu .menu-choice-copy { direction: ltr; text-align: left;
   .game-menu .menu-screen--pause .menu-hero { min-height: 0; }
   .game-menu .menu-choice-list .menu-choice { min-height: 50px; }
 }
+
+
+/* In-menu policies: readable on mobile, with a persistent back action. */
+.game-menu .menu-screen--policies {
+  padding: 0 !important;
+  text-align: start;
+  min-width: 0;
+}
+.game-menu .menu-policy-header {
+  padding: 20px 28px 16px;
+  background: linear-gradient(130deg, #143744, #0b2330);
+  border-bottom: 1px solid #477682;
+}
+.game-menu .menu-policy-header .menu-kicker {
+  color: #7bc3ce;
+  font: 750 11px/1.5 system-ui, sans-serif;
+  letter-spacing: .16em;
+}
+.game-menu .menu-policy-header h2 {
+  color: #f0f8f9;
+  font-size: clamp(20px, 3.5vw, 27px);
+  line-height: 1.45;
+  margin: 8px 0 4px;
+  outline-offset: 4px;
+}
+.game-menu .menu-policy-header p {
+  margin: 0;
+  font-size: 13px;
+  color: #b5d0d5;
+}
+.game-menu .menu-policy-content {
+  padding: 12px 27px 20px;
+  max-width: 75ch;
+  margin-inline: auto;
+  font-size: 13px;
+  line-height: 1.95;
+  color: #cbdde2;
+  overflow-wrap: anywhere;
+}
+.game-menu .menu-policy-meta {
+  color: #87c9bc;
+  font-weight: 700;
+  font-size: 12px;
+  margin: 0 0 10px;
+}
+.game-menu .menu-policy-intro {
+  margin: 0 0 18px;
+  color: #e2f1f2;
+  font-weight: 600;
+}
+.game-menu .menu-policy-section {
+  border: 1px solid #284b59;
+  background: #0c2531;
+  border-radius: 10px;
+  margin: 0 0 12px;
+  padding: 13px 17px 14px;
+}
+.game-menu .menu-policy-section h3 {
+  color: #7ce3c1;
+  margin: 0 0 9px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.game-menu .menu-policy-section p {
+  margin: 0 0 9px;
+}
+.game-menu .menu-policy-section p:last-child {
+  margin-bottom: 0;
+}
+.game-menu .menu-policy-section ul {
+  padding-inline-start: 20px;
+}
+.game-menu .menu-policy-contact {
+  margin: 15px 0 0;
+  padding: 12px 15px;
+  border-inline-start: 3px solid #5bd2bb;
+  background: #14323d;
+}
+.game-menu .menu-policy-contact a {
+  color: #a5ebd7;
+  text-underline-offset: 3px;
+  font-weight: 750;
+}
+.game-menu .menu-policy-contact a:focus-visible {
+  outline: 2px solid #a5ebd7;
+  outline-offset: 3px;
+}
+.game-menu .menu-policy-contact p {
+  margin: 3px 0 0;
+  font-size: 11px;
+}
+.game-menu .menu-policy-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 12px 27px max(12px, env(safe-area-inset-bottom));
+  background: #0a1e2a;
+  border-top: 1px solid #345563;
+  box-shadow: 0 -8px 16px #06121daa;
+}
+@media (max-width: 600px) {
+  .game-menu .menu-policy-header { padding: 15px 17px 12px; }
+  .game-menu .menu-policy-content { padding: 12px 13px 14px; font-size: 12px; line-height: 1.85; }
+  .game-menu .menu-policy-section { padding: 11px 12px; }
+  .game-menu .menu-policy-section h3 { font-size: 14px; }
+  .game-menu .menu-policy-actions { padding-inline: 15px; }
+}
