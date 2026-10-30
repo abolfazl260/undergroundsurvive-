@@ -4,7 +4,8 @@ import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/ca
 import { BuildingLayout } from '../modules/building/layout';
 import { GameSession, type GameSnapshot } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
-import { ROOM_ATLAS_KEY, ROOM_ATLAS_URL, ROOM_ATLAS_FRAME_WIDTH, ROOM_ATLAS_FRAME_HEIGHT, ROOM_FRAME_BY_TYPE } from './roomArt';
+import { ROOM_ART_ASSET, ROOM_FRAME_BY_TYPE } from './roomArt';
+import { AssetManager } from './assets/assetManager';
 import { panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
@@ -13,6 +14,10 @@ export type ToolMode = 'build' | 'dig' | 'move' | 'remove' | 'upgrade';
 
 export class GameScene extends Phaser.Scene {
   private readonly session: GameSession;
+  private readonly assets = new AssetManager(
+    [ROOM_ART_ASSET], import.meta.env.BASE_URL,
+    Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
+  );
   private get layout(): BuildingLayout { return this.session.layout; }
   private selectedRoom: BuildableRoomType = 'habitat';
   private mode: ToolMode = 'build';
@@ -36,13 +41,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.load.spritesheet(ROOM_ATLAS_KEY, ROOM_ATLAS_URL, {
-      frameWidth: ROOM_ATLAS_FRAME_WIDTH,
-      frameHeight: ROOM_ATLAS_FRAME_HEIGHT
-    });
+    this.assets.preload(this.load, this.textures);
   }
 
   create(): void {
+    this.assets.configureFilters(
+      this.textures, Phaser.Textures.FilterMode.LINEAR, Phaser.Textures.FilterMode.NEAREST
+    );
     this.drawBackdrop();
     this.terrainLayer = this.add.graphics().setDepth(1);
     this.roomLayer = this.add.container(0, 0).setDepth(3);
@@ -358,8 +363,6 @@ export class GameScene extends Phaser.Scene {
     if (!this.roomLayer) return;
     this.roomLayer.removeAll(true);
     this.roomBadges = [];
-    const artworkReady = this.textures.exists(ROOM_ATLAS_KEY);
-
     for (const room of this.layout.rooms) {
       const definition = ROOM_DEFINITIONS[room.type];
       const { left, top } = toPixels(room.x, room.y);
@@ -367,15 +370,18 @@ export class GameScene extends Phaser.Scene {
       const height = room.height * WORLD.cellSize - 4;
       const frame = ROOM_FRAME_BY_TYPE[room.type];
 
-      if (artworkReady && frame !== undefined) {
-        const sprite = this.add.image(left + 2, top + 2, ROOM_ATLAS_KEY, frame)
+      const texture = frame === undefined ? null : this.assets.resolve(
+        ROOM_ART_ASSET.key, this.textures, frame
+      );
+      if (texture) {
+        const sprite = this.add.image(left + 2, top + 2, texture.key, texture.frame)
           .setOrigin(0, 0)
           .setDisplaySize(width, height);
         this.roomLayer.add(sprite);
       }
 
       const graphics = this.add.graphics();
-      if (!artworkReady || frame === undefined) {
+      if (!texture) {
         // Keep legacy room types and failed asset requests playable.
         graphics.fillStyle(definition.color).fillRoundedRect(left + 2, top + 2, width, height, 4);
         graphics.fillStyle(definition.accent, 0.21).fillRect(left + 10, top + 9, width - 16, 8);
