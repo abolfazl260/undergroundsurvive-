@@ -18,8 +18,31 @@ export const TWO_CELL_CONSTRUCTION_ART_ASSET: TextureAsset = {
 };
 
 export const CONSTRUCTION_FRAMES = 8;
-export const CONSTRUCTION_FRAME_MS = 360;
-export const CONSTRUCTION_DURATION_MS = CONSTRUCTION_FRAMES * CONSTRUCTION_FRAME_MS;
+// Slower, deliberate construction: 5.76s of building + 0.52s reveal.
+export const CONSTRUCTION_FRAME_MS = 720;
+export const CONSTRUCTION_FADE_MS = 330;
+export const CONSTRUCTION_REVEAL_MS = 520;
+export const CONSTRUCTION_BUILD_MS = CONSTRUCTION_FRAMES * CONSTRUCTION_FRAME_MS;
+export const CONSTRUCTION_DURATION_MS = CONSTRUCTION_BUILD_MS + CONSTRUCTION_REVEAL_MS;
+
+export interface ConstructionVisualState {
+  /** Current and next frames in the existing 8-frame atlas. */
+  readonly frame: number;
+  readonly nextFrame: number;
+  /** 0..1 smoothstep alpha for the incoming construction frame. */
+  readonly blend: number;
+  /** 0..1 fade-out to reveal the final room, after all eight stages. */
+  readonly reveal: number;
+  readonly progress: number;
+  /** Elapsed time, used solely for subtle deterministic lighting/dust. */
+  readonly elapsedMs: number;
+}
+
+const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+const smoothstep = (value: number): number => {
+  const t = clamp01(value);
+  return t * t * (3 - 2 * t);
+};
 
 /** Presentation-only state: never stored in saves and never changes room placement. */
 export class TwoCellConstructionAnimation {
@@ -31,9 +54,40 @@ export class TwoCellConstructionAnimation {
     return true;
   }
 
-  frame(roomId: string): number | null {
+  /** Continuous render state for two blended sprites and a subtle progress/effects layer. */
+  visual(roomId: string): ConstructionVisualState | null {
     const elapsed = this.elapsedByRoom.get(roomId);
-    return elapsed === undefined ? null : Math.min(CONSTRUCTION_FRAMES - 1, Math.floor(elapsed / CONSTRUCTION_FRAME_MS));
+    if (elapsed === undefined) return null;
+
+    if (elapsed >= CONSTRUCTION_BUILD_MS) {
+      return {
+        frame: CONSTRUCTION_FRAMES - 1,
+        nextFrame: CONSTRUCTION_FRAMES - 1,
+        blend: 0,
+        reveal: smoothstep((elapsed - CONSTRUCTION_BUILD_MS) / CONSTRUCTION_REVEAL_MS),
+        progress: 1,
+        elapsedMs: elapsed
+      };
+    }
+
+    const frame = Math.min(CONSTRUCTION_FRAMES - 1, Math.floor(elapsed / CONSTRUCTION_FRAME_MS));
+    const withinFrame = elapsed - frame * CONSTRUCTION_FRAME_MS;
+    // Keep each step fully legible before blending its successor.
+    const blend = frame === CONSTRUCTION_FRAMES - 1 ? 0 : smoothstep(
+      (withinFrame - (CONSTRUCTION_FRAME_MS - CONSTRUCTION_FADE_MS)) / CONSTRUCTION_FADE_MS
+    );
+    return {
+      frame,
+      nextFrame: Math.min(CONSTRUCTION_FRAMES - 1, frame + 1),
+      blend,
+      reveal: 0,
+      progress: elapsed / CONSTRUCTION_BUILD_MS,
+      elapsedMs: elapsed
+    };
+  }
+
+  frame(roomId: string): number | null {
+    return this.visual(roomId)?.frame ?? null;
   }
 
   cancel(roomId: string): void {
@@ -48,21 +102,19 @@ export class TwoCellConstructionAnimation {
     return this.elapsedByRoom.size > 0;
   }
 
-  /** Returns true only when a visible frame changes or an animation completes. */
+  /** Returns true only on completion, so the scene redraws finished rooms once. */
   advance(deltaMs: number): boolean {
     if (!Number.isFinite(deltaMs) || deltaMs <= 0) return false;
-    let changed = false;
+    let completed = false;
     for (const [roomId, elapsed] of this.elapsedByRoom) {
-      const previous = this.frame(roomId);
-      const next = elapsed + deltaMs;
+      const next = elapsed + Math.min(deltaMs, 1000);
       if (next >= CONSTRUCTION_DURATION_MS) {
         this.elapsedByRoom.delete(roomId);
-        changed = true; // Reveal the completed, room-specific interior.
+        completed = true;
       } else {
         this.elapsedByRoom.set(roomId, next);
-        if (this.frame(roomId) !== previous) changed = true;
       }
     }
-    return changed;
+    return completed;
   }
 }
