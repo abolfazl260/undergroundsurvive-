@@ -6,8 +6,8 @@ describe('achievement tracking', () => {
   it('starts locked and counts successful commands once, not failures', () => {
     const game = GameSession.create();
     expect(game.snapshot().achievements.unlocked).toEqual([]);
-    expect(game.build('habitat', 7, 0).ok).toBe(true);
-    expect(game.build('habitat', 7, 0).ok).toBe(false);
+    expect(game.build('habitat', 8, -1).ok).toBe(true);
+    expect(game.build('habitat', 8, -1).ok).toBe(false);
     const snapshot = game.snapshot();
     expect(snapshot.achievements.unlocked).toEqual(['first-room']);
     expect(getAchievementViews(snapshot).find((a) => a.id === 'builder')?.progress).toBe(1);
@@ -17,12 +17,12 @@ describe('achievement tracking', () => {
     const game = GameSession.create();
     expect(game.dig(5, -2).ok).toBe(true);
     expect(game.upgradeAt(5, -1).ok).toBe(true);
-    expect(game.unlockFloor().ok).toBe(true);
+    expect(game.unlockFloor().ok).toBe(false);
     game.advanceTime(25_000);
     const earned = game.snapshot().achievements.unlocked;
     expect(earned).toContain('first-dig');
     expect(earned).toContain('first-upgrade');
-    expect(earned).toContain('upper-floor');
+    expect(earned).not.toContain('upper-floor');
     expect(earned).toContain('first-cycles');
     expect(earned).not.toContain('excavator');
     expect(earned).not.toContain('steady-shelter');
@@ -30,11 +30,11 @@ describe('achievement tracking', () => {
 
   it('preserves completion after reload or demolition, and clears on reset', () => {
     const game = GameSession.create();
-    game.build('habitat', 7, 0);
+    game.build('habitat', 8, -1);
     const before = game.snapshot();
     expect(GameSession.restore(before)?.snapshot()).toEqual(before);
     const restored = GameSession.restore(before)!;
-    const id = restored.layout.getRoomAt(7, 0)!.id;
+    const id = restored.layout.getRoomAt(8, -1)!.id;
     restored.layout.remove(id);
     expect(restored.snapshot().achievements.unlocked).toContain('first-room');
     restored.reset();
@@ -43,7 +43,7 @@ describe('achievement tracking', () => {
 
   it('migrates previous v3 saves while preserving their recorded progress', () => {
     const game = GameSession.create();
-    game.build('habitat', 7, 0);
+    game.build('habitat', 8, -1);
     game.advanceTime(25_000);
     const { achievements: _ignored, ...legacy } = game.snapshot();
     const restored = GameSession.restore({ ...legacy, schemaVersion: 3 });

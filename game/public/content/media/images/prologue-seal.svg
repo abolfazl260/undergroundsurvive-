@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-label="Automated armored shelter door seals"><defs>
+<linearGradient id="ember" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#764b4c"/><stop offset=".52" stop-color="#b9693d"/><stop offset="1" stop-color="#1e2b36"/></linearGradient>
+<linearGradient id="night" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#1f3647"/><stop offset=".55" stop-color="#28323c"/><stop offset="1" stop-color="#080e17"/></linearGradient>
+<linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#234b78"/><stop offset="1" stop-color="#0b263f"/></linearGradient>
+<linearGradient id="toxic" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#a9a763"/><stop offset="1" stop-color="#374d41"/></linearGradient>
+<radialGradient id="vignette"><stop offset=".47" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#010710" stop-opacity=".8"/></radialGradient>
+<filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="9"/></filter>
+<filter id="blur"><feGaussianBlur stdDeviation="23"/></filter>
+<filter id="grain"><feTurbulence baseFrequency=".35" numOctaves="2" seed="8" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".055"/></feComponentTransfer></filter>
+</defs><rect width="960" height="540" fill="url(#night)"/><path d="M0 0H960V540H0Z" fill="#251b1d"/>
+<path d="M118 0H842L954 95V540H0V108Z" fill="#272a2f" stroke="#443f3a" stroke-width="19"/>
+<rect x="149" y="83" width="658" height="425" rx="13" fill="#151b22" stroke="#515352" stroke-width="25"/>
+<rect x="185" y="115" width="590" height="369" fill="#363438"/>
+<path d="M480 114V484" stroke="#0a1014" stroke-width="23"/><path d="M225 143H742M225 434H742" stroke="#5e5b58" stroke-width="12"/>
+<path d="M221 163H744M221 418H744" stroke="#1c2024" stroke-width="7"/>
+<g stroke="#373435" stroke-width="9"><path d="M244 114 187 178M331 114 187 256M420 114 187 347M538 114 773 350M629 114 773 261M721 114 773 169"/></g>
+<rect x="77" y="235" width="72" height="106" rx="7" fill="#152b39" stroke="#728480" stroke-width="7"/>
+<rect x="92" y="257" width="42" height="34" fill="#6ce0c1"/><path d="M101 274H125M114 264V285" stroke="#113a3a" stroke-width="5"/>
+<circle cx="210" cy="73" r="23" fill="#ea342c" filter="url(#glow)"/><circle cx="480" cy="73" r="23" fill="#ea342c" filter="url(#glow)"/><circle cx="750" cy="73" r="23" fill="#ea342c" filter="url(#glow)"/>
+<rect x="204" y="479" width="550" height="24" fill="#ad833e"/><path d="M233 482 268 502M313 482 349 502M393 482 429 502M473 482 509 502M553 482 589 502M633 482 669 502" stroke="#21252b" stroke-width="14"/>
+<g transform="translate(113 555) scale(2.6)" fill="#111c26"><circle cx="0" cy="-48" r="11"/><path d="M-13-34Q0-43 13-34L16 8 12 33 3 34 0 1-3 34-12 33-15 7Z"/><path d="M-12-31-22-2-17 1-4-21M12-31 22-2 17 1 4-21"/></g><rect width="960" height="540" fill="url(#vignette)"/><rect width="960" height="540" fill="#eff8ee" filter="url(#grain)" opacity=".34"/></svg>

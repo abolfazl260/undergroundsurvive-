@@ -1,6 +1,7 @@
 import { isInsideWorld } from '../world/grid';
 import { TerrainMap } from '../world/terrain';
 import { ROOM_DEFINITIONS, type RoomType } from './catalog';
+import { canConstructAtLevel, UNDERGROUND_ONLY_POLICY, UNDERGROUND_ONLY_REASON, type ConstructionPolicy } from './constructionPolicy';
 
 export interface Room {
   id: string;
@@ -17,7 +18,7 @@ const occupied = (rooms: readonly Room[], x: number, y: number): boolean =>
 
 export function validatePlacement(
   rooms: readonly Room[], type: RoomType, x: number, y: number,
-  terrain: TerrainMap = new TerrainMap()
+  terrain: TerrainMap = new TerrainMap(), policy: ConstructionPolicy = UNDERGROUND_ONLY_POLICY
 ): PlacementResult {
   const definition = ROOM_DEFINITIONS[type];
   for (let dx = 0; dx < definition.width; dx++) {
@@ -25,6 +26,8 @@ export function validatePlacement(
       const cx = x + dx, cy = y + dy;
       if (!isInsideWorld(cx, cy))
         return { ok: false, reason: 'مکان ساخت خارج از نقشه است.' };
+      if (!canConstructAtLevel(cy, policy))
+        return { ok: false, reason: UNDERGROUND_ONLY_REASON };
       if (!terrain.isOpen(cx, cy))
         return { ok: false, reason: cy < 0 ? 'ابتدا زمین را حفاری کنید.' : 'ابتدا طبقهٔ جدید را باز کنید.' };
       if (occupied(rooms, cx, cy))

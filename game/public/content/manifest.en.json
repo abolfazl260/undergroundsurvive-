@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "contentVersion": 1,
+  "contentVersion": 2,
   "locale": "en-US",
   "chapters": [
     {
-      "id": "demo-shelter",
-      "src": "story/demo-shelter.en.json"
+      "id": "prologue-90-days",
+      "src": "story/prologue-90-days.en.json"
     }
   ]
 }

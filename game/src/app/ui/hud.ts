@@ -25,7 +25,8 @@ export function toHudView(snapshot: GameSnapshot, saved: boolean): HudView {
       : '—',
     changeKind,
     rooms: formatNumber(snapshot.base.rooms.length),
-    floors: formatNumber(snapshot.base.terrain.highestFloor) + ' / ' + formatNumber(WORLD.maxY),
+    floors: formatNumber(new Set(snapshot.base.terrain.excavated.map((cell) => cell.y)).size) +
+      ' / ' + formatNumber(-WORLD.minY),
     excavated: formatNumber(snapshot.base.terrain.excavated.length),
     saveLabel: t(saved ? 'ذخیره روی دستگاه' : 'ذخیره نشد'),
     saveState: saved ? 'saved' : 'failed'

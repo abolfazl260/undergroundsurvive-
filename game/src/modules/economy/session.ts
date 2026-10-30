@@ -9,6 +9,7 @@ import { ROOM_DEFINITIONS, type BuildableRoomType } from '../building/catalog';
 import { getRoomPerformance, MAX_ROOM_LEVEL, type RoomPerformance } from '../building/upgrades';
 import type { PlacementResult } from '../building/placement';
 import { AchievementTracker, type AchievementSnapshot } from '../achievements/achievements';
+import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
   schemaVersion: 4;
@@ -27,6 +28,7 @@ export interface UpgradeDetails {
   readonly current: RoomPerformance;
   readonly next: RoomPerformance | null;
   readonly cost: number | null;
+  readonly blockedReason: string | null;
 }
 type SpendKind = 'build' | 'dig' | 'floor' | 'upgrade';
 
@@ -92,12 +94,14 @@ export class GameSession {
   upgradeDetails(id: string): UpgradeDetails | null {
     const room = this.world.rooms.find((r) => r.id === id);
     if (!room) return null;
-    const available = room.level < MAX_ROOM_LEVEL;
+    const blockedReason = this.world.canEditRoom(room) ? null : LEGACY_SURFACE_READ_ONLY_REASON;
+    const available = room.level < MAX_ROOM_LEVEL && !blockedReason;
     return {
       id: room.id, label: ROOM_DEFINITIONS[room.type].label, level: room.level,
       current: getRoomPerformance(room.type, room.level),
       next: available ? getRoomPerformance(room.type, room.level + 1) : null,
-      cost: available ? getUpgradeCost(room.type, room.level) : null
+      cost: available ? getUpgradeCost(room.type, room.level) : null,
+      blockedReason
     };
   }
 
@@ -135,6 +139,8 @@ export class GameSession {
   upgradeRoom(id: string): CommandResult {
     const details = this.upgradeDetails(id);
     if (!details) return { ok: false, reason: 'اتاق انتخاب‌شده وجود ندارد.' };
+    if (!this.world.canEditRoom(this.world.rooms.find((room) => room.id === id)!))
+      return { ok: false, reason: LEGACY_SURFACE_READ_ONLY_REASON };
     if (details.cost === null) return { ok: false, reason: 'اتاق به حداکثر سطح رسیده است.' };
     // The session recalculates the price; a previously shown preview is not trusted.
     return this.execute(details.cost, 'upgrade', (world) => world.upgrade(id));

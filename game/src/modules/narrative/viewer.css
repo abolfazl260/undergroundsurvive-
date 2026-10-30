@@ -33,3 +33,36 @@
   .story-open{font-size:11px;padding:7px 9px}}
 
 html[dir="ltr"] .story-navigation {direction:ltr}
+
+
+/* Cinematic, portrait-friendly prologue. The chapter copy remains selectable and
+   scrollable, separate from the 16:9 stills and without automatic slide changes. */
+.story-dialog{background:linear-gradient(160deg,#0d1824,#172736);border-color:#506776}
+.story-head{background:linear-gradient(90deg,#0b1420,#192f39)}
+.story-head h2{font-size:clamp(18px,3.5vw,23px);letter-spacing:-.025em}
+.story-progress-track{height:3px;background:#253c45;overflow:hidden;flex:none}
+.story-progress-fill{display:block;width:0;height:100%;background:linear-gradient(90deg,#c6aa6e,#81dbc8);transition:width .3s ease-out}
+.story-stage{position:relative;background:#081017;aspect-ratio:16/9;min-height:0}
+.story-stage::after{content:"";pointer-events:none;position:absolute;inset:auto 0 0;height:12%;background:linear-gradient(transparent,rgba(1,7,12,.35))}
+.story-stage img{width:100%;height:100%;max-height:none;object-fit:cover;animation:story-appear .24s ease-out}
+.story-stage video{width:100%;height:100%;object-fit:contain}
+.story-copy{padding:17px 22px 18px;max-height:min(27dvh,240px);min-height:100px;scrollbar-color:#496477 transparent}
+.story-title{font-size:clamp(16px,3vw,19px);color:#f5d59c;margin-bottom:8px}
+.story-text{font-size:clamp(13px,2.5vw,15px);line-height:2;color:#dce5e5}
+.story-actions{background:#0e1d29;justify-content:space-between}
+.story-actions .story-next{background:#286c5c;border-color:#63bba2;font-weight:700}
+.story-actions .story-next:hover{background:#348271}
+@keyframes story-appear{from{opacity:.35;transform:scale(1.012)}to{opacity:1;transform:scale(1)}}
+@media(max-width:640px){
+ .story-dialog{width:calc(100vw - 10px);max-height:96dvh;border-radius:14px}
+ .story-panel{max-height:96dvh}
+ .story-stage{aspect-ratio:16/9}
+ .story-stage img{max-height:none}
+ .story-copy{max-height:29dvh;padding:13px 15px;min-height:98px}
+ .story-actions{gap:5px;padding:8px 9px}
+ .story-actions button{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){
+ .story-stage img{animation:none}
+ .story-progress-fill{transition:none}
+}

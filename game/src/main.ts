@@ -14,10 +14,9 @@ import { ZOOM } from './app/viewport';
 import { AudioManager } from './modules/audio/AudioManager';
 import { mountHud } from './app/ui/hud';
 import { mountAchievements } from './app/achievementsUi';
-import { WORLD } from './modules/world/grid';
 import type { BuildableRoomType } from './modules/building/catalog';
 import { loadLocalBase, saveLocalBase } from './platform/localSave';
-import { BUILD_COSTS, DIG_COST, DEMO_BONUS_COINS, STARTING_COINS, getFloorCost } from './modules/economy/pricing';
+import { BUILD_COSTS, DIG_COST, DEMO_BONUS_COINS, STARTING_COINS } from './modules/economy/pricing';
 import { MAX_ROOM_LEVEL } from './modules/building/upgrades';
 import type { UpgradeDetails } from './modules/economy/session';
 import type { TransactionKind } from './modules/economy/wallet';
@@ -32,7 +31,6 @@ const gameDock = mountGameDock();
 
 const audio = new AudioManager();
 const status = document.querySelector<HTMLElement>('#status');
-const unlockButton = document.querySelector<HTMLButtonElement>('#unlock-floor');
 const renderHud = mountHud(document);
 const resourcePanel = mountResourcePanel(document);
 const renderAchievements = mountAchievements(document);
@@ -93,7 +91,7 @@ function renderUpgradePanel(): void {
     formatCoins(details.current.value) + ' ' + t(details.current.unit) +
     (details.next ? ' ← ' + formatCoins(details.next.value) + ' ' + t(details.next.unit) : '');
   if (upgradeCost) upgradeCost.textContent = details.cost === null
-    ? t('این اتاق به بالاترین سطح رسیده است.')
+    ? (details.blockedReason ? t(details.blockedReason) : t('این اتاق به بالاترین سطح رسیده است.'))
     : t('هزینهٔ سطح بعد: {value} سکه', { value: formatCoins(details.cost) }) +
       (latestBalance < details.cost ? ' — ' + t('موجودی کافی نیست.') : '');
   if (confirmUpgrade) {
@@ -152,16 +150,6 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
     }
   }
   if (status) status.textContent = localizeGameMessage(saved ? message : message + ' (ذخیرهٔ محلی در دسترس نیست)');
-  if (unlockButton) {
-    const maxed = snapshot.base.terrain.highestFloor >= WORLD.maxY;
-    unlockButton.disabled = maxed;
-    setButtonLabel(unlockButton, maxed
-      ? t('تمام طبقات باز شده‌اند')
-      : t('طبقهٔ +{floor} · {value} سکه', {
-        floor: formatCoins(snapshot.base.terrain.highestFloor + 1),
-        value: formatCoins(getFloorCost(snapshot.base.terrain.highestFloor))
-      }), 'layers');
-  }
 }
 const scene = new GameScene((snapshot, message) => {
   const saved = saveLocalBase(snapshot);
@@ -284,7 +272,6 @@ toolButtons.forEach((button) => {
 });
 
 confirmUpgrade?.addEventListener('click', () => scene.upgradeSelected());
-unlockButton?.addEventListener('click', () => scene.unlockFloor());
 bonusButton?.addEventListener('click', () => scene.claimDemoBonus());
 document.querySelector<HTMLButtonElement>('#reset-layout')?.addEventListener('click', () => {
   scene.resetLayout();

@@ -18,6 +18,7 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
         <label for="story-chapter">فصل <select id="story-chapter" aria-label="انتخاب فصل داستان"></select></label>
         <span class="story-status" role="status" aria-live="polite"></span>
       </div>
+      <div class="story-progress-track" aria-hidden="true"><span class="story-progress-fill"></span></div>
       <div class="story-stage" aria-live="off"><p class="story-placeholder">در حال آماده‌سازی داستان…</p></div>
       <div class="story-copy"><h3 class="story-title"></h3><p class="story-text"></p></div>
       <footer class="story-actions">
@@ -38,6 +39,7 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
   const text = dialog.querySelector<HTMLElement>('.story-text')!;
   const status = dialog.querySelector<HTMLElement>('.story-status')!;
   const counter = dialog.querySelector<HTMLElement>('.story-counter')!;
+  const progressFill = dialog.querySelector<HTMLElement>('.story-progress-fill')!;
   const prev = dialog.querySelector<HTMLButtonElement>('.story-prev')!;
   const next = dialog.querySelector<HTMLButtonElement>('.story-next')!;
   const skip = dialog.querySelector<HTMLButtonElement>('.story-skip')!;
@@ -72,6 +74,7 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
     title.textContent = '';
     text.textContent = '';
     counter.textContent = '';
+    progressFill.style.width = '0%';
     prev.disabled = true;
     next.disabled = true;
     skip.disabled = true;
@@ -118,6 +121,7 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
     title.textContent = scene.title || chapter.title;
     text.textContent = scene.text;
     counter.textContent = (sceneIndex + 1) + ' / ' + chapter.scenes.length;
+    progressFill.style.width = ((sceneIndex + 1) / chapter.scenes.length * 100) + '%';
     prev.disabled = sceneIndex === 0;
     next.disabled = false;
     skip.disabled = false;

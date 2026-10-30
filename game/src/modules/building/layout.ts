@@ -3,12 +3,13 @@ import { MAX_ROOM_LEVEL } from './upgrades';
 import { validatePlacement, hasStructuralSupport, type PlacementResult, type Room } from './placement';
 import { TerrainMap, type TerrainSnapshot, type TerrainResult } from '../world/terrain';
 import { isInsideWorld } from '../world/grid';
+import { canConstructAtLevel, canEditFootprint, LEGACY_SURFACE_POLICY, LEGACY_SURFACE_READ_ONLY_REASON, UNDERGROUND_ONLY_POLICY, UNDERGROUND_ONLY_REASON, type ConstructionPolicy } from './constructionPolicy';
 
 const STARTER_ROOMS: Room[] = [
   { id: 'initial-command', type: 'command', x: 5, y: -1, width: 3, height: 1, level: 1 },
   { id: 'initial-power', type: 'generator', x: 1, y: -2, width: 2, height: 1, level: 1 },
   { id: 'initial-habitat', type: 'habitat', x: 10, y: -2, width: 2, height: 1, level: 1 },
-  { id: 'initial-garden', type: 'hydroponics', x: 2, y: 0, width: 2, height: 1, level: 1 }
+  { id: 'initial-garden', type: 'hydroponics', x: 11, y: -1, width: 2, height: 1, level: 1 }
 ];
 export interface BaseSnapshot {
   schemaVersion: 1;
@@ -20,8 +21,10 @@ export class BuildingLayout {
   terrain: TerrainMap;
   private data: Room[];
   private sequence: number;
+  private readonly policy: ConstructionPolicy;
 
-  constructor(snapshot?: BaseSnapshot) {
+  constructor(snapshot?: BaseSnapshot, policy: ConstructionPolicy = UNDERGROUND_ONLY_POLICY) {
+    this.policy = policy;
     this.terrain = snapshot ? new TerrainMap(snapshot.terrain) : new TerrainMap();
     this.data = (snapshot?.rooms ?? STARTER_ROOMS).map((room) => ({ ...room }));
     this.sequence = snapshot?.nextRoomId ?? 0;
@@ -31,8 +34,11 @@ export class BuildingLayout {
     return this.data.find((r) => x >= r.x && x < r.x + r.width &&
       y >= r.y && y < r.y + r.height);
   }
+  canEditRoom(room: Room): boolean {
+    return canEditFootprint(room.y, room.height, this.policy);
+  }
   canPlace(type: BuildableRoomType, x: number, y: number): PlacementResult {
-    return validatePlacement(this.data, type, x, y, this.terrain);
+    return validatePlacement(this.data, type, x, y, this.terrain, this.policy);
   }
   place(type: BuildableRoomType, x: number, y: number): PlacementResult {
     const result = this.canPlace(type, x, y);
@@ -48,8 +54,10 @@ export class BuildingLayout {
     const room = this.data.find((r) => r.id === id);
     if (!room || room.type === 'command')
       return { ok: false, reason: 'این اتاق قابل جابه‌جایی نیست.' };
+    if (!this.canEditRoom(room))
+      return { ok: false, reason: LEGACY_SURFACE_READ_ONLY_REASON };
     const others = this.data.filter((r) => r.id !== id);
-    const result = validatePlacement(others, room.type, x, y, this.terrain);
+    const result = validatePlacement(others, room.type, x, y, this.terrain, this.policy);
     if (!result.ok) return result;
     if (!hasStructuralSupport([...others, { ...room, x, y }], this.terrain))
       return { ok: false, reason: 'اتاق‌های بالاتر بدون تکیه‌گاه باقی می‌مانند.' };
@@ -67,6 +75,8 @@ export class BuildingLayout {
     const room = this.data.find((r) => r.id === id);
     if (!room || room.type === 'command')
       return { ok: false, reason: 'اتاق فرمان قابل حذف نیست.' };
+    if (!this.canEditRoom(room))
+      return { ok: false, reason: LEGACY_SURFACE_READ_ONLY_REASON };
     const remaining = this.data.filter((r) => r.id !== id);
     if (!hasStructuralSupport(remaining, this.terrain))
       return { ok: false, reason: 'این اتاق تکیه‌گاه طبقات بالایی است.' };
@@ -76,12 +86,17 @@ export class BuildingLayout {
   upgrade(id: string): PlacementResult {
     const room = this.data.find((r) => r.id === id);
     if (!room) return { ok: false, reason: 'ابتدا یک اتاق را انتخاب کنید.' };
+    if (!this.canEditRoom(room))
+      return { ok: false, reason: LEGACY_SURFACE_READ_ONLY_REASON };
     if (room.level >= MAX_ROOM_LEVEL)
       return { ok: false, reason: 'این اتاق به بالاترین سطح آزمایشی رسیده است.' };
     room.level++;
     return { ok: true };
   }
-  dig(x: number, y: number): TerrainResult { return this.terrain.dig(x, y); }
+  dig(x: number, y: number): TerrainResult {
+    if (!canConstructAtLevel(y, this.policy)) return { ok: false, reason: UNDERGROUND_ONLY_REASON };
+    return this.terrain.dig(x, y);
+  }
   unlockFloor(): TerrainResult { return this.terrain.unlockNextFloor(); }
   snapshot(): BaseSnapshot {
     return {
@@ -94,7 +109,7 @@ export class BuildingLayout {
     this.data = STARTER_ROOMS.map((room) => ({ ...room }));
     this.sequence = 0;
   }
-  static restore(value: unknown): BuildingLayout | null {
+  static restore(value: unknown, policy: ConstructionPolicy = UNDERGROUND_ONLY_POLICY): BuildingLayout | null {
     if (!value || typeof value !== 'object') return null;
     const data = value as Partial<BaseSnapshot>;
     const terrain = TerrainMap.restore(data.terrain);
@@ -117,14 +132,14 @@ export class BuildingLayout {
     // Exclude the current room to check collisions without self-overlap.
     for (const room of rooms) {
       const others = rooms.filter((other) => other.id !== room.id);
-      if (!validatePlacement(others, room.type, room.x, room.y, terrain).ok) return null;
+      if (!validatePlacement(others, room.type, room.x, room.y, terrain, LEGACY_SURFACE_POLICY).ok) return null;
     }
     if (!rooms.some((r) => r.id === 'initial-command' && r.type === 'command') ||
         !hasStructuralSupport(rooms, terrain)) return null;
     return new BuildingLayout({
       schemaVersion: 1, terrain: terrain.snapshot(),
       rooms, nextRoomId: data.nextRoomId!
-    });
+    }, policy);
   }
 }
 
