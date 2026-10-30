@@ -105,6 +105,49 @@ export const LEVEL_TWO_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
   laboratory: 4
 };
 
+
+/**
+ * Eight newly illustrated Level 2 interiors. Each frame is two cells wide.
+ * Row-major order: habitat, hydroponics, workshop, storage, mine,
+ * recreation, guardPost, ventilation.
+ * The 2.25x atlas comes from the original generated artwork, not an upscaled 1x.
+ */
+export const LEVEL_TWO_ADDITIONAL_ART_ASSET: TextureAsset = {
+  key: 'level-two-additional-art',
+  kind: 'spritesheet',
+  frameWidth: 160,
+  frameHeight: 53,
+  filter: 'linear',
+  variants: [
+    { scale: 1, path: 'assets/rooms/level2-additions.webp' },
+    { scale: 2.25, path: 'assets/rooms/level2-additions-hd.webp', frameWidth: 360, frameHeight: 120 }
+  ]
+};
+
+export const LEVEL_TWO_ADDITIONAL_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
+  habitat: 0,
+  hydroponics: 1,
+  workshop: 2,
+  storage: 3,
+  mine: 4,
+  recreation: 5,
+  guardPost: 6,
+  ventilation: 7
+};
+
+/** Command center is three cells wide and uses a panoramic frame. */
+export const LEVEL_TWO_COMMAND_ART_ASSET: TextureAsset = {
+  key: 'level-two-command-art',
+  kind: 'spritesheet',
+  frameWidth: 240,
+  frameHeight: 53,
+  filter: 'linear',
+  variants: [
+    { scale: 1, path: 'assets/rooms/level2-command.webp' },
+    { scale: 2.25, path: 'assets/rooms/level2-command-hd.webp', frameWidth: 540, frameHeight: 120 }
+  ]
+};
+
 export interface RoomArtCandidate { readonly key: string; readonly frame: number }
 
 /**
@@ -118,6 +161,8 @@ export function roomArtCandidates(type: RoomType, level: number): RoomArtCandida
   const dedicated: RoomArtCandidate[] = missingRoomFrame === undefined
     ? []
     : [{ key: MISSING_ROOM_ART_ASSET.key, frame: missingRoomFrame }];
+  const additionalFrame = level >= 2 ? LEVEL_TWO_ADDITIONAL_FRAME_BY_TYPE[type] : undefined;
+  const commandFrame = level >= 2 && type === 'command' ? 0 : undefined;
   const labWaterFrame = LAB_WATER_FRAME_BY_TYPE[type];
   const gardenMedbayFrame = GARDEN_MEDBAY_FRAME_BY_TYPE[type];
   const standardFrame = ROOM_FRAME_BY_TYPE[type];
@@ -128,7 +173,14 @@ export function roomArtCandidates(type: RoomType, level: number): RoomArtCandida
       : standardFrame !== undefined
         ? [{ key: ROOM_ART_ASSET.key, frame: standardFrame }]
         : [];
-  return upgradedFrame === undefined
-    ? [...dedicated, ...legacy]
-    : [{ key: LEVEL_TWO_ROOM_ART_ASSET.key, frame: upgradedFrame }, ...dedicated, ...legacy];
+  if (upgradedFrame !== undefined) {
+    return [{ key: LEVEL_TWO_ROOM_ART_ASSET.key, frame: upgradedFrame }, ...dedicated, ...legacy];
+  }
+  if (additionalFrame !== undefined) {
+    return [{ key: LEVEL_TWO_ADDITIONAL_ART_ASSET.key, frame: additionalFrame }, ...legacy];
+  }
+  if (commandFrame !== undefined) {
+    return [{ key: LEVEL_TWO_COMMAND_ART_ASSET.key, frame: commandFrame }, ...legacy];
+  }
+  return [...dedicated, ...legacy];
 }

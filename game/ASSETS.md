@@ -42,6 +42,25 @@ URLs are automatically prefixed with Vite `BASE_URL` for GitHub Pages.
 selection. It does not modify layouts, camera logic, UI placement, economy,
 missions, persistence, or the existing artwork files.
 
+
+## Level 2 room art completion (#95)
+
+Nine additional upgraded interiors are raster WebP sprites, with no embedded people or text.
+The 8-frame `level2-additions.webp` atlas (4 columns × 2 rows) uses 160×53 frames;
+`level2-additions-hd.webp` uses 360×120 source-derived frames. Ordered frames:
+habitat, hydroponics, workshop, storage, mine, recreation, guardPost, ventilation.
+
+The three-cell command room uses a dedicated panoramic WebP (`level2-command.webp`,
+240×53; `level2-command-hd.webp`, 540×120). At 1× the complete new artwork
+totals about 19 KiB; high-density variants are loaded through `AssetManager`.
+The five pre-existing Level 2 frames (generator, waterTreatment, kitchen, medbay,
+laboratory) are unchanged.
+
+`roomArtCandidates(type, level)` selects Level 2 artwork for all 14 room types at
+level >= 2; when an upgraded texture or frame is unavailable, existing Level 1
+art or the basic graphical placeholder remains available. No new artwork is
+defined for Level 3 yet.
+
 ## Dedicated kitchen, ventilation, recreation and guard-post art
 
 The four previously missing or shared Level 1 interiors live in a separate
