@@ -5,8 +5,8 @@ import { canWalkBetween, findRoomPath, isWalkableCell, walkPoint, type WalkPoint
 export interface ResidentSpawn { id: string; cell: GridPosition }
 
 /** One physical cabin serves each connected shaft; visual phases never grant
- * new traversable edges. A passenger reserves both cells until the doors close
- * at the destination, so two residents cannot cross through one another. */
+ * new traversable edges. Only elevator rides are serialized; walkers can
+ * freely pass through and share cells with other residents. */
 export type ElevatorPhase = 'calling' | 'opening' | 'boarding' | 'closing' |
   'travel' | 'arrival-opening' | 'exiting';
 export interface ElevatorRide {
@@ -43,9 +43,9 @@ export interface ResidentView {
 
 export interface ResidentState {
   id: string;
-  cell: GridPosition; // Last fully occupied cell; held until the next cell is reached.
+  cell: GridPosition; // Last reached cell while the next step is interpolated.
   position: WalkPoint;
-  next: GridPosition | null; // A reserved destination while crossing a cell boundary.
+  next: GridPosition | null; // Next step while crossing a cell boundary.
   route: GridPosition[]; // Subsequent steps, excluding the in-progress segment.
   destinationId: string | null;
   waiting: boolean;
@@ -63,12 +63,9 @@ function wasLegacyVerticalEdge(layout: BuildingLayout, from: GridPosition, to: G
 }
 
 /**
- * Deterministic multi-resident movement. A walking resident reserves BOTH its
- * source and destination cells. No other resident can enter either cell, and
- * opposing residents can never swap through each other on a single frame.
- *
- * Traffic is intentionally not serialized. Agents on disjoint routes move in
- * parallel; a blocked agent tries a new route before waiting for clearance.
+ * Deterministic multi-resident movement. Residents are nonblocking: they
+ * may overlap cells or cross head-on without rerouting or waiting. Only the
+ * physical elevator car remains single-passenger.
  */
 export class ResidentTraffic {
   private readonly agents: ResidentState[];
@@ -83,12 +80,10 @@ export class ResidentTraffic {
   ) {
     if (!Number.isFinite(speed) || speed <= 0) throw new Error('Invalid resident speed');
     const ids = new Set<string>();
-    const cells = new Set<string>();
     this.agents = spawns.map(({ id, cell }) => {
-      if (!id || ids.has(id) || !isWalkableCell(layout, cell) || cells.has(key(cell)))
-        throw new Error('Invalid or overlapping resident spawn');
+      if (!id || ids.has(id) || !isWalkableCell(layout, cell))
+        throw new Error('Invalid resident spawn');
       ids.add(id);
-      cells.add(key(cell));
       return {
         id, cell: { ...cell }, position: walkPoint(cell), next: null,
         route: [], destinationId: null, waiting: false, elevator: null
@@ -157,10 +152,9 @@ export class ResidentTraffic {
     if (!agent) return false;
     const anchor = agent.next ?? agent.cell;
     const room=this.layout.rooms.find(r=>r.id===roomId);if(!room)return false;
-    // Settle deeper inside a room so later arrivals can use its doorway cell.
-    const reserved=new Set(this.agents.filter(a=>a!==agent).flatMap(a=>[...(a.targetCell?[key(a.targetCell)]:[])]));
+    // Any valid room cell is a possible goal, even if another resident
+    // already occupies or targets it.
     const goals=Array.from({length:room.width},(_,i)=>({x:room.x+i,y:room.y}))
-      .filter(cell=>!reserved.has(key(cell)))
       .sort((a,b)=>Math.abs(b.x-anchor.x)-Math.abs(a.x-anchor.x));
     let path:GridPosition[]|null=null,goal:GridPosition|undefined;
     for(const candidate of goals) {path=findRoomPath(this.layout,anchor,roomId,new Set(),candidate);if(path){goal=candidate;break;}}
@@ -175,21 +169,11 @@ export class ResidentTraffic {
   cancel(id: string): void {
     const agent = this.agents.find((item) => item.id === id);
     if (!agent) return;
-    // Finish an already reserved segment safely rather than teleporting home.
+    // Finish the in-progress segment safely rather than teleporting home.
     agent.destinationId = null;
     agent.targetCell=null;
     agent.route = [];
     agent.waiting = false;
-  }
-
-  private heldCells(exceptId: string): Set<string> {
-    const held = new Set<string>();
-    for (const agent of this.agents) {
-      if (agent.id === exceptId) continue;
-      held.add(key(agent.cell));
-      if (agent.next) held.add(key(agent.next));
-    }
-    return held;
   }
 
   /** Advance a lift as a staged, cancellable state machine. Normal walker
@@ -217,8 +201,7 @@ export class ResidentTraffic {
       if (phase === 'arrival-opening') agent.position = walkPoint(ride.to);
       return false;
     }
-    // Exiting complete: restore normal room navigation with one reserved edge
-    // consumed exactly once and the cabin parked on the arrival floor.
+    // Exiting complete: consume the elevator step and park the cabin.
     this.carFloors.set(ride.from.x, ride.to.y);
     agent.cell = { ...ride.to };
     agent.position = walkPoint(ride.to);
@@ -228,36 +211,6 @@ export class ResidentTraffic {
     return true;
   }
 
-  /** Ask an obstructing survivor to make room without overlapping grid cells.
-   * Idle or waiting residents can yield one physical horizontal cell. When the
-   * corridor contains a queue, move its farthest occupant first; the others
-   * advance only after their destination cell is actually free. No teleport. */
-  private requestCorridorClearance(requester: ResidentState, destination: GridPosition): void {
-    const visited = new Set<string>([key(requester.cell)]);
-    const clear = (cell: GridPosition): void => {
-      const resident = this.agents.find((a) => key(a.cell) === key(cell));
-      if (!resident || resident.id === requester.id || resident.next || visited.has(key(cell))) return;
-      visited.add(key(cell));
-      const preferred = Math.sign(cell.x - requester.cell.x) || 1;
-      const candidates = [preferred, -preferred].map((dx) => ({ x: cell.x + dx, y: cell.y }));
-      for (const next of candidates) {
-        if (visited.has(key(next)) || !canWalkBetween(this.layout, resident.cell, next)) continue;
-        const reserved = this.heldCells(resident.id);
-        if (reserved.has(key(next))) {
-          const blocking = this.agents.find((a) => key(a.cell) === key(next));
-          if (blocking && !blocking.next && blocking.id !== requester.id) clear(next);
-          return;
-        }
-        // Retain the original goal, but recompute its path from the new spot.
-        resident.next = { ...next };
-        resident.route = [];
-        resident.waiting = false;
-        return;
-      }
-    };
-    clear(destination);
-  }
-
   private reached(agent: ResidentState): boolean {
     return !!agent.destinationId && agent.next === null &&
       this.layout.getRoomAt(agent.cell.x, agent.cell.y)?.id === agent.destinationId &&
@@ -265,9 +218,9 @@ export class ResidentTraffic {
   }
 
   /**
-   * Progress existing segments first, then allocate the next vacant segments.
-   * At most one new edge can be allocated per agent per frame, preventing a
-   * large frame delta from tunneling through obstacles or other residents.
+   * Progress existing segments first, then allocate one traversable next
+   * step per agent. Room and terrain boundaries still constrain movement,
+   * but other walkers never obstruct it.
    */
   advance(deltaMs: number, reducedMotion = false): string[] {
     const arrivals: string[] = [];
@@ -313,8 +266,8 @@ export class ResidentTraffic {
       }
     }
 
-    // Rotate scheduling priority so the same resident does not always win a
-    // contested corridor. Reservations are visible immediately to later agents.
+    // Keep deterministic round-robin scheduling; the only shared resource
+    // that can require waiting is an active elevator cabin.
     const count = this.agents.length;
     for (let i = 0; i < count; i++) {
       const agent = this.agents[(this.priority + i) % count];
@@ -334,15 +287,9 @@ export class ResidentTraffic {
         }
         agent.route = path.slice(1);
       }
-      const blocked = this.heldCells(agent.id);
-      if (agent.route[0] && blocked.has(key(agent.route[0]))) {
-        const alternative = findRoomPath(this.layout, anchor, target, blocked,agent.targetCell??undefined);
-        if (alternative) agent.route = alternative.slice(1);
-      }
       const next = agent.route[0];
-      if (!next || blocked.has(key(next)) || !canWalkBetween(this.layout, anchor, next)) {
+      if (!next || !canWalkBetween(this.layout, anchor, next)) {
         agent.waiting = true;
-        if (next && blocked.has(key(next))) this.requestCorridorClearance(agent, next);
         continue;
       }
       const isLift = next.y !== anchor.y;
@@ -381,7 +328,7 @@ export class ResidentTraffic {
       new Set(s.cars.map(car=>car?.x)).size!==s.cars.length ||
       !s.cars.every(car=>car && layout.terrain.isElevator(car.x,car.y)))) return null;
     const agents = structuredClone(s.agents);
-    const held=new Set<string>(), ids=new Set<string>();
+    const ids=new Set<string>();
     for(const a of agents) {
       if(!a || typeof a.id!=='string' || !a.id || ids.has(a.id) || !a.cell || !isWalkableCell(layout,a.cell) ||
         !a.position || !Number.isFinite(a.position.x) || !Number.isFinite(a.position.y) ||
@@ -411,7 +358,6 @@ export class ResidentTraffic {
       const dx=end.x-start.x,dy=end.y-start.y;
       const t=Math.abs(dx)>0?(a.position.x-start.x)/dx:Math.abs(dy)>0?(a.position.y-start.y)/dy:0;
       if(t<0||t>1 || Math.abs(a.position.x-(start.x+dx*t))>0.01 || Math.abs(a.position.y-(start.y+dy*t))>0.01) return null;
-      for(const cell of [a.cell,...(a.next?[a.next]:[])]) {if(held.has(key(cell))) return null;held.add(key(cell));}
       let previous=a.next??a.cell;
       for(const cell of a.route) {
         if (!cell || !canWalkBetween(layout,previous,cell)) {
