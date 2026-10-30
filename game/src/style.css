@@ -75,3 +75,13 @@ button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #a4e3c
 .transaction-list b.earned{color:#9de3b6}
 @media(max-width:640px){.topbar-right{gap:6px}.coin-balance{padding:6px;font-size:12px}.coin-unit{font-size:9px}
   .room-cost{font-size:9px}.economy-notice{font-size:10px}.brand-name{font-size:12px}}
+
+/* Room upgrades share the existing responsive sidebar layout. */
+.upgrade-panel{margin-top:12px;padding:13px;border:1px solid #567065;border-radius:11px;background:#192d2c}
+.upgrade-panel[hidden]{display:none}
+.upgrade-panel strong{display:block;color:#ecf6eb;font-size:13px}
+.upgrade-panel p{margin:9px 0;color:#bbd7d1;font-size:12px;line-height:1.8}
+#upgrade-cost{color:#ffe1a0;font-weight:700}
+#confirm-upgrade{width:100%;padding:12px;border:1px solid #6ac9a6;border-radius:9px;background:#25644f;color:#fff;font-size:12px;font-weight:700;touch-action:manipulation}
+#confirm-upgrade:disabled{opacity:.45;cursor:not-allowed}
+#confirm-upgrade:not(:disabled):hover{background:#317e65}

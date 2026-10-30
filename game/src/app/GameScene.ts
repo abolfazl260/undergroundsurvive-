@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { WORLD, toCell, toPixels, type GridPosition } from '../modules/world/grid';
 import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/catalog';
 import { BuildingLayout } from '../modules/building/layout';
-import { GameSession, type GameSnapshot } from '../modules/economy/session';
+import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ATLAS_KEY, ROOM_ATLAS_URL, ROOM_ATLAS_FRAME_WIDTH, ROOM_ATLAS_FRAME_HEIGHT, ROOM_FRAME_BY_TYPE } from './roomArt';
 import { panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport } from './viewport';
@@ -17,6 +17,7 @@ export class GameScene extends Phaser.Scene {
   private selectedRoom: BuildableRoomType = 'habitat';
   private mode: ToolMode = 'build';
   private pendingMoveId: string | null = null;
+  private selectedUpgradeId: string | null = null;
   private terrainLayer?: Phaser.GameObjects.Graphics;
   private roomLayer?: Phaser.GameObjects.Container;
   private roomBadges: Phaser.GameObjects.Container[] = [];
@@ -29,7 +30,8 @@ export class GameScene extends Phaser.Scene {
   constructor(
     private readonly report: (snapshot: GameSnapshot, message: string) => void,
     saved: unknown,
-    private readonly onZoomChange: (zoom: number) => void = () => {}
+    private readonly onZoomChange: (zoom: number) => void = () => {},
+    private readonly onUpgradeSelection: (details: UpgradeDetails | null) => void = () => {}
   ) {
     super({ key: 'UndergroundScene' });
     this.session = GameSession.fromSave(saved);
@@ -209,13 +211,15 @@ export class GameScene extends Phaser.Scene {
   setTool(tool: ToolMode): void {
     this.mode = tool;
     this.pendingMoveId = null;
+    this.selectedUpgradeId = null;
+    this.onUpgradeSelection(null);
     this.paintPreview();
     const messages: Record<ToolMode, string> = {
       build: 'برای ساخت، یک خانهٔ خالی و آماده را انتخاب کنید.',
       dig: 'برای حفاری روی زمین بستهٔ زیرزمینی مجاور فضای باز بزنید.',
       move: 'ابتدا اتاق را انتخاب کنید و سپس مکان جدید آن را لمس کنید.',
       remove: 'برای تخریب روی اتاق کلیک کنید. اتاق فرمان محفوظ است.',
-      upgrade: 'روی یک اتاق بزنید؛ هزینهٔ ارتقا براساس نوع و سطح اتاق محاسبه می‌شود.'
+      upgrade: 'اتاق را انتخاب کنید، جزئیات ارتقا را ببینید و سپس پرداخت را تأیید کنید.'
     };
     this.notify(messages[tool]);
   }
@@ -237,14 +241,44 @@ export class GameScene extends Phaser.Scene {
   resetLayout(): void {
     this.session.reset();
     this.pendingMoveId = null;
+    this.selectedUpgradeId = null;
+    this.onUpgradeSelection(null);
     this.paintTerrain();
     this.paintRooms();
     this.paintPreview();
     this.notify('نقشه، حفاری‌ها و طبقات به وضعیت اولیه بازگردانده شدند.');
   }
 
+  upgradeSelected(): void {
+    if (this.mode !== 'upgrade' || !this.selectedUpgradeId) {
+      this.notify('ابتدا در حالت ارتقا یک اتاق را انتخاب کنید.');
+      return;
+    }
+    const id = this.selectedUpgradeId;
+    const preview = this.session.upgradeDetails(id);
+    const result = this.session.upgradeRoom(id);
+    if (result.ok) this.paintRooms();
+    this.onUpgradeSelection(this.session.upgradeDetails(id));
+    this.paintPreview();
+    this.notify(result.ok
+      ? 'اتاق ' + preview!.label + ' با هزینهٔ ' + preview!.cost + ' سکه ارتقا یافت.'
+      : result.reason);
+  }
+
   private actOnCell(cell: GridPosition): void {
     const { x, y } = cell;
+    if (this.mode === 'upgrade') {
+      const room = this.layout.getRoomAt(x, y);
+      this.selectedUpgradeId = room?.id ?? null;
+      const preview = room ? this.session.upgradeDetails(room.id) : null;
+      this.onUpgradeSelection(preview);
+      this.hovered = cell;
+      this.paintPreview();
+      this.notify(!preview ? 'در این موقعیت اتاقی وجود ندارد.' :
+        preview.cost === null ? 'این اتاق در بالاترین سطح قرار دارد.' :
+        'جزئیات ارتقا نمایش داده شد؛ با دکمهٔ تأیید پرداخت کنید.');
+      return;
+    }
     let result: PlacementResult = { ok: false, reason: 'دستور نامعتبر است.' };
     let successMessage = '';
     if (this.mode === 'build') {
@@ -282,14 +316,8 @@ export class GameScene extends Phaser.Scene {
         this.notify('در این موقعیت اتاقی وجود ندارد.');
         return;
       }
-      if (this.mode === 'remove') {
-        result = this.layout.remove(room.id);
-        successMessage = 'اتاق تخریب شد.';
-      } else {
-        const cost = this.session.upgradeCostAt(x, y);
-        result = this.session.upgradeAt(x, y);
-        successMessage = 'اتاق ارتقا یافت. هزینه: ' + cost + ' سکه.';
-      }
+      result = this.layout.remove(room.id);
+      successMessage = 'اتاق تخریب شد.';
     }
     if (result.ok) {
       this.paintTerrain();
@@ -380,7 +408,7 @@ export class GameScene extends Phaser.Scene {
         graphics.fillStyle(definition.color).fillRoundedRect(left + 2, top + 2, width, height, 4);
         graphics.fillStyle(definition.accent, 0.21).fillRect(left + 10, top + 9, width - 16, 8);
       }
-      graphics.lineStyle(1.5, definition.accent, 0.9)
+      graphics.lineStyle(1.5 + (room.level - 1) * 0.6, definition.accent, 0.9)
         .strokeRoundedRect(left + 2, top + 2, width, height, 4);
       this.roomLayer.add(graphics);
 
@@ -395,7 +423,7 @@ export class GameScene extends Phaser.Scene {
         fontSize: '9px', fontFamily: 'Arial', fontStyle: 'bold', color: '#f4f7fa'
       }).setResolution(3);
       const level = this.add.text(badgeWidth - 4, 1, 'LV ' + room.level, {
-        fontSize: '9px', fontFamily: 'Arial', color: '#e0e5eb'
+        fontSize: '9px', fontFamily: 'Arial', color: room.level > 1 ? '#ffe2a1' : '#e0e5eb'
       }).setOrigin(1, 0).setResolution(3);
       badge.add([plate, name, level]);
       this.roomBadges.push(badge);
@@ -427,6 +455,14 @@ export class GameScene extends Phaser.Scene {
     if (!this.preview) return;
     const g = this.preview;
     g.clear();
+    const selected = this.mode === 'upgrade'
+      ? this.layout.rooms.find((room) => room.id === this.selectedUpgradeId)
+      : undefined;
+    if (selected) {
+      const { left, top } = toPixels(selected.x, selected.y);
+      g.lineStyle(3, 0xffd886, 1);
+      g.strokeRect(left + 3, top + 3, selected.width * WORLD.cellSize - 6, selected.height * WORLD.cellSize - 6);
+    }
     if (!this.hovered) return;
     const { x, y } = this.hovered;
     const room = this.layout.getRoomAt(x, y);

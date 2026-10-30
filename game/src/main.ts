@@ -5,7 +5,9 @@ import { ZOOM } from './app/viewport';
 import { WORLD } from './modules/world/grid';
 import type { BuildableRoomType } from './modules/building/catalog';
 import { loadLocalBase, saveLocalBase } from './platform/localSave';
-import { BUILD_COSTS, DIG_COST, DEMO_BONUS_COINS, getFloorCost } from './modules/economy/pricing';
+import { BUILD_COSTS, DIG_COST, DEMO_BONUS_COINS, STARTING_COINS, getFloorCost } from './modules/economy/pricing';
+import { MAX_ROOM_LEVEL } from './modules/building/upgrades';
+import type { UpgradeDetails } from './modules/economy/session';
 import type { TransactionKind } from './modules/economy/wallet';
 
 const status = document.querySelector<HTMLElement>('#status');
@@ -33,6 +35,44 @@ const zoomReset = document.querySelector<HTMLButtonElement>('#zoom-reset');
 const zoomLevel = document.querySelector<HTMLOutputElement>('#zoom-level');
 const roomButtons = document.querySelectorAll<HTMLButtonElement>('[data-room]');
 const toolButtons = document.querySelectorAll<HTMLButtonElement>('[data-tool]');
+const upgradePanel = document.querySelector<HTMLElement>('#upgrade-panel');
+const upgradeTitle = document.querySelector<HTMLElement>('#upgrade-title');
+const upgradeEffect = document.querySelector<HTMLElement>('#upgrade-effect');
+const upgradeCost = document.querySelector<HTMLElement>('#upgrade-cost');
+const confirmUpgrade = document.querySelector<HTMLButtonElement>('#confirm-upgrade');
+let upgradeSelection: UpgradeDetails | null = null;
+let latestBalance = STARTING_COINS;
+
+function renderUpgradePanel(): void {
+  if (!upgradePanel) return;
+  upgradePanel.hidden = activeTool !== 'upgrade';
+  if (activeTool !== 'upgrade') return;
+  const details = upgradeSelection;
+  if (!details) {
+    if (upgradeTitle) upgradeTitle.textContent = 'یک اتاق را برای ارتقا انتخاب کنید';
+    if (upgradeEffect) upgradeEffect.textContent = 'برای دیدن ظرفیت و هزینه، روی اتاق بزنید.';
+    if (upgradeCost) upgradeCost.textContent = '';
+    if (confirmUpgrade) {
+      confirmUpgrade.textContent = 'ابتدا اتاق را انتخاب کنید';
+      confirmUpgrade.disabled = true;
+    }
+    return;
+  }
+  if (upgradeTitle) upgradeTitle.textContent = details.label + ' · سطح ' +
+    formatCoins(details.level) + ' از ' + formatCoins(MAX_ROOM_LEVEL);
+  if (upgradeEffect) upgradeEffect.textContent = details.current.label + ': ' +
+    formatCoins(details.current.value) + ' ' + details.current.unit +
+    (details.next ? ' ← ' + formatCoins(details.next.value) + ' ' + details.next.unit : '');
+  if (upgradeCost) upgradeCost.textContent = details.cost === null
+    ? 'این اتاق به بالاترین سطح رسیده است.'
+    : 'هزینهٔ سطح بعد: ' + formatCoins(details.cost) + ' سکه' +
+      (latestBalance < details.cost ? ' — موجودی کافی نیست.' : '');
+  if (confirmUpgrade) {
+    confirmUpgrade.disabled = details.cost === null || latestBalance < details.cost;
+    confirmUpgrade.textContent = details.cost === null ? 'حداکثر سطح' :
+      'تأیید ارتقا · ' + formatCoins(details.cost) + ' سکه';
+  }
+}
 
 roomButtons.forEach((button) => {
   const type = button.dataset.room as BuildableRoomType;
@@ -49,6 +89,8 @@ let activeTool: ToolMode = 'build';
 
 const scene = new GameScene((snapshot, message) => {
   const saved = saveLocalBase(snapshot);
+  latestBalance = snapshot.wallet.balance;
+  renderUpgradePanel();
   if (balanceNode) balanceNode.textContent = formatCoins(snapshot.wallet.balance);
   if (bonusButton) {
     bonusButton.disabled = snapshot.demoBonusClaimed;
@@ -86,6 +128,9 @@ const scene = new GameScene((snapshot, message) => {
   if (zoomIn) zoomIn.disabled = zoom >= ZOOM.max - 0.001;
   if (zoomOut) zoomOut.disabled = zoom <= ZOOM.min + 0.001;
   if (zoomReset) zoomReset.disabled = Math.abs(zoom - ZOOM.initial) < 0.001;
+}, (details) => {
+  upgradeSelection = details;
+  renderUpgradePanel();
 });
 
 createGame(scene);
@@ -104,6 +149,7 @@ function updateSelectedButtons(): void {
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   });
+  renderUpgradePanel();
 }
 
 roomButtons.forEach((button) => {
@@ -127,6 +173,7 @@ toolButtons.forEach((button) => {
   });
 });
 
+confirmUpgrade?.addEventListener('click', () => scene.upgradeSelected());
 unlockButton?.addEventListener('click', () => scene.unlockFloor());
 bonusButton?.addEventListener('click', () => scene.claimDemoBonus());
 document.querySelector<HTMLButtonElement>('#reset-layout')?.addEventListener('click', () => {

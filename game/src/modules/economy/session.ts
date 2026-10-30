@@ -4,7 +4,8 @@ import {
   STARTING_COINS, DEMO_BONUS_COINS, DIG_COST,
   getBuildCost, getFloorCost, getUpgradeCost
 } from './pricing';
-import type { BuildableRoomType } from '../building/catalog';
+import { ROOM_DEFINITIONS, type BuildableRoomType } from '../building/catalog';
+import { getRoomPerformance, MAX_ROOM_LEVEL, type RoomPerformance } from '../building/upgrades';
 import type { PlacementResult } from '../building/placement';
 
 export interface GameSnapshot {
@@ -15,6 +16,14 @@ export interface GameSnapshot {
 }
 
 export type CommandResult = PlacementResult;
+export interface UpgradeDetails {
+  readonly id: string;
+  readonly label: string;
+  readonly level: number;
+  readonly current: RoomPerformance;
+  readonly next: RoomPerformance | null;
+  readonly cost: number | null;
+}
 type SpendKind = 'build' | 'dig' | 'floor' | 'upgrade';
 
 export class GameSession {
@@ -59,9 +68,21 @@ export class GameSession {
   digCost(): number { return DIG_COST; }
   floorCost(): number { return getFloorCost(this.world.terrain.highestFloor); }
 
+  upgradeDetails(id: string): UpgradeDetails | null {
+    const room = this.world.rooms.find((r) => r.id === id);
+    if (!room) return null;
+    const available = room.level < MAX_ROOM_LEVEL;
+    return {
+      id: room.id, label: ROOM_DEFINITIONS[room.type].label, level: room.level,
+      current: getRoomPerformance(room.type, room.level),
+      next: available ? getRoomPerformance(room.type, room.level + 1) : null,
+      cost: available ? getUpgradeCost(room.type, room.level) : null
+    };
+  }
+
   upgradeCostAt(x: number, y: number): number | null {
     const room = this.world.getRoomAt(x, y);
-    return room && room.level < 3 ? getUpgradeCost(room.type, room.level) : null;
+    return room ? this.upgradeDetails(room.id)?.cost ?? null : null;
   }
 
   canAfford(cost: number): boolean { return this.purse.canAfford(cost); }
@@ -90,12 +111,18 @@ export class GameSession {
     return this.execute(this.floorCost(), 'floor', (world) => world.unlockFloor());
   }
 
+  upgradeRoom(id: string): CommandResult {
+    const details = this.upgradeDetails(id);
+    if (!details) return { ok: false, reason: 'اتاق انتخاب‌شده وجود ندارد.' };
+    if (details.cost === null) return { ok: false, reason: 'اتاق به حداکثر سطح رسیده است.' };
+    // The session recalculates the price; a previously shown preview is not trusted.
+    return this.execute(details.cost, 'upgrade', (world) => world.upgrade(id));
+  }
+
   upgradeAt(x: number, y: number): CommandResult {
     const room = this.world.getRoomAt(x, y);
-    if (!room) return { ok: false, reason: 'ابتدا یک اتاق را انتخاب کنید.' };
-    if (room.level >= 3) return { ok: false, reason: 'اتاق به حداکثر سطح رسیده است.' };
-    const cost = getUpgradeCost(room.type, room.level);
-    return this.execute(cost, 'upgrade', (world) => world.upgrade(room.id));
+    return room ? this.upgradeRoom(room.id) :
+      { ok: false, reason: 'ابتدا یک اتاق را انتخاب کنید.' };
   }
 
   claimDemoBonus(): CommandResult {
