@@ -56,6 +56,8 @@ export const POWER_EDITOR_TOOLS = [
   { id: 'power-overlay-toggle', icon: 'network', label: 'نمایش شبکه برق', hint: 'نمایش اتصال‌ها و قطعی‌ها' }
 ] as const;
 
+/** Real optimized artwork for the digging card, matching the other neon tools. */
+export const DIG_TOOL_ART = 'assets/ui/dig-pickaxe.webp';
 type EditorToolCard = typeof PRIMARY_EDITOR_TOOLS[number] | typeof POWER_EDITOR_TOOLS[number];
 function illustrateToolButton(root: Document, button: HTMLButtonElement, item: EditorToolCard): void {
   button.classList.add('tool-card', 'tool-card--' + item.id);
@@ -66,7 +68,22 @@ function illustrateToolButton(root: Document, button: HTMLButtonElement, item: E
   art.setAttribute('aria-hidden', 'true');
   const platform = root.createElement('span');
   platform.className = 'tool-card-platform';
-  art.append(platform, createIcon(item.icon, 54));
+  if (item.id === 'dig') {
+    // Keep the image decorative: the button's visible Persian/English label
+    // remains its accessible name. A missing asset falls back to line art.
+    const image = root.createElement('img');
+    image.className = 'tool-card-image';
+    image.src = import.meta.env.BASE_URL + DIG_TOOL_ART;
+    image.alt = '';
+    image.width = 128;
+    image.height = 128;
+    image.decoding = 'async';
+    image.draggable = false;
+    image.addEventListener('error', () => image.replaceWith(createIcon(item.icon, 54)), { once: true });
+    art.append(image);
+  } else {
+    art.append(platform, createIcon(item.icon, 54));
+  }
   const copy = root.createElement('span');
   copy.className = 'tool-card-copy';
   const name = root.createElement('span');
