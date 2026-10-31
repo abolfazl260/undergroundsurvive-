@@ -334,6 +334,27 @@ export function mountGameDock(root: Document = document): {
     button.addEventListener('click', () => filterRooms(button.dataset.roomCategory as RoomCategory));
   });
 
+  // Preserve the actual buttons and their listeners while compacting the
+  // mobile HUD. Secondary actions move into the existing More sheet rather
+  // than getting clipped, duplicated, or creating a third toolbar row.
+  const secondaryActions = root.createElement('nav');
+  secondaryActions.className = 'mobile-secondary-actions';
+  secondaryActions.setAttribute('aria-label', t('امکانات و میانبرهای بیشتر'));
+  sheet.append(secondaryActions);
+  const compactMedia = root.defaultView?.matchMedia?.('(max-width: 850px)');
+  const applyResponsiveNavigation = () => {
+    const compact = compactMedia?.matches ?? false;
+    if (compact) {
+      if (storyNavigation) secondaryActions.append(storyNavigation);
+      if (fullscreen) secondaryActions.append(fullscreen);
+    } else {
+      if (storyNavigation) topbar.insertBefore(storyNavigation, resourceTrigger);
+      if (fullscreen) viewControls.append(fullscreen);
+    }
+  };
+  compactMedia?.addEventListener?.('change', applyResponsiveNavigation);
+  applyResponsiveNavigation();
+
   const measureHud = () => {
     // No bottom bar remains; tools, zoom and navigation are all inside topbar.
     root.documentElement.style.setProperty('--hud-dock-occupied', '0px');
@@ -394,6 +415,7 @@ export function mountGameDock(root: Document = document): {
     powerGrid.setAttribute('aria-label', t('ابزارهای شبکه برق'));
     toolsContainer.setAttribute('aria-label', t('ابزارهای زمین و اتاق'));
     resourceTrigger.setAttribute('aria-label', t('منابع و چرخهٔ زمانی پناهگاه'));
+    secondaryActions.setAttribute('aria-label', t('امکانات و میانبرهای بیشتر'));
     resourcesText.textContent = t('منابع');
     storyNavigation?.querySelector<HTMLButtonElement>('#story-open')?.setAttribute('aria-label', t('داستان تصویری'));
     storyNavigation?.querySelector<HTMLButtonElement>('#achievements-open')?.setAttribute('aria-label', t('دستاوردها'));
