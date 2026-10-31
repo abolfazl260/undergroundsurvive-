@@ -341,7 +341,7 @@ export function mountGameDock(root: Document = document): {
   secondaryActions.className = 'mobile-secondary-actions';
   secondaryActions.setAttribute('aria-label', t('امکانات و میانبرهای بیشتر'));
   sheet.append(secondaryActions);
-  const compactMedia = root.defaultView?.matchMedia?.('(max-width: 850px)');
+  const compactMedia = root.defaultView?.matchMedia?.('(max-width: 1160px)');
   const applyResponsiveNavigation = () => {
     const compact = compactMedia?.matches ?? false;
     if (compact) {
