@@ -155,27 +155,73 @@
           <div class="hud-tile-content"><span class="hud-label">اتاق‌های پناهگاه</span><strong id="hud-rooms">۴</strong><small id="hud-air-status" role="status" aria-live="polite">هوا ۱۰۰٪</small></div>
         </div>
       </section>
-      <section class="resource-panel" aria-label="منابع و چرخهٔ زمانی پناهگاه" data-expanded="false">
+      <section class="resource-panel" aria-label="منابع و چرخهٔ زمانی پناهگاه" data-expanded="false" data-alert="false">
         <div class="resource-panel-header">
-          <span class="cycle-icon" data-ui-icon="reset" aria-hidden="true">◷</span>
+          <span class="resource-sheet-grip" aria-hidden="true"></span>
+          <strong class="resource-sheet-title">تولید و مصرف منابع</strong>
           <span class="cycle-label">چرخه <output id="resource-tick-count">۰</output></span>
-          <button type="button" id="resource-details-toggle" aria-expanded="false" aria-controls="resource-details" aria-label="نمایش یا پنهان‌کردن منابع">⌄</button>
+          <span class="cycle-next">چرخهٔ بعد در <output id="resource-next-tick">۵</output> ثانیه</span>
+          <button type="button" id="resource-details-toggle" aria-expanded="false" aria-controls="resource-details" aria-label="نمایش یا پنهان‌کردن منابع">
+            <span class="resource-open-symbol" aria-hidden="true">⌃</span>
+            <span class="resource-close-symbol" aria-hidden="true">×</span>
+          </button>
         </div>
         <div id="resource-details" class="resource-details">
-          <strong class="resource-details-title">تولید و مصرف منابع</strong>
-          <span class="cycle-next">چرخهٔ بعد در <output id="resource-next-tick">۵</output> ثانیه</span>
-          <div class="resource-grid">
-            <div class="resource-item"><span>برق</span><strong id="resource-power">۱۲ / ۳۰</strong></div>
-            <div class="resource-item"><span>مواد خام</span><strong id="resource-food">۱۲ / ۳۰</strong></div>
-            <div class="resource-item"><span>جیره</span><strong id="resource-meal">۱۲ / ۳۰</strong></div>
-            <div class="resource-item"><span>سنگ معدن</span><strong id="resource-ore">۰ / ۳۰</strong></div>
-            <div class="resource-item"><span>تجهیزات</span><strong id="resource-supplies">۰ / ۳۰</strong></div>
-            <div class="resource-item life-resource" data-no-i18n><strong id="life-resource-water">آب ۰ / ۳۰</strong></div>
-            <div class="resource-item life-resource" data-no-i18n><strong id="life-resource-oxygen">اکسیژن ۱۸ / ۳۰</strong></div>
+          <div class="resource-grid" aria-label="وضعیت منابع">
+              <div class="resource-item" data-resource="power" data-state="normal">
+                <span class="resource-item-icon" data-ui-icon="bolt" aria-hidden="true"></span>
+                <span class="resource-item-label">برق</span>
+                <strong id="resource-power" dir="ltr">۱۲ / ۳۰</strong>
+                <progress class="resource-meter" id="resource-power-meter" value="0" max="30" aria-label="برق"></progress>
+              </div>
+              <div class="resource-item" data-resource="oxygen" data-state="normal">
+                <span class="resource-item-icon" data-ui-icon="air" aria-hidden="true"></span>
+                <span class="resource-item-label">اکسیژن</span>
+                <strong id="life-resource-oxygen" dir="ltr">۱۸ / ۳۰</strong>
+                <progress class="resource-meter" id="life-resource-oxygen-meter" value="0" max="30" aria-label="اکسیژن"></progress>
+              </div>
+              <div class="resource-item" data-resource="water" data-state="normal">
+                <span class="resource-item-icon" data-ui-icon="drop" aria-hidden="true"></span>
+                <span class="resource-item-label">آب</span>
+                <strong id="life-resource-water" dir="ltr">۰ / ۳۰</strong>
+                <progress class="resource-meter" id="life-resource-water-meter" value="0" max="30" aria-label="آب"></progress>
+              </div>
+              <div class="resource-item" data-resource="meal" data-state="normal">
+                <span class="resource-item-icon" data-ui-icon="meal" aria-hidden="true"></span>
+                <span class="resource-item-label">جیره</span>
+                <strong id="resource-meal" dir="ltr">۱۲ / ۳۰</strong>
+                <progress class="resource-meter" id="resource-meal-meter" value="0" max="30" aria-label="جیره"></progress>
+              </div>
+              <div class="resource-item" data-resource="food" data-state="normal">
+                <span class="resource-item-icon" data-ui-icon="package" aria-hidden="true"></span>
+                <span class="resource-item-label">مواد خام</span>
+                <strong id="resource-food" dir="ltr">۱۲ / ۳۰</strong>
+                <progress class="resource-meter" id="resource-food-meter" value="0" max="30" aria-label="مواد خام"></progress>
+              </div>
+              <div class="resource-item" data-resource="ore" data-state="normal">
+                <span class="resource-item-icon" data-ui-icon="pickaxe" aria-hidden="true"></span>
+                <span class="resource-item-label">سنگ معدن</span>
+                <strong id="resource-ore" dir="ltr">۰ / ۳۰</strong>
+                <progress class="resource-meter" id="resource-ore-meter" value="0" max="30" aria-label="سنگ معدن"></progress>
+              </div>
+              <div class="resource-item" data-resource="supplies" data-state="normal">
+                <span class="resource-item-icon" data-ui-icon="wrench" aria-hidden="true"></span>
+                <span class="resource-item-label">تجهیزات</span>
+                <strong id="resource-supplies" dir="ltr">۰ / ۳۰</strong>
+                <progress class="resource-meter" id="resource-supplies-meter" value="0" max="30" aria-label="تجهیزات"></progress>
+              </div>
           </div>
-          <p id="resource-warning" role="status" aria-live="polite">تولید هر ۵ ثانیه از زمان فعال بازی محاسبه می‌شود.</p>
-          <p id="life-resource-warning" role="status" aria-live="polite" data-no-i18n>ذخیرهٔ اضطراری فعال است.</p>
-          <section id="power-panel" class="power-panel" data-no-i18n aria-label="شبکه توزیع برق"></section>
+          <div class="resource-alert" role="group" aria-label="هشدار منابع">
+            <span class="resource-alert-symbol" aria-hidden="true">!</span>
+            <div class="resource-alert-text">
+              <p id="resource-warning" role="status" aria-live="polite">چرخهٔ اخیر بدون کمبود منابع انجام شد.</p>
+              <p id="life-resource-warning" role="status" aria-live="polite" data-no-i18n>ذخیرهٔ اضطراری فعال است.</p>
+            </div>
+          </div>
+          <details class="resource-advanced">
+            <summary>جزئیات شبکه برق</summary>
+            <section id="power-panel" class="power-panel" data-no-i18n aria-label="شبکه توزیع برق"></section>
+          </details>
         </div>
       </section>
       <main class="workspace">

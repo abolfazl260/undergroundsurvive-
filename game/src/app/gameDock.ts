@@ -109,42 +109,12 @@ export function mountGameDock(root: Document = document): {
     throw new Error('Fullscreen game controls are missing required elements');
   }
 
-  // Preserve the live HUD elements and event listeners while consolidating the header.
+  // Keep the top HUD small. The resource drawer belongs to the viewport, not
+  // the filtered/backdrop-blurred header (which traps fixed descendants).
   topbar.insertBefore(hud, moreButton);
-  topbar.insertBefore(resourcePanel, moreButton);
-  // Four compact, live resource indicators match the mockup on wide screens.
-  // They mirror the existing simulation outputs rather than maintaining new state.
-  const resourceStrip = root.createElement('div');
-  resourceStrip.className = 'header-resources';
-  resourceStrip.setAttribute('aria-label', t('منابع'));
-  const resourceFields = [
-    { id: 'resource-power', name: 'برق', mark: 'ϟ' },
-    { id: 'resource-food', name: 'مواد خام', mark: '✦' },
-    { id: 'resource-meal', name: 'جیره', mark: '◈' },
-    { id: 'resource-ore', name: 'سنگ معدن', mark: '◆' }
-  ];
-  resourceFields.forEach(({ id, name, mark }) => {
-    const source = root.querySelector<HTMLElement>('#' + id);
-    if (!source) return;
-    const chip = root.createElement('div');
-    chip.className = 'header-resource';
-    chip.setAttribute('aria-label', t(name));
-    const icon = root.createElement('span');
-    icon.className = 'header-resource-mark';
-    icon.textContent = mark;
-    icon.setAttribute('aria-hidden', 'true');
-    const value = root.createElement('strong');
-    value.textContent = source.textContent?.split(' / ')[0] ?? '۰';
-    chip.append(icon, value);
-    resourceStrip.append(chip);
-    if (typeof MutationObserver !== 'undefined') {
-      const observer = new MutationObserver(() => {
-        value.textContent = source.textContent?.split(' / ')[0] ?? '۰';
-      });
-      observer.observe(source, { childList: true, characterData: true, subtree: true });
-    }
-  });
-  topbar.insertBefore(resourceStrip, resourcePanel);
+  const app = root.querySelector<HTMLElement>('#app');
+  if (!app) throw new Error('Game root missing');
+  app.append(resourcePanel);
   const saveBadge = root.querySelector<HTMLElement>('#hud-save-status');
   if (saveBadge) topbar.append(saveBadge);
   const upgradePanel = sheet.querySelector<HTMLElement>('#upgrade-panel');
@@ -276,6 +246,7 @@ export function mountGameDock(root: Document = document): {
   });
   resourceToggle.addEventListener('click', () => {
     const open = resourcePanel.dataset.expanded !== 'true';
+    if (open && current !== null) showSheet(null);
     resourcePanel.dataset.expanded = String(open);
     resourceToggle.setAttribute('aria-expanded', String(open));
   });
