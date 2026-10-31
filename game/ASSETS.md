@@ -67,3 +67,24 @@ defined for Level 3 yet.
 - Kept the eight-frame row-major mapping and three-cell command asset contract; upgraded HD sizes to 560×186 and 840×186 respectively, compared with 360×120 and 540×120 before. New versioned filenames avoid stale image caching.
 - Tests verify every WebP image's true encoded pixel dimensions, atlas frame count, mapping and fallback. The five other pre-existing Level 2 rooms are unchanged.
 - Verify mobile 75%/100%/250% zoom visually after deployment.
+
+## Level 1 artwork for kitchen, recreation, guard post and ventilation (#94)
+
+Four dedicated, previously missing/reused Level 1 interiors share a **2 columns × 2 rows**
+WebP spritesheet in row-major order: `kitchen:0`, `recreation:1`,
+`guardPost:2`, `ventilation:3`. Each interior is a native high-detail
+industrial bunker cutaway without people, written room labels or an added
+colored stroke. UI labels and ventilation readouts remain separate overlays.
+
+- `public/assets/rooms/missing-room-atlas.webp`: 320×106 px,
+  four 160×53 px low-bandwidth frames (about 12 KiB).
+- `public/assets/rooms/missing-room-atlas-hd.webp`: 1120×372 px,
+  four 560×186 px high-detail frames (about 133 KiB).
+
+The `MISSING_ROOM_ART_ASSET` in `src/app/roomArt.ts` registers both variants
+and is preloaded by `GameScene` via `AssetManager`.
+The HD file is downsampled from original high-resolution illustrations,
+not enlarged from the 1× atlas. `roomArtCandidates` prioritizes the
+existing Level 2 look at level 2 and higher, then falls back to this Level 1
+asset when an upgraded image fails. If all textures fail, existing colored
+room placeholders still render. No game economy or save behavior changes.

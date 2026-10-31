@@ -16,14 +16,37 @@ export const ROOM_ART_ASSET: TextureAsset = {
 };
 
 export const ROOM_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
-  recreation: 0,
-  guardPost: 1,
   habitat: 0,
   command: 1,
   workshop: 2,
   storage: 3,
   generator: 4,
   mine: 5
+};
+
+/**
+ * Level 1 interiors for the four previously missing or shared room sprites.
+ * Two columns × two rows, row-major frame order:
+ * kitchen (0), recreation (1), guardPost (2), ventilation (3).
+ * Source art is a native high-resolution, label-free industrial cutaway.
+ */
+export const MISSING_ROOM_ART_ASSET: TextureAsset = {
+  key: 'missing-room-art',
+  kind: 'spritesheet',
+  frameWidth: 160,
+  frameHeight: 53,
+  filter: 'linear',
+  variants: [
+    { scale: 1, path: 'assets/rooms/missing-room-atlas.webp' },
+    { scale: 3.5, path: 'assets/rooms/missing-room-atlas-hd.webp', frameWidth: 560, frameHeight: 186 }
+  ]
+};
+
+export const MISSING_ROOM_FRAME_BY_TYPE: Partial<Record<RoomType, number>> = {
+  kitchen: 0,
+  recreation: 1,
+  guardPost: 2,
+  ventilation: 3
 };
 
 /** Two illustrated rooms, in order: hydroponics, medbay. */
@@ -134,6 +157,10 @@ export interface RoomArtCandidate { readonly key: string; readonly frame: number
  */
 export function roomArtCandidates(type: RoomType, level: number): RoomArtCandidate[] {
   const upgradedFrame = level >= 2 ? LEVEL_TWO_FRAME_BY_TYPE[type] : undefined;
+  const levelOneFrame = MISSING_ROOM_FRAME_BY_TYPE[type];
+  const dedicated: RoomArtCandidate[] = levelOneFrame === undefined
+    ? []
+    : [{ key: MISSING_ROOM_ART_ASSET.key, frame: levelOneFrame }];
   const additionalFrame = level >= 2 ? LEVEL_TWO_ADDITIONAL_FRAME_BY_TYPE[type] : undefined;
   const commandFrame = level >= 2 && type === 'command' ? 0 : undefined;
   const labWaterFrame = LAB_WATER_FRAME_BY_TYPE[type];
@@ -147,13 +174,13 @@ export function roomArtCandidates(type: RoomType, level: number): RoomArtCandida
         ? [{ key: ROOM_ART_ASSET.key, frame: standardFrame }]
         : [];
   if (upgradedFrame !== undefined) {
-    return [{ key: LEVEL_TWO_ROOM_ART_ASSET.key, frame: upgradedFrame }, ...legacy];
+    return [{ key: LEVEL_TWO_ROOM_ART_ASSET.key, frame: upgradedFrame }, ...dedicated, ...legacy];
   }
   if (additionalFrame !== undefined) {
-    return [{ key: LEVEL_TWO_ADDITIONAL_ART_ASSET.key, frame: additionalFrame }, ...legacy];
+    return [{ key: LEVEL_TWO_ADDITIONAL_ART_ASSET.key, frame: additionalFrame }, ...dedicated, ...legacy];
   }
   if (commandFrame !== undefined) {
-    return [{ key: LEVEL_TWO_COMMAND_ART_ASSET.key, frame: commandFrame }, ...legacy];
+    return [{ key: LEVEL_TWO_COMMAND_ART_ASSET.key, frame: commandFrame }, ...dedicated, ...legacy];
   }
-  return legacy;
+  return [...dedicated, ...legacy];
 }
