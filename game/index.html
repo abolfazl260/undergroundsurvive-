@@ -375,6 +375,7 @@
           <div class="info-panel">
             <strong>قوانین این نسخه</strong>
             <p>ساخت‌وساز فعلاً فقط در زیرزمین و در شبکهٔ اتاق‌های متصل به آسانسور مجاز است. جزئیات کامل قوانین، حریم خصوصی و مجوزها در بخش اختصاصی قرار دارد.</p>
+            <button type="button" id="menu-help-from-tools" class="ui-button">راهنمای بازی</button>
             <button type="button" id="menu-policies-from-tools" class="ui-button">قوانین و حریم خصوصی</button>
           </div>
           </details>
@@ -430,6 +431,11 @@
               <span class="menu-choice-copy"><strong>تنظیمات</strong></span>
               <span class="menu-choice-icon" data-ui-icon="settings" aria-hidden="true"></span>
             </button>
+            <button class="menu-choice" type="button" data-menu-action="help">
+              <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
+              <span class="menu-choice-copy"><strong>راهنمای بازی</strong></span>
+              <span class="menu-choice-icon" data-ui-icon="info" aria-hidden="true"></span>
+            </button>
             <button class="menu-choice" type="button" data-menu-action="policies">
               <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
               <span class="menu-choice-copy"><strong>قوانین و حریم خصوصی</strong></span>
@@ -458,6 +464,11 @@
               <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
               <span class="menu-choice-copy"><strong>تنظیمات</strong></span>
               <span class="menu-choice-icon" data-ui-icon="settings" aria-hidden="true"></span>
+            </button>
+            <button class="menu-choice" type="button" data-menu-action="help">
+              <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
+              <span class="menu-choice-copy"><strong>راهنمای بازی</strong></span>
+              <span class="menu-choice-icon" data-ui-icon="info" aria-hidden="true"></span>
             </button>
             <button class="menu-choice" type="button" data-menu-action="policies">
               <span class="menu-choice-chevron" data-ui-icon="chevron-left" aria-hidden="true"></span>
@@ -502,12 +513,27 @@
           <input id="menu-reduced-motion" type="checkbox" />
           <span>کاهش حرکت‌های تزئینی</span>
         </label>
+        <button class="menu-settings-policy-link menu-settings-help-link" type="button" data-menu-action="help">
+          <strong>راهنمای بازی</strong>
+          <small>آموزش قدم‌به‌قدم کار با بازی</small>
+        </button>
         <button class="menu-settings-policy-link" type="button" data-menu-action="policies">
           <strong>قوانین و حریم خصوصی</strong>
           <small>شرایط استفاده، داده‌ها و دسترسی‌ها</small>
         </button>
 
         <div class="menu-actions">
+          <button class="menu-primary" type="button" data-menu-action="back">بازگشت</button>
+        </div>
+      </section>
+      <section data-menu-screen="help" class="menu-screen menu-screen--help" hidden>
+        <header class="menu-help-header">
+          <span class="menu-kicker">HOW TO PLAY</span>
+          <h2 id="menu-help-title" tabindex="-1">راهنمای بازی</h2>
+          <p>شروع سریع و آموزش همه ابزارهای پناهگاه</p>
+        </header>
+        <div id="menu-help-content" class="menu-help-content" data-no-i18n></div>
+        <div class="menu-actions menu-help-actions">
           <button class="menu-primary" type="button" data-menu-action="back">بازگشت</button>
         </div>
       </section>

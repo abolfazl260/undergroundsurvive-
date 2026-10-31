@@ -388,3 +388,161 @@ html[dir="ltr"] .game-menu .menu-choice-copy { direction: ltr; text-align: left;
 .game-menu .menu-settings-policy-link:focus-visible,
 #menu-policies-from-tools:focus-visible { outline: 3px solid #a2f6d1; outline-offset: 2px; }
 #menu-policies-from-tools { display: block; width: 100%; min-height: 44px; margin-top: 12px; cursor: pointer; }
+
+
+/* Practical game guide: fast first steps, readable expandable topics, one mobile-first screen. */
+.game-menu .menu-screen--help {
+  padding: 0 !important;
+  min-width: 0;
+  text-align: start;
+}
+.game-menu .menu-help-header {
+  padding: 18px 26px 15px;
+  background: linear-gradient(130deg, #153c43, #0b2330);
+  border-bottom: 1px solid #477682;
+}
+.game-menu .menu-help-header .menu-kicker {
+  color: #88d3c9;
+  font: 750 11px/1.5 system-ui, sans-serif;
+  letter-spacing: .12em;
+}
+.game-menu .menu-help-header h2 {
+  color: #f0f8f9;
+  font-size: clamp(20px, 3.5vw, 27px);
+  margin: 6px 0;
+  line-height: 1.5;
+}
+.game-menu .menu-help-header p {
+  margin: 0;
+  color: #c6dddf;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.game-menu .menu-help-content {
+  max-width: 76ch;
+  padding: 16px 24px 22px;
+  margin-inline: auto;
+  color: #e2eef0;
+  font-size: 13px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.game-menu .menu-help-intro {
+  margin: 0 0 12px;
+  color: #cfe3e7;
+}
+.game-menu .menu-help-section-title {
+  margin: 18px 0 11px;
+  color: #8be5c9;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.game-menu .menu-help-start {
+  counter-reset: start-step;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.game-menu .menu-help-start li {
+  counter-increment: start-step;
+  position: relative;
+  padding: 10px 44px 10px 12px;
+  border: 1px solid #3c6a71;
+  border-radius: 10px;
+  background: #12353c;
+}
+.game-menu .menu-help-start li::before {
+  content: counter(start-step);
+  position: absolute;
+  inset-inline-start: 10px;
+  top: 10px;
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #2a665f;
+  color: white;
+  font: 750 13px/1 system-ui, sans-serif;
+}
+.game-menu .menu-help-topic {
+  margin-block: 8px;
+  background: #0d2935;
+  border: 1px solid #365c69;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.game-menu .menu-help-topic[open] {
+  border-color: #66a99f;
+  background: #102d38;
+}
+.game-menu .menu-help-topic summary {
+  min-height: 48px;
+  display: list-item;
+  padding: 12px 14px;
+  color: #ecf6f5;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.game-menu .menu-help-topic summary:focus-visible {
+  outline: 3px solid #a2f6d1;
+  outline-offset: -3px;
+}
+.game-menu .menu-help-topic ol {
+  margin: 0;
+  padding: 4px 35px 12px 13px;
+}
+.game-menu .menu-help-topic li {
+  margin-block: 6px;
+  padding-inline-start: 3px;
+}
+.game-menu .menu-help-tip,
+.game-menu .menu-help-reminder {
+  padding: 10px 13px;
+  border-radius: 8px;
+  background: #17423f;
+  color: #dcf3ec;
+  margin: 4px 12px 12px;
+  font-size: 12px;
+}
+.game-menu .menu-help-reminder {
+  margin: 16px 0 0;
+  background: #233b44;
+}
+.game-menu .menu-help-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 10px 25px max(10px, env(safe-area-inset-bottom));
+  background: #0a1e2a;
+  border-top: 1px solid #345563;
+  box-shadow: 0 -8px 16px #06121daa;
+}
+.game-menu .menu-settings-help-link {
+  background: #17443e;
+  border-color: #569787;
+}
+#menu-help-from-tools {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  cursor: pointer;
+}
+#menu-help-from-tools:focus-visible {
+  outline: 3px solid #a2f6d1;
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .game-menu .menu-help-header { padding: 13px 16px; }
+  .game-menu .menu-help-content { padding: 12px 13px 20px; font-size: 12px; }
+  .game-menu .menu-help-start li { padding-block: 9px; }
+  .game-menu .menu-help-topic summary { font-size: 13px; }
+  .game-menu .menu-help-actions { padding-inline: 14px; }
+}
+html[dir="ltr"] .game-menu .menu-help-start li { padding: 10px 12px 10px 44px; }
+html[dir="ltr"] .game-menu .menu-help-topic ol { padding: 4px 13px 12px 35px; }
