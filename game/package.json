@@ -16,7 +16,13 @@
     "mobile:open:android": "cap open android",
     "mobile:open:ios": "cap open ios",
     "mobile:run:android": "npm run mobile:prepare:android && cap run android",
-    "mobile:run:ios": "npm run mobile:prepare:ios && cap run ios"
+    "mobile:run:ios": "npm run mobile:prepare:ios && cap run ios",
+    "quality:integration": "vitest run quality/integration.test.ts quality/save-recovery.test.ts",
+    "quality:soak": "vitest run quality/soak.test.ts",
+    "quality:limits": "vitest run quality/limits.test.ts",
+    "quality:repro": "node scripts/check-reproducible-build.mjs",
+    "quality:browser": "node scripts/audit-touch-ui.mjs && node scripts/audit-manual-browser.mjs",
+    "quality:full": "npm run quality:integration && npm run quality:soak && npm run quality:limits"
   },
   "engines": {
     "node": ">=22.12.0"
