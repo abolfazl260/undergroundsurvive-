@@ -70,7 +70,7 @@ describe('versioned story data contract', () => {
       )));
       const copy = [chapter.title, ...chapter.scenes.flatMap((scene) =>
         [scene.title ?? '', scene.text])].join(' ');
-      expect(copy).not.toMatch(/github|گیت[\\s‌-]*هاب|گیتهاب/i);
+      expect(copy).not.toMatch(/git[ -]?hub|گیت[ ‌-]*هاب/i);
     }
   });
 });
