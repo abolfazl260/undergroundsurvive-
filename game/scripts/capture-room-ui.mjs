@@ -6,6 +6,9 @@ const browser = await chromium.launch({ args: ['--no-sandbox'] });
 for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
   process.stdout.write(`Capture ${mode}: ${width}x${height}\n`);
   const page = await browser.newPage({viewport:{width,height},deviceScaleFactor:1});
+  // This suite audits the regular editor. A separate test covers first-run
+  // onboarding; dismiss it via persisted user preference before startup.
+  await page.addInitScript(() => localStorage.setItem('underground-survive:first-run:v1', 'done'));
   const errors=[];
   page.on('pageerror', error=>errors.push(error.message));
   await page.goto(base);
