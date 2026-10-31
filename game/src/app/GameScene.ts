@@ -885,6 +885,7 @@ export class GameScene extends Phaser.Scene {
           const texture = this.textures.createCanvas(
             alignedKey, placement.width, placement.height
           );
+          if (!texture) throw new Error('Unable to allocate cinematic canvas texture');
           const context = texture.getContext();
           const source = this.textures.get(background.key).getSourceImage() as CanvasImageSource;
           paintAlignedCinematicBackdrop(context, source, placement);
