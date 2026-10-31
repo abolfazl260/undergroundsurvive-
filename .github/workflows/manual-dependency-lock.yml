@@ -1,0 +1,43 @@
+name: Generate npm lockfile (manual only)
+
+# Never push dependency updates by itself; the owner reviews and commits the artifact.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: game
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve exact dependency graph
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Validate lockfile with a fresh install and production web build
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Upload lockfile for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: reviewed-game-package-lock-${{ github.run_number }}
+          path: game/package-lock.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Explain manual next step
+        run: |
+          {
+            echo '## Lockfile generated'
+            echo 'Download the artifact and **commit game/package-lock.json** to the repository.'
+            echo 'Release gates intentionally refuse to build without a committed lockfile.'
+            echo 'This workflow never pushes to the repository and never runs automatically.'
+          } >> "$GITHUB_STEP_SUMMARY"
