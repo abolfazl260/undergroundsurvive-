@@ -16,10 +16,12 @@
   font-family: 'Vazirmatn Variable', Tahoma, sans-serif;
   text-align: start;
 }
-.first-run-coach[hidden] { display: none !important; }
+/* Keep the room gallery and tool sheets unobstructed during a guided action. */
+.first-run-coach[hidden],
+body:has(#game-sheet:not([hidden])) .first-run-coach { display: none !important; }
 .first-run-coach__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .first-run-coach__marker { font-size: 11px; color: #8dd8c3; font-weight: 800; }
-.first-run-coach__skip { padding: 7px; border: 0; background: transparent; color: #bfd1d8; font: inherit; font-size: 11px; cursor: pointer; }
+.first-run-coach__skip { min-width: 44px; min-height: 44px; padding: 7px 10px; border: 0; background: transparent; color: #bfd1d8; font: inherit; font-size: 11px; cursor: pointer; }
 .first-run-coach__progress { color: #8de2c4; font-size: 11px; font-weight: 800; margin-top: 4px; }
 .first-run-coach__title { margin: 5px 0; font-size: 17px; line-height: 1.7; font-weight: 900; color: #fff; }
 .first-run-coach__description { margin: 4px 0 12px; font-size: 12px; line-height: 1.9; color: #d4e2e8; }
