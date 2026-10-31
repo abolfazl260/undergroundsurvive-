@@ -28,18 +28,18 @@ describe('appliance loads count toward actual network capacity (#114)',()=>{
   it('sheds lower-priority appliances when a single circuit exceeds production',()=>{
     const rooms=[room('generator','g',1),room('command','c',3),
       room('waterTreatment','water',6),room('ventilation','vent',8),
-      room('kitchen','cook',10),room('mine','mine',12)];
-    const wire=circuit(Array.from({length:13},(_,i)=>i+1));
+      room('kitchen','cook',10),room('mine','zzz-mine',12),room('workshop','work',14)];
+    const wire=circuit(Array.from({length:16},(_,i)=>i+1));
     const result=allocatePower(wire,rooms,mods);
     expect(entry(result,'water').status).toBe('online');
     expect(entry(result,'vent').status).toBe('online');
     expect(entry(result,'cook').status).toBe('online');
-    expect(entry(result,'mine').status).toBe('shed');
+    expect(entry(result,'zzz-mine').status).toBe('shed');
     expect(result.networks[0].shortage).toBeGreaterThan(0);
     // Raising a low-priority load changes the deterministic allocation.
-    const prioritized=setRoomPriority(wire,rooms.find(r=>r.id==='mine')!,1)!;
+    const prioritized=setRoomPriority(wire,rooms.find(r=>r.id==='zzz-mine')!,1)!;
     const changed=allocatePower(prioritized,rooms,mods);
-    expect(entry(changed,'mine').status).toBe('online');
+    expect(entry(changed,'zzz-mine').status).toBe('online');
     expect(changed.networks[0].allocated).toBeLessThanOrEqual(changed.networks[0].supply);
   });
 
