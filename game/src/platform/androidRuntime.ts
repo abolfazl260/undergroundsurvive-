@@ -29,7 +29,7 @@ export function installAndroidRuntime(controls: {
   });
   void App.addListener('backButton', () => {
     controls.save();
-    const dialogs = [...document.querySelectorAll<HTMLDialogElement>('dialog[open]')];
+    const dialogs = Array.from(document.querySelectorAll<HTMLDialogElement>('dialog[open]'));
     const dialog = dialogs.at(-1);
     if (dialog?.id === 'game-menu-dialog' &&
         dialog.querySelector('[data-menu-screen="home"]:not([hidden])')) {
