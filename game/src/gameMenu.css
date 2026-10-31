@@ -348,25 +348,6 @@ html[dir="ltr"] .game-menu .menu-choice-copy { direction: ltr; text-align: left;
 .game-menu .menu-policy-section ul {
   padding-inline-start: 20px;
 }
-.game-menu .menu-policy-contact {
-  margin: 15px 0 0;
-  padding: 12px 15px;
-  border-inline-start: 3px solid #5bd2bb;
-  background: #14323d;
-}
-.game-menu .menu-policy-contact a {
-  color: #a5ebd7;
-  text-underline-offset: 3px;
-  font-weight: 750;
-}
-.game-menu .menu-policy-contact a:focus-visible {
-  outline: 2px solid #a5ebd7;
-  outline-offset: 3px;
-}
-.game-menu .menu-policy-contact p {
-  margin: 3px 0 0;
-  font-size: 11px;
-}
 .game-menu .menu-policy-actions {
   position: sticky;
   bottom: 0;

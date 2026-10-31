@@ -15,12 +15,9 @@ export interface PolicyDocument {
   updated: string;
   summary: string;
   sections: readonly PolicySection[];
-  contactLabel: string;
-  contactNote: string;
 }
 
 export const POLICY_UPDATED = '2026-10-31';
-export const POLICY_ISSUES_URL = 'https://github.com/abolfazl260/undergroundsurvive-/issues';
 
 const persian: PolicyDocument = {
   updated: 'آخرین بازبینی: ۹ آبان ۱۴۰۵ (۳۱ اکتبر ۲۰۲۶) · مربوط به نسخهٔ فعلی',
@@ -91,15 +88,13 @@ const persian: PolicyDocument = {
     },
     {
       id: 'updates',
-      title: '۸. تغییر سیاست‌ها و گزارش مشکل',
+      title: '۸. تغییر سیاست‌ها و حریم خصوصی',
       paragraphs: [
         'این متن برای نسخهٔ موجود در تاریخ ذکرشده نوشته شده است. تغییر در زیرساخت، سرویس‌های خارجی یا دسترسی‌ها باید همراه با بازبینی تاریخ و متن این صفحه انجام شود.',
-        'برای گزارش نقص یا سؤال دربارهٔ سیاست‌ها می‌توانید از صفحهٔ Issues مخزن عمومی پروژه استفاده کنید. گزارش‌ها عمومی هستند؛ رمز عبور، شماره تلفن، اطلاعات خصوصی یا دادهٔ حساس را در آن‌ها قرار ندهید.'
+        'اطلاعات شخصی یا حساس خود را در کانال‌های عمومی منتشر نکنید. در نسخهٔ فعلی راه ارتباطی اختصاصی برای درخواست‌های پشتیبانی یا حریم خصوصی در داخل بازی فراهم نشده است.'
       ]
     }
-  ],
-  contactLabel: 'گزارش مشکل یا درخواست شفاف‌سازی در GitHub',
-  contactNote: 'لینک به یک صفحهٔ عمومی در خارج از بازی باز می‌شود.'
+  ]
 };
 
 const english: PolicyDocument = {
@@ -174,12 +169,10 @@ const english: PolicyDocument = {
       title: '8. Policy revisions and support',
       paragraphs: [
         'This notice describes the build as reviewed on the date above. Changes to hosting, external services or permissions require this page and its review date to be updated.',
-        'For questions or bug reports, use the public GitHub Issues page. Reports are public: never include passwords, phone numbers, private records or sensitive personal data.'
+        'Do not post personal or sensitive information in public channels. The current version does not provide a dedicated in-game channel for support or privacy requests.'
       ]
     }
-  ],
-  contactLabel: 'Report an issue or request clarification on GitHub',
-  contactNote: 'This link opens a public page outside the game.'
+  ]
 };
 
 export function getPolicyDocument(locale: GameLocale): PolicyDocument {
@@ -218,15 +211,5 @@ export function renderPolicyContent(container: HTMLElement, locale: GameLocale):
     }
     return section;
   });
-  const footer = document.createElement('div');
-  footer.className = 'menu-policy-contact';
-  const link = document.createElement('a');
-  link.href = POLICY_ISSUES_URL;
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-  link.textContent = policy.contactLabel;
-  const note = document.createElement('p');
-  note.textContent = policy.contactNote;
-  footer.append(link, note);
-  container.replaceChildren(meta, intro, ...articles, footer);
+  container.replaceChildren(meta, intro, ...articles);
 }
