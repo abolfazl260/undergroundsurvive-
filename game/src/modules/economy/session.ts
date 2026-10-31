@@ -1,3 +1,5 @@
+import { Dormitories } from '../dormitory/dormitory';
+import type { GridPosition } from '../world/grid';
 import { RECREATION_CONFIG } from '../recreation/recreation';
 import { LifeSupportService, type LifeSupportSnapshot, type LifeSupportView } from '../life-support/lifeSupport';
 import type { AssignmentBlock } from '../survivors/roster';
@@ -28,7 +30,8 @@ import { ACHIEVEMENTS, AchievementTracker, rewardForAchievement, type Achievemen
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 16;
+  schemaVersion: 17;
+  dormitory:ReturnType<Dormitories['snapshot']>;
   lifeSupport: LifeSupportSnapshot;
   lifeSupportView: LifeSupportView;
   power: PowerSnapshot;
@@ -62,6 +65,15 @@ export interface UpgradeDetails {
 type SpendKind = 'build' | 'dig' | 'floor' | 'upgrade';
 
 export class GameSession {
+  dormitory:Dormitories;
+  startRest(id:string,roomId:string,op:string):AssignmentBlock|null {
+    if(this.isGameOver)return 'room';
+    const reason=this.dormitory.startRest(id,roomId,op);this.reconcileSurvivorJobs();return reason;
+  }
+  releaseBed(id:string):boolean {return !this.isGameOver&&this.dormitory.releaseBed(id);}
+  admitSurvivor(id:string,name:string,cell:GridPosition):boolean {
+    return !this.isGameOver&&this.survivors.admit(id,name,cell,this.dormitory.populationCapacity);
+  }
   survivors:SurvivorRoster;
   guardPosts:GuardPosts;
   private kitchenState = new KitchenProcessor();
@@ -186,6 +198,7 @@ export class GameSession {
                       resources = ResourceEngine.create(), achievements = new AchievementTracker(), power = starterPower()) {
     this.world = layout;
     this.survivors=new SurvivorRoster(layout);
+    this.dormitory=new Dormitories(()=>this.world.rooms,this.survivors);
     this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,(id)=>this.isRoomPoweredForJob(id,'guard'));
     this.purse = wallet;
     this.bonusClaimed = claimed;
@@ -204,7 +217,7 @@ export class GameSession {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
     const version=value.schemaVersion;
-    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>16||typeof value.demoBonusClaimed!=='boolean')return null;
+    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>17||typeof value.demoBonusClaimed!=='boolean')return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
     const resources = (version>=3)
@@ -271,6 +284,8 @@ export class GameSession {
     }
     session.lifeSupportState.sync(world.rooms);
     session.kitchenState.sync(world.rooms);
+    session.dormitory=new Dormitories(()=>session.world.rooms,session.survivors);
+    if(version>=17&&!session.dormitory.restore(value.dormitory))return null;
     session.reconcileSurvivorJobs();
     session.commandStatus();
     session.waterState.sync(world.rooms);
@@ -521,6 +536,7 @@ export class GameSession {
     this.lifeSupportState = new LifeSupportService();
     this.world = new BuildingLayout();
     this.survivors=new SurvivorRoster(this.world);
+    this.dormitory=new Dormitories(()=>this.world.rooms,this.survivors);
     this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,(id)=>this.isRoomPoweredForJob(id,'guard'));
     this.purse = Wallet.create(STARTING_COINS);
     this.bonusClaimed = false;
@@ -537,13 +553,15 @@ export class GameSession {
     this.airState.sync(this.world.rooms);
     this.lifeSupportState.sync(this.world.rooms);
     this.radiationState.reconcileRooms(this.world.rooms);
+    this.dormitory.sync();
     this.reconcileSurvivorJobs();
     const base = this.world.snapshot();
     this.refreshAchievementRewards();
     const wallet = this.purse.snapshot();
     const resources = this.resourceState.snapshot();
     return {
-      schemaVersion: 16,
+      schemaVersion: 17,
+      dormitory:this.dormitory.snapshot(),
       lifeSupport: this.lifeSupportState.snapshot(),
       lifeSupportView: this.lifeSupportState.view(this.world.rooms, this.lifeSupportWaterAdapter()),
       power: this.power,
