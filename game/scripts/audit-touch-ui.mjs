@@ -83,6 +83,9 @@ async function run(width, height) {
     viewport: { width, height }, isMobile: true, hasTouch: true, deviceScaleFactor: 1
   });
   const page = await context.newPage();
+  // Audit toolbar ergonomics without the first-run story obscuring controls.
+  // The actual onboarding path has its own browser test.
+  await page.addInitScript(() => localStorage.setItem('underground-survive:first-run:v1', 'done'));
   const pageErrors = [];
   page.on('pageerror', (err) => pageErrors.push(err.message));
   await page.goto(base);
