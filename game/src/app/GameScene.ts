@@ -21,6 +21,7 @@ import { AssetManager } from './assets/assetManager';
 import { TWO_CELL_CONSTRUCTION_ART_ASSET, TwoCellConstructionAnimation } from './twoCellConstruction';
 import { DIGGING_ART_ASSET, DiggingAnimation } from './diggingAnimation';
 import { CINEMATIC_BUNKER_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
+import { backgroundPlacement, paintAlignedCinematicBackdrop } from './cinematicBackdrop';
 import { roomCorridors } from './roomCorridors';
 import { roomUtilityWarnings } from './roomUtilityWarnings';
 import { clampZoom, constrainScroll, fitCameraZoom, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport, type ZoomLimits } from './viewport';
@@ -872,16 +873,37 @@ export class GameScene extends Phaser.Scene {
 
     const background = this.assets.resolve(CINEMATIC_BUNKER_BACKGROUND.key, this.textures);
     if (background) {
-      this.add.image(0, 0, background.key)
-        .setOrigin(0, 0)
-        .setDisplaySize(GAME_VIEW.worldWidth, 600)
-        .setDepth(0);
-      // Extend the bottom rock strip beneath the cutaway without repeating skyline.
-      this.add.image(0, 600, background.key)
-        .setOrigin(0, 0)
-        .setCrop(0, 1000, 1920, 200)
-        .setScale(GAME_VIEW.worldWidth / 1920, (GAME_VIEW.worldHeight - 600) / 200)
-        .setDepth(0);
+      // The original cutaway has a *baked* lift at the left edge; it does not
+      // coincide with the real in-game shaft. Compose a clean version only once
+      // rather than shifting the grid, the room art or existing save coordinates.
+      const alignedKey = 'cinematic-bunker-aligned';
+      try {
+        if (!this.textures.exists(alignedKey)) {
+          const placement = backgroundPlacement(
+            GAME_VIEW.worldWidth, GAME_VIEW.worldHeight, WORLD.groundLineY
+          );
+          const texture = this.textures.createCanvas(
+            alignedKey, placement.width, placement.height
+          );
+          if (!texture) throw new Error('Unable to allocate cinematic canvas texture');
+          const context = texture.getContext();
+          const source = this.textures.get(background.key).getSourceImage() as CanvasImageSource;
+          paintAlignedCinematicBackdrop(context, source, placement);
+          texture.refresh();
+          texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+        }
+        this.add.image(0, 0, alignedKey)
+          .setOrigin(0, 0)
+          .setDisplaySize(GAME_VIEW.worldWidth, GAME_VIEW.worldHeight)
+          .setDepth(0);
+      } catch (error) {
+        console.warn('Could not compose the aligned bunker background:', error);
+        // A safe scenery fallback keeps the game playable on unusual devices.
+        this.add.image(0, 0, background.key)
+          .setOrigin(0, 0)
+          .setDisplaySize(GAME_VIEW.worldWidth, GAME_VIEW.worldHeight)
+          .setDepth(0);
+      }
     }
     this.add.text(20, 20, 'SURFACE / CONSTRUCTION LOCKED', { fontSize: '13px', color: '#e2e5ed' }).setDepth(2);
     this.add.text(20, GAME_VIEW.worldHeight - 34, 'UNDERGROUND / EXCAVATE BELOW', { fontSize: '13px', color: '#cbb7a0' }).setDepth(2);
