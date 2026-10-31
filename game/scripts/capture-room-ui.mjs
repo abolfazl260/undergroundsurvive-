@@ -53,6 +53,17 @@ for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
     await page.screenshot({path:`${output}/${mode}-guard-assigned.png`});
     await page.locator('[data-release]').first().click();
     await page.waitForFunction(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).survivors.assignments.length===0, null, { timeout:10000 });
+    if(await page.locator('[data-assign-room="initial-habitat"]').count()) {
+      const fatigue=await page.evaluate(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).survivors.survivors[0].fatigue);
+      await page.locator('[data-assign-room="initial-habitat"]').first().click();
+      await page.waitForFunction((before)=>{
+        const s=JSON.parse(localStorage.getItem('underground-survive:game:v2')),bed=s.dormitory.beds[0];
+        return !!bed&&s.survivors.assignments.some(a=>a.survivorId===bed.survivorId&&a.kind==='rest'&&a.state==='active')&&s.survivors.survivors.find(p=>p.id===bed.survivorId).fatigue<before;
+      },fatigue,{timeout:15000});
+      await page.screenshot({path:`${output}/${mode}-rest-active.png`});
+      await page.locator('[data-release-bed]').first().click();
+      await page.waitForFunction(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).dormitory.beds.length===0,null,{timeout:10000});
+    }
   }
   await page.close();
 }

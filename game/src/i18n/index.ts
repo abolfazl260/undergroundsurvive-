@@ -68,6 +68,8 @@ const english: Readonly<Record<string, string>> = {
   "کابل نصب شد.": "Cable installed.",
 
   'تفریح':'Recreation',
+  'بازمانده خسته نیست.':'Survivor is fully rested.',
+  'تخت آزاد شد.':'Bed released.',
   'بازیابی روحیه':'Morale recovery',
   'در ثانیه':'per second',
   'ظرفیت تفریح':'Recreation capacity',

@@ -1,0 +1,783 @@
+{
+  "schemaVersion": 16,
+  "lifeSupport": {
+    "schemaVersion": 2,
+    "oxygen": 18,
+    "oxygenLots": {},
+    "waterLots": {},
+    "legacyOxygen": 18,
+    "legacyWater": 0,
+    "waterLedgerSeen": 0,
+    "closedLinks": [],
+    "ticks": 1,
+    "graceTicks": 35,
+    "lastProduced": 0,
+    "lastWaterProduced": 0,
+    "lastWaterUsed": 0,
+    "lastOxygenUsed": 0,
+    "events": [],
+    "roomStatuses": [
+      {
+        "id": "initial-command",
+        "status": "online",
+        "missing": []
+      },
+      {
+        "id": "initial-power",
+        "status": "online",
+        "missing": []
+      },
+      {
+        "id": "initial-habitat",
+        "status": "online",
+        "missing": []
+      },
+      {
+        "id": "initial-garden",
+        "status": "online",
+        "missing": []
+      },
+      {
+        "id": "demo-1",
+        "status": "online",
+        "missing": []
+      },
+      {
+        "id": "demo-2",
+        "status": "online",
+        "missing": []
+      }
+    ]
+  },
+  "lifeSupportView": {
+    "water": {
+      "stock": 0,
+      "capacity": 30,
+      "produced": 0,
+      "consumed": 0,
+      "etaTicks": null
+    },
+    "oxygen": {
+      "stock": 18,
+      "capacity": 30,
+      "produced": 0,
+      "consumed": 0,
+      "etaTicks": null
+    },
+    "zones": [
+      {
+        "ids": [
+          "demo-1",
+          "demo-2",
+          "initial-command",
+          "initial-garden",
+          "initial-habitat"
+        ],
+        "hasWater": true,
+        "hasOxygen": false,
+        "waterStock": 0,
+        "oxygenStock": 0
+      },
+      {
+        "ids": [
+          "initial-power"
+        ],
+        "hasWater": false,
+        "hasOxygen": false,
+        "waterStock": 0,
+        "oxygenStock": 0
+      }
+    ],
+    "links": [
+      {
+        "a": "demo-1",
+        "b": "demo-2",
+        "open": true,
+        "capacity": 8
+      },
+      {
+        "a": "demo-1",
+        "b": "initial-command",
+        "open": true,
+        "capacity": 8
+      },
+      {
+        "a": "initial-command",
+        "b": "initial-habitat",
+        "open": true,
+        "capacity": 8
+      },
+      {
+        "a": "initial-garden",
+        "b": "initial-habitat",
+        "open": true,
+        "capacity": 8
+      }
+    ],
+    "rooms": [
+      {
+        "id": "initial-command",
+        "status": "online",
+        "missing": []
+      },
+      {
+        "id": "initial-power",
+        "status": "online",
+        "missing": []
+      },
+      {
+        "id": "initial-habitat",
+        "status": "online",
+        "missing": []
+      },
+      {
+        "id": "initial-garden",
+        "status": "online",
+        "missing": []
+      },
+      {
+        "id": "demo-1",
+        "status": "online",
+        "missing": []
+      },
+      {
+        "id": "demo-2",
+        "status": "online",
+        "missing": []
+      }
+    ],
+    "graceTicks": 35,
+    "events": []
+  },
+  "power": {
+    "schemaVersion": 1,
+    "mode": "physical",
+    "overrides": [
+      {
+        "roomId": "initial-habitat",
+        "priority": 0
+      }
+    ],
+    "cables": [
+      {
+        "x": 1,
+        "y": -2,
+        "riser": true
+      },
+      {
+        "x": 1,
+        "y": -1,
+        "riser": true
+      },
+      {
+        "x": 2,
+        "y": -1,
+        "riser": false
+      },
+      {
+        "x": 3,
+        "y": -1,
+        "riser": false
+      },
+      {
+        "x": 4,
+        "y": -1,
+        "riser": false
+      },
+      {
+        "x": 5,
+        "y": -1,
+        "riser": false
+      },
+      {
+        "x": 6,
+        "y": -1,
+        "riser": false
+      },
+      {
+        "x": 7,
+        "y": -1,
+        "riser": false
+      },
+      {
+        "x": 8,
+        "y": -1,
+        "riser": false
+      },
+      {
+        "x": 9,
+        "y": -1,
+        "riser": false
+      },
+      {
+        "x": 10,
+        "y": -1,
+        "riser": false
+      },
+      {
+        "x": 11,
+        "y": -1,
+        "riser": false
+      },
+      {
+        "x": 12,
+        "y": -1,
+        "riser": false
+      }
+    ]
+  },
+  "air": {
+    "schemaVersion": 1,
+    "quality": 98.89,
+    "nowMs": 5000,
+    "vents": [],
+    "coverage": 0,
+    "population": 3,
+    "powerUsed": 0,
+    "emissions": 0.21,
+    "reason": "no-vents",
+    "operations": []
+  },
+  "kitchen": {
+    "schemaVersion": 1,
+    "cycles": [],
+    "operations": [],
+    "completed": 0
+  },
+  "laboratories": [
+    {
+      "roomId": "demo-1",
+      "level": 1,
+      "scientistCapacity": 1,
+      "assignedScientists": 1,
+      "operationalPower": true,
+      "status": "active"
+    }
+  ],
+  "researchFacility": {
+    "level": 1,
+    "powered": true,
+    "staffed": true,
+    "speedMultiplier": 1
+  },
+  "survivors": {
+    "schemaVersion": 2,
+    "nowMs": 6500,
+    "survivors": [
+      {
+        "id": "resident-1",
+        "name": "Survivor 1",
+        "morale": 49.94579
+      },
+      {
+        "id": "resident-2",
+        "name": "Survivor 2",
+        "morale": 49.94579
+      },
+      {
+        "id": "resident-3",
+        "name": "Survivor 3",
+        "morale": 49.94579
+      }
+    ],
+    "assignments": [
+      {
+        "id": "fixture-scientist",
+        "survivorId": "resident-3",
+        "roomId": "demo-1",
+        "kind": "scientist",
+        "state": "active",
+        "roomPosition": "8:-1:2:1",
+        "assignedAt": 0,
+        "startedAt": 1350,
+        "elapsedMs": 0
+      }
+    ],
+    "traffic": {
+      "schemaVersion": 1,
+      "agents": [
+        {
+          "id": "resident-1",
+          "cell": {
+            "x": 5,
+            "y": -1
+          },
+          "position": {
+            "x": 399,
+            "y": 456
+          },
+          "next": null,
+          "route": [],
+          "destinationId": null,
+          "waiting": false,
+          "elevator": null
+        },
+        {
+          "id": "resident-2",
+          "cell": {
+            "x": 6,
+            "y": -1
+          },
+          "position": {
+            "x": 453,
+            "y": 456
+          },
+          "next": null,
+          "route": [],
+          "destinationId": null,
+          "waiting": false,
+          "elevator": null
+        },
+        {
+          "id": "resident-3",
+          "cell": {
+            "x": 9,
+            "y": -1
+          },
+          "position": {
+            "x": 615,
+            "y": 456
+          },
+          "next": null,
+          "route": [],
+          "destinationId": "demo-1",
+          "waiting": false,
+          "elevator": null,
+          "targetCell": {
+            "x": 9,
+            "y": -1
+          }
+        }
+      ],
+      "priority": 1,
+      "cars": []
+    },
+    "operations": [
+      "fixture-scientist"
+    ],
+    "events": [
+      {
+        "schemaVersion": 1,
+        "id": 1,
+        "kind": "assigned",
+        "survivorId": "resident-3",
+        "roomId": "demo-1"
+      },
+      {
+        "schemaVersion": 1,
+        "id": 2,
+        "kind": "arrived",
+        "survivorId": "resident-3",
+        "roomId": "demo-1"
+      }
+    ],
+    "remainderMs": 0
+  },
+  "guardPosts": {
+    "schemaVersion": 1,
+    "posts": [],
+    "health": []
+  },
+  "commandCenter": {
+    "schemaVersion": 1,
+    "activeRoomId": "initial-command",
+    "earned": [
+      "overview"
+    ],
+    "operations": []
+  },
+  "radiation": {
+    "schemaVersion": 1,
+    "levels": [
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      1.96,
+      5.28416,
+      1.96,
+      6.22496,
+      6.22496,
+      6.22496,
+      6.22496,
+      6.22496,
+      6.22496,
+      6.22496,
+      6.22496,
+      6.22496,
+      6.22496,
+      6.22496,
+      10.38016,
+      53.9,
+      1.96,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6,
+      68.6
+    ],
+    "exposures": [],
+    "nowMs": 5000,
+    "filters": [],
+    "operations": [],
+    "surgeUntil": 0,
+    "nextSurgeAt": 0
+  },
+  "research": {
+    "schemaVersion": 1,
+    "graphVersion": 1,
+    "unlockedTechnologyIds": [],
+    "activeResearchId": "food-1",
+    "startedAt": 5000,
+    "completeAt": 20000,
+    "nowMs": 5000,
+    "operations": [
+      "fixture-paid-research"
+    ]
+  },
+  "water": {
+    "schemaVersion": 1,
+    "raw": 20,
+    "clean": 0,
+    "reserve": 200,
+    "cycles": [
+      {
+        "id": "demo-2",
+        "level": 1,
+        "elapsedMs": 5000,
+        "enabled": true
+      }
+    ],
+    "completed": 0,
+    "ledger": [],
+    "operations": []
+  },
+  "base": {
+    "schemaVersion": 2,
+    "terrain": {
+      "highestFloor": 0,
+      "elevators": [
+        {
+          "x": 0,
+          "y": -2
+        },
+        {
+          "x": 0,
+          "y": -1
+        },
+        {
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "excavated": [
+        {
+          "x": 0,
+          "y": -2
+        },
+        {
+          "x": 1,
+          "y": -2
+        },
+        {
+          "x": 2,
+          "y": -2
+        },
+        {
+          "x": 3,
+          "y": -2
+        },
+        {
+          "x": 9,
+          "y": -2
+        },
+        {
+          "x": 10,
+          "y": -2
+        },
+        {
+          "x": 11,
+          "y": -2
+        },
+        {
+          "x": 12,
+          "y": -2
+        },
+        {
+          "x": 0,
+          "y": -1
+        },
+        {
+          "x": 1,
+          "y": -1
+        },
+        {
+          "x": 2,
+          "y": -1
+        },
+        {
+          "x": 3,
+          "y": -1
+        },
+        {
+          "x": 4,
+          "y": -1
+        },
+        {
+          "x": 5,
+          "y": -1
+        },
+        {
+          "x": 6,
+          "y": -1
+        },
+        {
+          "x": 7,
+          "y": -1
+        },
+        {
+          "x": 8,
+          "y": -1
+        },
+        {
+          "x": 9,
+          "y": -1
+        },
+        {
+          "x": 10,
+          "y": -1
+        },
+        {
+          "x": 11,
+          "y": -1
+        },
+        {
+          "x": 12,
+          "y": -1
+        }
+      ]
+    },
+    "rooms": [
+      {
+        "id": "initial-command",
+        "type": "command",
+        "x": 5,
+        "y": -1,
+        "width": 3,
+        "height": 1,
+        "level": 1
+      },
+      {
+        "id": "initial-power",
+        "type": "generator",
+        "x": 1,
+        "y": -2,
+        "width": 2,
+        "height": 1,
+        "level": 1
+      },
+      {
+        "id": "initial-habitat",
+        "type": "habitat",
+        "x": 3,
+        "y": -1,
+        "width": 2,
+        "height": 1,
+        "level": 1
+      },
+      {
+        "id": "initial-garden",
+        "type": "hydroponics",
+        "x": 1,
+        "y": -1,
+        "width": 2,
+        "height": 1,
+        "level": 1
+      },
+      {
+        "id": "demo-1",
+        "type": "laboratory",
+        "x": 8,
+        "y": -1,
+        "width": 2,
+        "height": 1,
+        "level": 1
+      },
+      {
+        "id": "demo-2",
+        "type": "waterTreatment",
+        "x": 10,
+        "y": -1,
+        "width": 2,
+        "height": 1,
+        "level": 1
+      }
+    ],
+    "nextRoomId": 2
+  },
+  "wallet": {
+    "schemaVersion": 2,
+    "balance": 1760,
+    "nextTransactionId": 8,
+    "transactions": [
+      {
+        "id": 1,
+        "kind": "starting-balance",
+        "delta": 1500,
+        "balanceAfter": 1500
+      },
+      {
+        "id": 2,
+        "kind": "demo-bonus",
+        "delta": 500,
+        "balanceAfter": 2000
+      },
+      {
+        "id": 3,
+        "kind": "build",
+        "delta": -200,
+        "balanceAfter": 1800
+      },
+      {
+        "id": 4,
+        "kind": "achievement-reward",
+        "delta": 40,
+        "balanceAfter": 1840,
+        "achievementId": "first-room"
+      },
+      {
+        "id": 5,
+        "kind": "build",
+        "delta": -180,
+        "balanceAfter": 1660
+      },
+      {
+        "id": 6,
+        "kind": "achievement-reward",
+        "delta": 180,
+        "balanceAfter": 1840,
+        "achievementId": "diverse-shelter"
+      },
+      {
+        "id": 7,
+        "kind": "research",
+        "delta": -80,
+        "balanceAfter": 1760
+      }
+    ],
+    "checkpoint": {
+      "balance": 0,
+      "counts": {
+        "starting-balance": 0,
+        "build": 0,
+        "dig": 0,
+        "floor": 0,
+        "upgrade": 0,
+        "demo-bonus": 0,
+        "research": 0,
+        "radiation": 0,
+        "air": 0,
+        "achievement-reward": 0
+      },
+      "achievementRewards": []
+    }
+  },
+  "resources": {
+    "schemaVersion": 2,
+    "stock": {
+      "power": 14,
+      "food": 20,
+      "meal": 10,
+      "ore": 0,
+      "supplies": 0
+    },
+    "elapsedMs": 1500,
+    "tickCount": 1,
+    "lastShortages": [],
+    "inactiveRooms": 0
+  },
+  "demoBonusClaimed": true,
+  "achievements": {
+    "schemaVersion": 2,
+    "unlocked": [
+      "first-room",
+      "diverse-shelter"
+    ],
+    "rewardGrantedAchievementIds": [
+      "first-room",
+      "diverse-shelter"
+    ]
+  }
+}

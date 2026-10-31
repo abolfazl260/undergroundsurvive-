@@ -12,7 +12,7 @@ import { ROOM_DEFINITIONS, type BuildableRoomType } from '../modules/building/ca
 import { BuildingLayout } from '../modules/building/layout';
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../modules/building/constructionPolicy';
 import { findRoomPath } from '../modules/characters/pathfinding';
-import type { ResidentTraffic } from '../modules/characters/traffic';
+import type { ResidentTraffic, ResidentView } from '../modules/characters/traffic';
 import { GameSession, type GameSnapshot, type UpgradeDetails } from '../modules/economy/session';
 import type { PlacementResult } from '../modules/building/placement';
 import { ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, LEVEL_TWO_ADDITIONAL_ART_ASSET, LEVEL_TWO_COMMAND_ART_ASSET, MISSING_ROOM_ART_ASSET, roomArtCandidates } from './roomArt';
@@ -496,13 +496,17 @@ export class GameScene extends Phaser.Scene {
   assignSurvivor(id:string,roomId:string):void {
     if(this.gameplayPaused)return;
     const room=this.layout.rooms.find(r=>r.id===roomId);
-    const block=room?.type==='laboratory'?this.session.assignScientist(id,roomId,crypto.randomUUID()):room?.type==='recreation'?this.session.assignRecreation(id,roomId,crypto.randomUUID()):null;
-    const reason=room?.type==='laboratory'||room?.type==='recreation'?(block?({survivor:'بازمانده وجود ندارد.',room:'اتاق معتبر نیست.',busy:'نیرو شغل دیگری دارد؛ ابتدا آزاد کنید.',capacity:'ظرفیت اتاق پر است.',path:'مسیر قابل‌عبور نیست.',duplicate:'درخواست تکراری است.',satisfied:'روحیه کامل است.',power:'برق کافی نیست.'}[block]):null):room?.type==='kitchen'?this.session.assignCook(id,roomId,crypto.randomUUID()):this.session.assignGuard(id,roomId,crypto.randomUUID());
+    const block=room?.type==='laboratory'?this.session.assignScientist(id,roomId,crypto.randomUUID()):room?.type==='recreation'?this.session.assignRecreation(id,roomId,crypto.randomUUID()):room?.type==='habitat'?this.session.startRest(id,roomId,crypto.randomUUID()):null;
+    const reason=room?.type==='laboratory'||room?.type==='recreation'||room?.type==='habitat'?(block?({survivor:'بازمانده وجود ندارد.',room:'اتاق معتبر نیست.',busy:'نیرو شغل دیگری دارد؛ ابتدا آزاد کنید.',capacity:'ظرفیت اتاق پر است.',path:'مسیر قابل‌عبور نیست.',duplicate:'درخواست تکراری است.',satisfied:room?.type==='habitat'?'بازمانده خسته نیست.':'روحیه کامل است.',power:'برق کافی نیست.'}[block]):null):room?.type==='kitchen'?this.session.assignCook(id,roomId,crypto.randomUUID()):this.session.assignGuard(id,roomId,crypto.randomUUID());
     this.syncResidents();this.notify(reason??'تخصیص انجام شد؛ نیرو در مسیر است.');
   }
   releaseSurvivor(id:string):void {
     if(this.gameplayPaused)return;
     this.session.survivors.release(id);this.notify('نیرو آزاد شد.');
+  }
+  releaseBed(id:string):void {
+    if(this.gameplayPaused||this.isGameOver)return;
+    this.session.releaseBed(id);this.notify('تخت آزاد شد.');
   }
   commandPopulation():number{return this.traffic?.residents.length??0;}
   /** The room's game level is committed immediately; only its artwork transition is staged. */
@@ -1284,21 +1288,23 @@ export class GameScene extends Phaser.Scene {
     this.selectedResidentId = this.traffic.residents[0]?.id ?? '';
     this.residentWaitMs.clear();
     this.patrolCursors.clear();
-    this.traffic.residents.forEach((resident, index) => {
+    this.traffic.residents.forEach((resident,index)=>this.createResidentFigure(resident,index));
+    this.syncResidents();
+    this.paintElevatorMotion();
+  }
+
+  private createResidentFigure(resident:ResidentView,index:number):void {
       const person = this.add.container(resident.position.x, resident.position.y).setDepth(4);
       const geometry = survivorGeometry();
       const ring = this.add.ellipse(0, geometry.feetOffset, 15, 4, 0xffe29a, 0.25);
-      const texture = this.assets.resolve(SURVIVOR_ART.key, this.textures, index * 6);
+      const texture = this.assets.resolve(SURVIVOR_ART.key, this.textures, (index % 3) * 6);
       // The loader always bundles the atlas; a missing animation uses its idle frame.
       const sprite = this.add.image(0, geometry.feetOffset, texture?.key ?? '__MISSING', texture?.frame)
         .setOrigin(0.5, 1).setDisplaySize(geometry.width, geometry.height);
       person.add([ring, sprite]);
-      this.residentFigures.set(resident.id, { person, sprite, variant: index, lastX: resident.position.x, ring });
-      this.residentWaitMs.set(resident.id, 1400 + index * 650);
+      this.residentFigures.set(resident.id, { person, sprite, variant: index % 3, lastX: resident.position.x, ring });
+      this.residentWaitMs.set(resident.id, 1400 + (index % 3) * 650);
       this.patrolCursors.set(resident.id, index);
-    });
-    this.syncResidents();
-    this.paintElevatorMotion();
   }
 
   private resetResident(): void {
@@ -1306,9 +1312,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private syncResidents(): void {
+    const residents=this.traffic?.residents??[];
+    for(const [id,figure] of this.residentFigures)if(!residents.some(r=>r.id===id)) {figure.person.destroy();this.residentFigures.delete(id);}
+    if(!residents.some(r=>r.id===this.selectedResidentId))this.selectedResidentId=residents[0]?.id??'';
     for (const resident of this.traffic?.residents ?? []) {
-      const figure = this.residentFigures.get(resident.id);
-      if (!figure) continue;
+      if(!this.residentFigures.has(resident.id))this.createResidentFigure(resident,residents.findIndex(r=>r.id===resident.id));
+      const figure = this.residentFigures.get(resident.id)!;
       figure.person.setPosition(resident.position.x, resident.position.y);
       const phase = resident.elevator;
       figure.person.setVisible(phase !== 'closing' && phase !== 'travel' && phase !== 'arrival-opening');
