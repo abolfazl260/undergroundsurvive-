@@ -355,7 +355,7 @@ const english: Readonly<Record<string, string>> = {
   "این خانه قبلاً حفاری شده است.": "This cell has already been excavated.",
   "ابتدا خانه‌ای مجاور این محل را حفاری کنید.": "Excavate an adjacent cell first.",
   "همهٔ طبقات مجاز باز شده‌اند.": "All available floors are unlocked.",
-  "ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.": "Select the build tool. Scroll or pinch to zoom; drag to pan.",
+  "برای جابه‌جایی نقشه با یک انگشت بکشید؛ برای زوم از دو انگشت یا دکمه‌های زوم استفاده کنید.": "Drag with one finger to pan the map. Pinch with two fingers or use the zoom buttons to zoom.",
   "برای ساخت، یک خانهٔ خالی و آماده را انتخاب کنید.": "Choose an available empty cell to build.",
   "برای حفاری روی زمین بستهٔ زیرزمینی مجاور فضای باز بزنید.": "Tap underground ground next to an open cell to dig.",
   "ابتدا اتاق را انتخاب کنید و سپس مکان جدید آن را لمس کنید.": "Select a room, then tap its new location.",
