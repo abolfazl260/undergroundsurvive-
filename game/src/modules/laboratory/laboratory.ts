@@ -8,7 +8,7 @@ export interface LaboratoryFacility {
 }
 export function laboratoryFacilities(rooms:readonly Room[],jobs:readonly GuardAssignment[],power:number):LaboratoryFacility[] {
   return rooms.filter(r=>r.type==='laboratory').map(r=>{
-    const assignedScientists=jobs.filter(a=>a.roomId===r.id&&a.kind==='scientist'&&a.state!=='enRoute').length;
+    const assignedScientists=jobs.filter(a=>a.roomId===r.id&&a.kind==='scientist'&&a.state==='active').length;
     const operationalPower=power>=LABORATORY_CONFIG.power;
     return {roomId:r.id,level:r.level,scientistCapacity:LABORATORY_CONFIG.scientistCapacity[r.level-1],assignedScientists,operationalPower,
       status:!operationalPower?'unpowered':!assignedScientists?'unstaffed':'active'};
