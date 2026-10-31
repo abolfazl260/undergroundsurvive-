@@ -293,12 +293,15 @@ firstRunTutorial = mountFirstRunTutorial({
     activeTool = 'build';
     gameDock.showSheet(null);
     scene.selectRoom('waterTreatment');
+    scene.setTutorialGuide('water');
     updateSelectedButtons();
   },
+  clearGuide: () => scene.setTutorialGuide(null),
   selectUpgrade: () => {
     activeTool = 'upgrade';
     gameDock.showSheet(null);
     scene.setTool('upgrade');
+    scene.setTutorialGuide('upgrade');
     updateSelectedButtons();
   }
 });
