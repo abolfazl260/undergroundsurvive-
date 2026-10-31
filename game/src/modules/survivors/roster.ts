@@ -9,6 +9,16 @@ import type { Room } from '../building/placement';
 
 export const GUARD_CONFIG = {schemaVersion:1,typeId:'guardPost',capacity:[1,2,3],health:[100,150,200],defenseBonus:[1,1.15,1.3],power:1} as const;
 export type ActivityKind = 'guard'|'scientist'|'recreation'|'cook';
+/** A room-specific operating contract. Numbers are kept for legacy/isolated callers. */
+export type JobPower = number | ((roomId:string, kind:ActivityKind)=>boolean);
+export function activityPowerRequirement(kind: ActivityKind): number {
+  switch (kind) {
+    case 'scientist': return LABORATORY_CONFIG.power;
+    case 'recreation': return RECREATION_CONFIG.power;
+    case 'guard': return GUARD_CONFIG.power;
+    case 'cook': return 1; // Kitchen's minOperatingPower; recipe power is debited at start.
+  }
+}
 export interface Survivor extends SurvivorStats { id:string; name:string }
 export interface WorkerAssignment {
   id:string; survivorId:string; roomId:string; kind:ActivityKind;
@@ -75,7 +85,7 @@ export class SurvivorRoster {
     this.jobs=this.jobs.filter(a=>a!==job);this.traffic.cancel(survivorId);this.event('released',job);return true;
   }
   setLayout(layout:BuildingLayout):void {this.layout=layout;this.traffic.setLayout(layout);this.reconcile();}
-  reconcile(power=Infinity):void {
+  reconcile(power:JobPower=Infinity):void {
     const counts=new Map<string,number>();
     for(const job of [...this.jobs]) {
       const room=this.layout.rooms.find(r=>r.id===job.roomId),view=this.traffic.getResident(job.survivorId);
@@ -84,11 +94,14 @@ export class SurvivorRoster {
         count>activityCapacity(room,job.kind)||view.destinationId!==room.id) {this.release(job.survivorId);continue;}
       const arrived=!view.isMoving&&this.layout.getRoomAt(view.cell.x,view.cell.y)?.id===room.id;
       if(arrived&&job.startedAt===null){job.startedAt=this.nowMs;this.event('arrived',job);}
-      job.state=arrived?(power>=(job.kind==='scientist'?LABORATORY_CONFIG.power:GUARD_CONFIG.power)?'active':'suspended'):'enRoute';
+      const powered=typeof power==='function'
+        ? power(job.roomId,job.kind)
+        : power>=activityPowerRequirement(job.kind);
+      job.state=arrived?(powered?'active':'suspended'):'enRoute';
     }
   }
   /** Fixed simulation steps make travel and presence deterministic across frame rates. */
-  advance(deltaMs:number,power:number):void {
+  advance(deltaMs:number,power:JobPower):void {
     if(!Number.isFinite(deltaMs)||deltaMs<=0)return;
     this.remainderMs+=Math.min(deltaMs,60000);
     while(this.remainderMs>=50){

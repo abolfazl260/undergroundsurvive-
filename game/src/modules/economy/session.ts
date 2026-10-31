@@ -2,7 +2,7 @@ import { RECREATION_CONFIG } from '../recreation/recreation';
 import { LifeSupportService, type LifeSupportSnapshot, type LifeSupportView } from '../life-support/lifeSupport';
 import type { AssignmentBlock } from '../survivors/roster';
 import { laboratoryFacilities, researchFacility, type LaboratoryFacility } from '../laboratory/laboratory';
-import { SurvivorRoster, type SurvivorSnapshot } from '../survivors/roster';
+import { SurvivorRoster, activityPowerRequirement, type ActivityKind, type SurvivorSnapshot } from '../survivors/roster';
 import { KITCHEN_CONFIG, KitchenProcessor, recipeFor, type CookingSnapshot, type CookingContext, type CookingBlock } from '../kitchen/kitchen';
 import { GuardPosts } from '../defense/guardPost';
 import { CapabilityGate, CAPABILITY_REASONS, type CommandCenterSnapshot } from '../command/commandCenter';
@@ -90,11 +90,13 @@ export class GameSession {
     const reasons = { survivor: 'بازمانده وجود ندارد.', room: 'آشپزخانه معتبر نیست.',
       busy: 'نیرو شغل دیگری دارد؛ ابتدا آزاد کنید.', capacity: 'ظرفیت اتاق پر است.',
       path: 'مسیر قابل‌عبور نیست.', duplicate: 'درخواست تکراری است.',satisfied:'روحیه کامل است.',power:'برق کافی نیست.' };
+    this.reconcileSurvivorJobs();
     return reason ? reasons[reason] : null;
   }
   assignGuard(id:string,roomId:string,op:string):string|null {
     const reason=this.survivors.assign(id,roomId,'guard',op);
     const reasons={survivor:'بازمانده وجود ندارد.',room:'پست معتبر نیست.',busy:'نیرو شغل دیگری دارد؛ ابتدا آزاد کنید.',capacity:'ظرفیت اتاق پر است.',path:'مسیر قابل‌عبور نیست.',duplicate:'درخواست تکراری است.',satisfied:'روحیه کامل است.',power:'برق کافی نیست.'};
+    this.reconcileSurvivorJobs();
     return reason?reasons[reason]:null;
   }
 
@@ -111,8 +113,8 @@ export class GameSession {
     const block=capability?this.commandState.block(capability,this.world.rooms,this.resources.snapshot().stock.power):null;
     return block?{ok:false,reason:CAPABILITY_REASONS[block]}:{ok:true};
   }
-  moveRoom(id:string,x:number,y:number):CommandResult {this.commandStatus();const result=this.world.move(id,x,y);this.survivors.setLayout(this.world);this.kitchenState.sync(this.world.rooms);this.lifeSupportState.sync(this.world.rooms);this.commandStatus();return result;}
-  removeRoom(id:string):CommandResult {this.commandStatus();const result=this.world.remove(id);if(result.ok)this.powerState={...this.powerState,overrides:this.powerState.overrides.filter(o=>o.roomId!==id)};this.survivors.setLayout(this.world);this.lifeSupportState.sync(this.world.rooms);this.commandStatus();return result;}
+  moveRoom(id:string,x:number,y:number):CommandResult {this.commandStatus();const result=this.world.move(id,x,y);this.survivors.setLayout(this.world);this.kitchenState.sync(this.world.rooms);this.lifeSupportState.sync(this.world.rooms);this.reconcileSurvivorJobs();this.commandStatus();return result;}
+  removeRoom(id:string):CommandResult {this.commandStatus();const result=this.world.remove(id);if(result.ok)this.powerState={...this.powerState,overrides:this.powerState.overrides.filter(o=>o.roomId!==id)};this.survivors.setLayout(this.world);this.lifeSupportState.sync(this.world.rooms);this.reconcileSurvivorJobs();this.commandStatus();return result;}
   private radiationState = new RadiationField();
   private radiationOccupants: readonly RadiationOccupant[] = [];
   get radiation():RadiationField {return this.radiationState;}
@@ -125,16 +127,21 @@ export class GameSession {
     if(this.resources.snapshot().stock.power<RECREATION_CONFIG.activationPower)return 'power';
     const reason=this.survivors.assign(id,roomId,'recreation',op);
     if(!reason)this.resources.spendPower(RECREATION_CONFIG.activationPower);
+    this.reconcileSurvivorJobs();
     return reason;
   }
   laboratories():LaboratoryFacility[] {
-    this.survivors.reconcile(this.resources.snapshot().stock.power);
+    this.reconcileSurvivorJobs();
     const allowed = new Set(this.powerStatus().activeRoomIds);
     return laboratoryFacilities(this.world.rooms.filter(r=>allowed.has(r.id)),
       this.survivors.assignments,this.resources.snapshot().stock.power);
   }
   researchFacility() {return researchFacility(this.laboratories());}
-  assignScientist(id:string,roomId:string,op:string) {return this.survivors.assign(id,roomId,'scientist',op);}
+  assignScientist(id:string,roomId:string,op:string) {
+    const result=this.survivors.assign(id,roomId,'scientist',op);
+    this.reconcileSurvivorJobs();
+    return result;
+  }
 
   startResearch(id:string,operationId:string):boolean {
     return this.researchState.start(id,operationId,this.researchFacility(),this.wallet.balance,n=>this.purse.spend(n,'research'));
@@ -176,7 +183,7 @@ export class GameSession {
                       resources = ResourceEngine.create(), achievements = new AchievementTracker(), power = starterPower()) {
     this.world = layout;
     this.survivors=new SurvivorRoster(layout);
-    this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,()=>this.resources.snapshot().stock.power);
+    this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,(id)=>this.isRoomPoweredForJob(id,'guard'));
     this.purse = wallet;
     this.bonusClaimed = claimed;
     this.resourceState = resources;
@@ -232,7 +239,7 @@ export class GameSession {
     if(version>=9) {
       const survivors=SurvivorRoster.restore(world,value.survivors,resources.tickCount*5000+resources.snapshot().elapsedMs);if(!survivors)return null;
       session.survivors=survivors;
-      session.guardPosts=new GuardPosts(()=>session.world.rooms,survivors,()=>session.resources.snapshot().stock.power);
+      session.guardPosts=new GuardPosts(()=>session.world.rooms,survivors,(id)=>session.isRoomPoweredForJob(id,'guard'));
       if(!session.guardPosts.restore(value.guardPosts))return null;
     }
     if(version<9)session.survivors.initializeLegacyClock(resources.tickCount*5000+resources.snapshot().elapsedMs);
@@ -261,7 +268,7 @@ export class GameSession {
     }
     session.lifeSupportState.sync(world.rooms);
     session.kitchenState.sync(world.rooms);
-    session.survivors.reconcile(session.resources.snapshot().stock.power);
+    session.reconcileSurvivorJobs();
     session.commandStatus();
     session.waterState.sync(world.rooms);
     const rewarded = wallet.achievementRewards;
@@ -313,6 +320,17 @@ export class GameSession {
     if (temporaryDemand) for(const [id, units] of temporaryDemand) demands.set(id, units);
     return allocatePower(this.powerState, this.world.rooms, this.researchState.modifiers(), demands);
   }
+  private isRoomPoweredForJob(roomId:string, kind:ActivityKind, active?:ReadonlySet<string>, stock?:number):boolean {
+    const available=active ?? new Set(this.powerStatus().activeRoomIds);
+    const resources=stock ?? this.resources.snapshot().stock.power;
+    return available.has(roomId) && resources>=activityPowerRequirement(kind);
+  }
+  /** All job status transitions share the same live circuit allocation. */
+  private reconcileSurvivorJobs():void {
+    const active=new Set(this.powerStatus().activeRoomIds);
+    const stock=this.resources.snapshot().stock.power;
+    this.survivors.reconcile((id,kind)=>this.isRoomPoweredForJob(id,kind,active,stock));
+  }
   /** Cable operations validate geometry and funds before mutating anything. */
   installCable(x: number, y: number, riser = false): CommandResult {
     const reason = canWire(this.powerState, this.world.terrain, x, y, riser);
@@ -322,12 +340,14 @@ export class GameSession {
     const next = installWire(this.powerState, this.world.terrain, x, y, riser);
     if (!next || !this.purse.spend(cost,'build')) return {ok:false,reason:'نصب کابل ممکن نیست.'};
     this.powerState = next;
+    this.reconcileSurvivorJobs();
     return {ok:true};
   }
   removeCable(x: number, y: number): CommandResult {
     const next = removeWire(this.powerState,x,y);
     if (!next) return {ok:false,reason:'در این خانه کابل وجود ندارد.'};
     this.powerState = next;
+    this.reconcileSurvivorJobs();
     return {ok:true};
   }
   prioritizeRoom(id: string, priority: PowerPriority): CommandResult {
@@ -336,6 +356,7 @@ export class GameSession {
     const next = setRoomPriority(this.powerState, room, priority);
     if (!next) return {ok:false,reason:'تغییر اولویت بیش از یک سطح مجاز نیست.'};
     this.powerState = next;
+    this.reconcileSurvivorJobs();
     return {ok:true};
   }
   activatePowerNetwork(): CommandResult {
@@ -343,6 +364,7 @@ export class GameSession {
     if (!canActivateNetwork(this.powerState,this.world.rooms,this.researchState.modifiers(),this.applianceLoads()))
       return {ok:false,reason:'ابتدا تمام اتاق‌ها را با کابل به نیروگاه متصل کنید.'};
     this.powerState = {...this.powerState,mode:'physical'};
+    this.reconcileSurvivorJobs();
     return {ok:true};
   }
 
@@ -364,7 +386,9 @@ export class GameSession {
     let remaining = Math.min(deltaMs, 60_000), ticks = 0;
     while (remaining > 0) {
       const step = Math.min(remaining, this.resources.remainingMs);
-      this.survivors.advance(step,this.resources.snapshot().stock.power);
+      const activeJobs=new Set(this.powerStatus().activeRoomIds);
+      const jobStock=this.resources.snapshot().stock.power;
+      this.survivors.advance(step,(id,kind)=>this.isRoomPoweredForJob(id,kind,activeJobs,jobStock));
       const completed = this.resourceState.advance(step, this.world.rooms,this.researchState.modifiers(),this.powerStatus());
       ticks += completed;
       if (completed) {
@@ -384,6 +408,8 @@ export class GameSession {
       }
       remaining -= step;
     }
+    // Resource debits can suspend a job on the very tick power is depleted.
+    this.reconcileSurvivorJobs();
     if(ticks) this.refreshAchievementRewards();
     return ticks;
   }
@@ -486,7 +512,7 @@ export class GameSession {
     this.lifeSupportState = new LifeSupportService();
     this.world = new BuildingLayout();
     this.survivors=new SurvivorRoster(this.world);
-    this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,()=>this.resources.snapshot().stock.power);
+    this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,(id)=>this.isRoomPoweredForJob(id,'guard'));
     this.purse = Wallet.create(STARTING_COINS);
     this.bonusClaimed = false;
     this.resourceState = ResourceEngine.create();
@@ -502,7 +528,7 @@ export class GameSession {
     this.airState.sync(this.world.rooms);
     this.lifeSupportState.sync(this.world.rooms);
     this.radiationState.reconcileRooms(this.world.rooms);
-    this.survivors.reconcile(this.resources.snapshot().stock.power);
+    this.reconcileSurvivorJobs();
     const base = this.world.snapshot();
     this.refreshAchievementRewards();
     const wallet = this.purse.snapshot();

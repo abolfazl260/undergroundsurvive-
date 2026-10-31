@@ -3,6 +3,8 @@ import { getRoomPowerFlow } from '../economy/resources';
 import { WATER_CONFIG } from '../water/water';
 import { ventPower } from '../air/air';
 import { KITCHEN_CONFIG } from '../kitchen/kitchen';
+import { GUARD_CONFIG } from '../survivors/roster';
+import { RECREATION_CONFIG } from '../recreation/recreation';
 import type { TechnologyModifiers } from '../research/research';
 import { isInsideWorld } from '../world/grid';
 import type { TerrainMap } from '../world/terrain';
@@ -130,6 +132,8 @@ export function appliancePowerDemand(room: Room): number {
     case 'waterTreatment': return WATER_CONFIG.recipe.power;
     case 'ventilation': return ventPower(room.level);
     case 'kitchen': return KITCHEN_CONFIG.minOperatingPower;
+    case 'guardPost': return GUARD_CONFIG.power;
+    case 'recreation': return RECREATION_CONFIG.power;
     default: return 0;
   }
 }
