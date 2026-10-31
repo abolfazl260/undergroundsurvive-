@@ -218,7 +218,7 @@ export class GameScene extends Phaser.Scene {
     if(this.recoveryFailed) this.notify('ذخیره قابل بازیابی نیست؛ نسخهٔ اصلی برای بازیابی نگهداری شد.');
     else if (this.layout.disconnectedRoomIds.length)
       this.notify('ذخیرهٔ قدیمی دارای اتاق‌های جداافتاده است؛ اتاق‌ها حفظ شده‌اند. برای اصلاح، آن‌ها را به شبکهٔ آسانسور منتقل کنید.');
-    else this.notify('ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.');
+    else this.notify('برای جابه‌جایی نقشه با یک انگشت بکشید؛ برای زوم از دو انگشت یا دکمه‌های زوم استفاده کنید.');
     if (this.gameplayPaused) this.scene.pause();
     // Only now is saved world state, artwork, and initial scene rendering ready.
     this.onBootReady();
