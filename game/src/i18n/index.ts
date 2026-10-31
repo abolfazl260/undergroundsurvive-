@@ -3,6 +3,18 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
+  "آنلاین": "Online",
+  "نمایش رتبه‌بندی آزمایشی": "Open sample rankings",
+  "رتبه‌بندی بازماندگان": "Survivor rankings",
+  "امتیاز پیشرفت و موجودی سکه": "Progress score and coin balance",
+  "امتیاز شما": "Your score",
+  "سکه‌های شما": "Your coins",
+  "فهرست نمونه بازیکنان": "Sample player list",
+  "رتبه‌بندی نمونه بازیکنان": "Sample player rankings",
+  "این فهرست آزمایشی است؛ بازیکنان دیگر واقعی نیستند و اطلاعاتی به سرور ارسال نمی‌شود.": "Demo list: other players are fictional, and no information is sent to a server.",
+  "بستن رتبه‌بندی": "Close rankings",
+  "شما": "You",
+  "امتیاز": "pts",
   "ابزارهای اصلی": "Main tools",
   "ابزارهای شبکه برق": "Power network tools",
   "توسعه شفت آسانسور": "Extend elevator shaft",
