@@ -18,9 +18,9 @@ The in-game notice is maintained in `game/src/app/policyContent.ts` with matchin
 
 - Game saves are stored under `underground-survive:game:v2`; legacy saves may be read from `underground-survive:base:v1`; a recovery copy may remain under `underground-survive:recovery`.
 - Menu, audio, language, and narrative-progress preferences use additional localStorage keys. A new game is **not** a full personal-data deletion control.
-- Narrative content is fetched from first-party `/content/` assets; the web build loads Vazirmatn from `fonts.googleapis.com` and `fonts.gstatic.com`.
+- Narrative content is fetched from first-party `/content/` assets on the web; the Android app packages those assets locally. The Vazirmatn Variable font is self-hosted and bundled in both editions (no Google Fonts runtime requests).
 - No dedicated analytics/advertising SDK, payment integration, authentication flow, or browser permission requests for camera, microphone or location were identified in the reviewed client code.
-- Android uses Capacitor but the generated release Android Manifest is not tracked; future packaged releases require review of permissions, plugins and store data disclosures.
+- Android uses Capacitor 8; an idempotent post-sync native configuration hardens the ignored generated Manifest and brands the icon/splash. The installed app declares INTERNET for the Capacitor/WebView infrastructure, blocks cleartext and automatic system backup, and requires a final permission/store disclosure audit before distribution.
 
 ## Release checklist (required before production)
 
