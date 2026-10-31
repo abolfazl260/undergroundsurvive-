@@ -61,9 +61,7 @@ export function mountOnlineLeaderboard(
   const list = root.createElement('ol');
   list.className = 'online-leaderboard-list';
   list.setAttribute('aria-label', t('رتبه‌بندی نمونه بازیکنان'));
-  const disclaimer = root.createElement('p');
-  disclaimer.className = 'online-leaderboard-disclaimer';
-  dialog.append(header, summary, listTitle, list, disclaimer);
+  dialog.append(header, summary, listTitle, list);
   root.body.append(dialog);
 
   const render = () => {
@@ -74,7 +72,6 @@ export function mountOnlineLeaderboard(
     scoreName.textContent = t('امتیاز شما');
     coinsName.textContent = t('سکه‌های شما');
     listTitle.textContent = t('فهرست نمونه بازیکنان');
-    disclaimer.textContent = t('این فهرست آزمایشی است؛ بازیکنان دیگر واقعی نیستند و اطلاعاتی به سرور ارسال نمی‌شود.');
     close.setAttribute('aria-label', t('بستن رتبه‌بندی'));
     list.setAttribute('aria-label', t('رتبه‌بندی نمونه بازیکنان'));
     const snapshot = getSnapshot();
