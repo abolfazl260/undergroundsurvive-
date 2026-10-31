@@ -130,7 +130,8 @@ export class GameScene extends Phaser.Scene {
     private readonly onAssetProgress: (progress: number) => void = () => {},
     private readonly onAssetUnavailable: (key: string) => void = () => {},
     private readonly onAssetsComplete: () => void = () => {},
-    private readonly onBootReady: () => void = () => {}
+    private readonly onBootReady: () => void = () => {},
+    private readonly onRoomUpgraded: (previousLevel: number, nextLevel: number) => void = () => {}
   ) {
     super({ key: 'UndergroundScene' });
     this.recoveryFailed = saved != null && !GameSession.restore(saved) && !BuildingLayout.restore(saved);
@@ -564,6 +565,8 @@ export class GameScene extends Phaser.Scene {
     if(result.ok) {
       this.beginUpgradeConstruction(id!, previousLevel);
       this.paintRooms();
+      const nextLevel = this.layout.rooms.find(room => room.id === id)?.level;
+      if (previousLevel !== undefined && nextLevel !== undefined) this.onRoomUpgraded(previousLevel, nextLevel);
     }
     this.notify(result.ok?'فرماندهی ارتقا یافت.':result.reason);
   }
@@ -736,6 +739,8 @@ export class GameScene extends Phaser.Scene {
     if (result.ok) {
       this.beginUpgradeConstruction(id, previousLevel);
       this.paintRooms();
+      const nextLevel = this.layout.rooms.find(room => room.id === id)?.level;
+      if (previousLevel !== undefined && nextLevel !== undefined) this.onRoomUpgraded(previousLevel, nextLevel);
     }
     this.onUpgradeSelection(this.session.upgradeDetails(id));
     this.paintPreview();
