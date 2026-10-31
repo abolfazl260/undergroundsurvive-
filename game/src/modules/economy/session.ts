@@ -197,7 +197,7 @@ export class GameSession {
       ? AchievementTracker.restore(value.achievements) : new AchievementTracker();
     if (!world || !wallet || !resources || !achievements) return null;
     resources.reconcileCapacity(world.rooms);
-    const bonusCount = wallet.transactions.filter((t) => t.kind === 'demo-bonus').length;
+    const bonusCount = wallet.transactionCount('demo-bonus');
     if ((value.demoBonusClaimed && bonusCount !== 1) ||
         (!value.demoBonusClaimed && bonusCount !== 0)) return null;
     const power = version >= 15 ? restorePower(value.power, world.rooms, world.terrain) : legacyPower();
@@ -258,7 +258,7 @@ export class GameSession {
     session.survivors.reconcile(session.resources.snapshot().stock.power);
     session.commandStatus();
     session.waterState.sync(world.rooms);
-    const rewarded = wallet.transactions.filter(txn=>txn.kind==='achievement-reward');
+    const rewarded = wallet.achievementRewards;
     // v14+ achievements record both payment receipts and granted milestones.
     if (version>=14) {
       const granted = achievements.snapshot().rewardGrantedAchievementIds;
