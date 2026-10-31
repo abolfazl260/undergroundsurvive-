@@ -9,11 +9,12 @@
     <meta name="description" content="Underground Survive — ساخت زمین، طبقات و اتاق‌های دوبعدی" />
     <title>Underground Survive</title>
     <style>
-      /* Inline critical CSS: visible before the game bundle or remote fonts load. */
+      /* Critical splash layout: visible before any game or font bundle is ready. */
       [hidden] { display: none !important; }
-      #startup-screen { position:fixed; inset:0; z-index:2147483647; display:grid; place-items:center;
-        overflow:auto; padding:max(22px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right))
-        max(22px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
+      #startup-screen { position:fixed; inset:0; z-index:2147483647; display:flex; align-items:center; justify-content:center;
+        width:100%; height:100vh; height:100dvh; overflow:hidden; overscroll-behavior:none; touch-action:none;
+        padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right))
+        max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
         font-family:'Vazirmatn Variable',Tahoma,Arial,sans-serif; color:#eaf5f4;
         background:radial-gradient(ellipse at 50% 15%,#193b45 0%,#0c1b2a 42%,#040b13 100%);
         box-sizing:border-box; transition:opacity .22s ease,visibility .22s ease; }
@@ -22,7 +23,8 @@
         background:repeating-linear-gradient(0deg,transparent 0 37px,#64958f24 38px 39px),
         repeating-linear-gradient(90deg,transparent 0 43px,#64958f1d 44px 45px);
         mask-image:linear-gradient(transparent,#000 20%,#000 90%,transparent); }
-      .startup-shell { position:relative; width:min(100%,470px); margin:auto; text-align:center; }
+      .startup-shell { position:relative; flex:0 0 auto; width:min(100%,470px); margin:0;
+        transform:scale(var(--startup-fit-scale,1)); transform-origin:center center; text-align:center; }
       .startup-kicker { display:block;color:#83d6c0;font:700 11px/1.5 system-ui,sans-serif;
         letter-spacing:3.5px;margin:0 0 9px;direction:ltr; }
       .startup-brand { font:900 clamp(23px,6.5vw,37px)/1.24 system-ui,Arial,sans-serif;
@@ -60,7 +62,7 @@
         box-shadow:0 0 18px #88e6c060;transition:width .18s linear;}
       .startup-detail {font-size:11px;line-height:1.8;min-height:20px;color:#93aeb5;margin:14px 0 0;}
       #startup-retry {margin:14px auto 0;background:#286c5b;border:1px solid #79d7b5;border-radius:10px;
-        padding:11px 24px;font:700 13px Vazirmatn,Tahoma,sans-serif;color:#fff;cursor:pointer;}
+        padding:11px 24px;min-height:44px;font:700 13px 'Vazirmatn Variable',Tahoma,sans-serif;color:#fff;cursor:pointer;}
       #startup-retry:focus-visible {outline:3px solid #d9ffea;outline-offset:3px;}
       #startup-screen.startup-screen--done {opacity:0;visibility:hidden;pointer-events:none;}
       @keyframes startup-descend {from{transform:translate(-50%,0)}to{transform:translate(-50%,89px)}}
@@ -70,6 +72,33 @@
         .startup-level.a{top:35px}.startup-level.b{top:73px}.startup-level.c{top:116px}
         .startup-graphic .startup-pulse {animation:none;}
         .startup-caption{font-size:11px}
+      }
+
+      /* Compress actual spacing and illustration on short phones and landscape.
+         A tiny JS fit factor handles unusual viewports and translated/error text. */
+      @media(max-height:680px) {
+        #startup-screen {padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right))
+          max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));}
+        .startup-kicker {font-size:10px;letter-spacing:2px;margin-bottom:4px;}
+        .startup-brand {font-size:clamp(21px,5dvh,31px);line-height:1.15;}
+        .startup-caption {margin-top:5px;line-height:1.5;}
+        .startup-graphic {height:clamp(78px,21dvh,142px);margin-block:clamp(7px,1.7dvh,13px);}
+        .startup-level {height:clamp(17px,4.3dvh,27px);}
+        .startup-level.a {top:24%;}.startup-level.b {top:47%;}.startup-level.c {top:73%;}
+        .startup-stage {font-size:clamp(11px,2.6dvh,14px);min-height:0;line-height:1.65;margin-bottom:7px;}
+        .startup-progress-head {margin-bottom:5px;}
+        .startup-detail {margin-top:7px;min-height:0;line-height:1.5;}
+        #startup-retry {margin-top:8px;}
+        @keyframes startup-descend {from{transform:translate(-50%,0)}to{transform:translate(-50%,clamp(22px,8dvh,60px))}}
+      }
+      @media(max-height:400px) {
+        .startup-graphic {height:clamp(55px,18dvh,78px);margin-block:5px;}
+        .startup-caption {margin-top:2px;}
+        .startup-stage {line-height:1.4;margin-bottom:4px;}
+        .startup-detail {margin-top:4px;}
+        .startup-level {height:16px;}
+        .startup-lift {height:32px;width:44px;top:14px;}
+        .startup-shaft {width:63px;}
       }
       @media(prefers-reduced-motion:reduce) {
         #startup-screen, #startup-fill{transition:none}
@@ -97,6 +126,36 @@
       </div>
     </section>
     <script>
+
+      // Keep the entire splash visible at every viewport, including landscape,
+      // notches, larger font metrics, retry errors and virtual-keyboard resizing.
+      (function () {
+        var splash = document.getElementById('startup-screen');
+        var shell = splash && splash.querySelector('.startup-shell');
+        if (!shell) return;
+        function fitSplash() {
+          if (!splash.isConnected) return;
+          var style = window.getComputedStyle(splash);
+          var availableHeight = splash.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+          var availableWidth = splash.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+          var naturalHeight = Math.max(1, shell.scrollHeight, shell.offsetHeight);
+          var naturalWidth = Math.max(1, shell.scrollWidth, shell.offsetWidth);
+          var scale = Math.min(1, availableHeight / naturalHeight, availableWidth / naturalWidth);
+          // A one-percent margin also avoids clipping from fractional-pixel rounding.
+          shell.style.setProperty('--startup-fit-scale', String(Math.max(0.1, Math.min(1, scale * 0.99))));
+        }
+        var resizeObserver;
+        if (typeof ResizeObserver !== 'undefined') {
+          resizeObserver = new ResizeObserver(fitSplash);
+          resizeObserver.observe(splash);
+          resizeObserver.observe(shell);
+        }
+        window.addEventListener('resize', fitSplash, { passive:true });
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', fitSplash, { passive:true });
+        if (document.fonts) document.fonts.ready.then(fitSplash);
+        fitSplash();
+      })();
+
       // The fallback also works when the game JavaScript never downloads.
       window.setTimeout(function () {
         var splash = document.getElementById('startup-screen');
