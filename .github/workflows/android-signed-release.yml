@@ -99,17 +99,35 @@ jobs:
             -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
           echo "Temporary signing keystore validated."
 
-      - name: Install web and Capacitor dependencies
-        run: |
-          npm install --no-audit --no-fund
-          # Work around npm's occasional omission of Linux Rollup optional binaries.
-          npm install --no-save --no-package-lock --no-audit --no-fund \
-            "@rollup/rollup-linux-x64-gnu@$(node -p "require('./node_modules/rollup/package.json').version")"
+      # Release is a deliberate, manual action; the strict gate is automatic
+      # *inside that action only*. A missing lockfile or known save limit fails
+      # closed before Android signing/packaging is attempted.
+      - name: Verify pinned dependency graph and two clean web builds
+        run: npm run quality:repro
 
-      - name: Run web and mobile tests
+      - name: Run ordinary and extended release tests
+        env:
+          GAME_SOAK_HOURS: '4'
         run: |
           npm test
           npm run mobile:test
+          npm run quality:full
+          npm run mobile:check
+
+      - name: Verify browser touch interactions and corrupted saves
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+          npm run preview -- --port 4173 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [[ "$ready" -ne 1 ]]; then echo "::error::Preview server failed"; exit 1; fi
+          npm run quality:browser
 
       - name: Generate Android project and sync offline game assets
         run: npm run mobile:prepare:android
@@ -173,6 +191,15 @@ jobs:
           name: underground-survive-android-signed-${{ github.run_number }}
           path: ${{ runner.temp }}/underground-survive-android-release/
           if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload release preflight evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-android-preflight-${{ github.run_number }}
+          path: game/quality-evidence/
+          if-no-files-found: ignore
           retention-days: 14
 
       - name: Remove temporary signing materials
