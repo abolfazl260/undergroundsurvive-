@@ -67,22 +67,36 @@ describe('digging artwork replacement', () => {
 });
 
 describe('mobile command center regression', () => {
-  it('keeps compact HUD at two rows with accessible touch-sized primary actions', () => {
+  it('removes title and icon from gameplay HUD without removing its menu', () => {
+    const html = readFileSync('index.html', 'utf8');
+    const header = html.split('<header class="topbar">')[1].split('</header>')[0];
+    expect(header).not.toContain('class="brand"');
+    expect(header).not.toContain('LAST <span>SIGNAL</span>');
+    expect(header).toContain('id="menu-toggle"');
+    expect(header).toContain('id="open-more"');
+  });
+  it('keeps game HUD in a single row, with fixed actions and a swipeable central strip', () => {
     const styles = readFileSync('src/resourceSheet.css', 'utf8');
-    const compact = styles.slice(styles.lastIndexOf('/* Compact command center'));
-    expect(compact).toContain('grid-template-rows:44px 44px;');
-    expect(compact).toContain('#app > .topbar #action-dock');
-    expect(compact).toContain('#app > .topbar .top-view-controls');
-    expect(compact).toContain('min-height:44px');
-    expect(compact).toContain('.mobile-secondary-actions');
-    expect(compact).toContain('#app #game-sheet[data-sheet="more"]');
+    const compact = styles.slice(styles.lastIndexOf('/* Single-row game HUD'));
+    expect(compact).toContain('height:calc(56px + var(--game-safe-top));');
+    expect(compact).toContain('flex-wrap:nowrap;');
+    expect(compact).toContain('overflow-x:auto;overflow-y:hidden;');
+    expect(compact).toContain('#app > .topbar .header-command-strip > #action-dock');
+    expect(compact).toContain('#app > .topbar .header-command-strip > .top-view-controls');
+    expect(compact).toContain('width:44px;min-width:44px;height:44px;min-height:44px;');
+    expect(compact).toContain('#app > .topbar > #open-more');
+    expect(styles).toContain('.mobile-secondary-actions');
+    const dock = readFileSync('src/app/gameDock.ts','utf8');
+    expect(dock).toContain("commandStrip.className = 'header-command-strip'");
+    expect(dock).toContain('commandStrip.append(dock, viewControls, hud)');
+    expect(dock).toContain('topbar.insertBefore(commandStrip, resourceTrigger)');
   });
   it('moves existing secondary buttons into More instead of hiding or cloning them', () => {
     const dock = readFileSync('src/app/gameDock.ts', 'utf8');
     expect(dock).toContain("matchMedia?.('(max-width: 1160px)')");
     expect(dock).toContain('secondaryActions.append(storyNavigation)');
     expect(dock).toContain('secondaryActions.append(fullscreen)');
-    expect(dock).toContain('topbar.insertBefore(storyNavigation, resourceTrigger)');
+    expect(dock).toContain('commandStrip.append(storyNavigation)');
     expect(dock).toContain('viewControls.append(fullscreen)');
   });
   it('keeps online ranking entry inside the responsive secondary navigation', () => {
