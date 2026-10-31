@@ -486,9 +486,15 @@ export class GameScene extends Phaser.Scene {
     const result=id?this.session.upgradeRoom(id,crypto.randomUUID()):{ok:false as const,reason:'اتاق فرماندهی فعال لازم است.'};
     if(result.ok)this.paintRooms();this.notify(result.ok?'فرماندهی ارتقا یافت.':result.reason);
   }
-  togglePowerOverlay():void {this.powerOverlay=!this.powerOverlay;this.paintPower();}
-  powerView(): { enabled:boolean; allocation:PowerAllocation } {
-    return {enabled:this.powerOverlay,allocation:this.session.powerStatus()};
+  togglePowerOverlay():void {
+    this.powerOverlay = !this.powerOverlay;
+    this.paintPower();
+    this.onAudioCue('select');
+    this.notify(this.powerOverlay ? 'نمایش شبکه برق فعال شد.' : 'نمایش شبکه برق غیرفعال شد.');
+  }
+  powerView(): { enabled:boolean; cableCount:number; allocation:PowerAllocation } {
+    return {enabled:this.powerOverlay,cableCount:this.session.power.cables.length,
+      allocation:this.session.powerStatus()};
   }
   activatePowerNetwork():void {
     if(this.gameplayPaused)return;

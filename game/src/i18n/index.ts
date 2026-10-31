@@ -3,6 +3,12 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
+  "نمایش شبکه برق": "Show power grid",
+  "پنهان‌کردن شبکه برق": "Hide power grid",
+  "نمایش کابل و اتاق‌های بی‌برق": "Show wiring and unpowered rooms",
+  "شبکه برق فعال · {cables} کابل · {rooms} اتاق بی‌برق": "Power grid visible · {cables} wires · {rooms} unpowered rooms",
+  "نمایش شبکه برق فعال شد.": "Power grid overlay enabled.",
+  "نمایش شبکه برق غیرفعال شد.": "Power grid overlay disabled.",
   "شبکه توزیع برق": "Power distribution network",
   "شبکه‌ها": "Networks",
   "تقاضا": "Demand",
