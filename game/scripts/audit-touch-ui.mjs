@@ -23,14 +23,15 @@ async function checkTapTargets(page, state, width, height) {
   assert.deepEqual(failures, [], `Touch target sizes at ${width}x${height} (${state})`);
 }
 
-/** Primary actions stay inside a two-row HUD; secondary shortcuts stay
- * reachable in More on compact layouts, not hidden or clipped elsewhere. */
+/** Primary actions remain in a single 56px high bar; on narrow phones
+ * the central strip scrolls horizontally while menu/resources/More stay fixed. */
 async function checkUnifiedTopControls(page, width, height) {
   const result = await page.evaluate(() => {
     const topbar = document.querySelector('.topbar');
     const header = topbar.getBoundingClientRect();
     const compact = matchMedia('(max-width: 1160px)').matches;
     const extra = document.querySelector('#game-sheet .mobile-secondary-actions');
+    const strip = topbar.querySelector('.header-command-strip');
     const primaryIds = [
       '#menu-toggle', '#dock-build', '#dock-tools',
       '#zoom-in', '#zoom-out', '#zoom-reset',
@@ -41,7 +42,12 @@ async function checkUnifiedTopControls(page, width, height) {
       '#online-leaderboard-open'
     ];
     const problems = [];
-    if (compact && header.height > 125) problems.push('compact header exceeds two-row height: ' + header.height);
+    if (header.height > 68) problems.push('header is not one row: ' + header.height);
+    if (!strip || getComputedStyle(strip).overflowX !== 'auto') {
+      problems.push('middle command strip must be horizontally pannable');
+    }
+    const brand = topbar.querySelector('.brand');
+    if (brand) problems.push('game logo and title still occupy header space');
     for (const id of [...primaryIds, ...secondaryIds]) {
       const button = document.querySelector(id);
       if (!button) { problems.push(id + ': missing'); continue; }
@@ -53,17 +59,22 @@ async function checkUnifiedTopControls(page, width, height) {
       if (!topbar.contains(button)) { problems.push(id + ': not part of topbar'); continue; }
       if (getComputedStyle(button).display === 'none' || !button.getClientRects().length) continue;
       const rect = button.getBoundingClientRect();
+      const inStrip = !!strip?.contains(button);
       if (rect.top < header.top - 2 || rect.bottom > header.bottom + 2 ||
-          rect.left < -1 || rect.right > window.innerWidth + 1) {
+          (!inStrip && (rect.left < -1 || rect.right > window.innerWidth + 1))) {
         problems.push(id + ': outside header ' + JSON.stringify({
           top:rect.top, bottom:rect.bottom, left:rect.left, right:rect.right,
           headerBottom:header.bottom
         }));
       }
+      if (inStrip && strip.scrollWidth > strip.clientWidth &&
+          getComputedStyle(strip).overflowX !== 'auto') {
+        problems.push(id + ': cannot be reached by horizontal scrolling');
+      }
     }
     return problems;
   });
-  assert.deepEqual(result, [], `Compact header and reachable shortcuts at ${width}x${height}`);
+  assert.deepEqual(result, [], `Single-row header and reachable shortcuts at ${width}x${height}`);
 }
 
 async function checkPopoverBelowTopbar(page, selector) {
@@ -90,6 +101,16 @@ async function run(width, height) {
   await page.locator('#game-canvas canvas').waitFor({ state: 'visible' });
   await checkTapTargets(page, 'playing', width, height);
   await checkUnifiedTopControls(page, width, height);
+  // The primary buttons retain 44px touch targets after scrolling horizontally.
+  const scrollable = await page.locator('.header-command-strip').evaluate((element) =>
+    element.scrollWidth > element.clientWidth + 1);
+  if (scrollable) {
+    await page.locator('#zoom-in').tap();
+    await page.locator('#dock-build').tap();
+    assert.equal(await page.locator('#game-sheet').getAttribute('data-sheet'), 'rooms');
+    await page.locator('#dock-build').tap();
+    assert.equal(await page.locator('#game-sheet').isVisible(), false);
+  }
 
   // Resource details are a popover below the topbar, never a bottom-right drawer.
   await page.locator('#resource-details-toggle').tap();

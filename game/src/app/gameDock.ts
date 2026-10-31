@@ -316,6 +316,17 @@ export function mountGameDock(root: Document = document): {
   if (cycle) resourceTrigger.append(cycle);
   topbar.insertBefore(resourceTrigger, moreButton);
 
+  // One-row command bar: keep menu, resources and More fixed. Original build,
+  // tools, zoom and status controls share a horizontally pannable center strip
+  // at narrow widths; reparenting preserves their listeners and ARIA state.
+  const commandStrip = root.createElement('div');
+  commandStrip.className = 'header-command-strip';
+  commandStrip.tabIndex = 0;
+  commandStrip.setAttribute('role', 'group');
+  commandStrip.setAttribute('aria-label', t('ابزارهای ساخت، بزرگ‌نمایی و وضعیت پناهگاه'));
+  topbar.insertBefore(commandStrip, resourceTrigger);
+  commandStrip.append(dock, viewControls, hud);
+
   let current: GameSheet = null;
   let returnFocus: HTMLElement | null = null;
   title.tabIndex = -1;
@@ -348,7 +359,7 @@ export function mountGameDock(root: Document = document): {
       if (storyNavigation) secondaryActions.append(storyNavigation);
       if (fullscreen) secondaryActions.append(fullscreen);
     } else {
-      if (storyNavigation) topbar.insertBefore(storyNavigation, resourceTrigger);
+      if (storyNavigation) commandStrip.append(storyNavigation);
       if (fullscreen) viewControls.append(fullscreen);
     }
   };
@@ -416,6 +427,7 @@ export function mountGameDock(root: Document = document): {
     toolsContainer.setAttribute('aria-label', t('ابزارهای زمین و اتاق'));
     resourceTrigger.setAttribute('aria-label', t('منابع و چرخهٔ زمانی پناهگاه'));
     secondaryActions.setAttribute('aria-label', t('امکانات و میانبرهای بیشتر'));
+    commandStrip.setAttribute('aria-label', t('ابزارهای ساخت، بزرگ‌نمایی و وضعیت پناهگاه'));
     resourcesText.textContent = t('منابع');
     storyNavigation?.querySelector<HTMLButtonElement>('#story-open')?.setAttribute('aria-label', t('داستان تصویری'));
     storyNavigation?.querySelector<HTMLButtonElement>('#achievements-open')?.setAttribute('aria-label', t('دستاوردها'));
