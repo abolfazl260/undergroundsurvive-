@@ -202,6 +202,8 @@ export function mountGameDock(root: Document = document): {
   dock.append(buildButton, toolsButton);
 
   let current: GameSheet = null;
+  let returnFocus: HTMLElement | null = null;
+  title.tabIndex = -1;
   let activeCategory: RoomCategory = 'all';
   const filterRooms = (category: RoomCategory) => {
     activeCategory = category;
@@ -234,6 +236,10 @@ export function mountGameDock(root: Document = document): {
     resourceToggle.setAttribute('aria-expanded', 'false');
   };
   const showSheet = (next: GameSheet) => {
+    const previous = current;
+    if (previous === null && next !== null) {
+      returnFocus = root.activeElement instanceof HTMLElement ? root.activeElement : null;
+    }
     if (next !== null) collapseResources();
     current = next;
     sheet.hidden = next === null;
@@ -246,6 +252,11 @@ export function mountGameDock(root: Document = document): {
     dock.dataset.sheetOpen = String(next !== null);
     dock.dataset.activeSheet = next ?? '';
     if (next === 'rooms') filterRooms(activeCategory);
+    if (next !== null && next !== previous) title.focus({ preventScroll: true });
+    if (next === null && previous !== null) {
+      if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
+      returnFocus = null;
+    }
   };
   const toggleSheet = (requested: Exclude<GameSheet, null>) => showSheet(nextGameSheet(current, requested));
   subscribeLocaleChange(() => {
