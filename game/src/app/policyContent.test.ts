@@ -24,14 +24,14 @@ describe('menu policies', () => {
   });
 
   it('dates the notice without exposing an external support link', () => {
-    expect(POLICY_UPDATED).toMatch(/^\\d{4}-\\d{2}-\\d{2}$/);
+    expect(POLICY_UPDATED).toMatch(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/);
     for (const locale of ['fa', 'en'] as const) {
       const doc = getPolicyDocument(locale);
       expect(Object.keys(doc)).toEqual(['updated', 'summary', 'sections']);
       const visibleCopy = [doc.updated, doc.summary,
         ...doc.sections.flatMap(({ title, paragraphs, bullets }) =>
           [title, ...paragraphs, ...(bullets ?? [])])].join(' ');
-      expect(visibleCopy).not.toMatch(/github|گیت[\\s‌-]*هاب|گیتهاب|github\\.io|github\\.com/i);
+      expect(visibleCopy).not.toMatch(/git[ -]?hub|گیت[ ‌-]*هاب/i);
     }
   });
 });
