@@ -17,6 +17,7 @@ async function inspect(width, height) {
     await page.locator('#menu-continue').tap();
     const story = page.locator('.story-dialog');
     await story.waitFor({ state: 'visible' });
+    await page.waitForFunction(() => document.querySelector('.story-counter')?.textContent?.trim() === '1 / 6');
     assert.equal(await page.locator('.story-counter').textContent(), '1 / 6');
     assert.equal(await page.locator('.first-run-coach').isVisible(), false, 'Modal must cover coach');
 
