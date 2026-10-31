@@ -1,5 +1,8 @@
 import type { Room } from '../building/placement';
 import { getRoomPowerFlow } from '../economy/resources';
+import { WATER_CONFIG } from '../water/water';
+import { ventPower } from '../air/air';
+import { KITCHEN_CONFIG } from '../kitchen/kitchen';
 import type { TechnologyModifiers } from '../research/research';
 import { isInsideWorld } from '../world/grid';
 import type { TerrainMap } from '../world/terrain';
@@ -118,10 +121,27 @@ export function setRoomPriority(power: PowerSnapshot, room: Room, priority: Powe
 
 /** Deterministic connected components. Horizontal neighbors require two wires;
  * vertical neighbors also require two explicit riser connectors. */
-export function allocatePower(power: PowerSnapshot, rooms: readonly Room[], modifiers: TechnologyModifiers):
-  PowerAllocation {
+/** Peak instantaneous circuit reservation, not a second inventory debit.
+ * Water recipes spend two units when the 10s batch completes; kitchen recipes
+ * debit inputs once at start; ventilation spends each 5s tick.
+ * Override demand=0 when an appliance is deliberately disabled/damaged. */
+export function appliancePowerDemand(room: Room): number {
+  switch(room.type) {
+    case 'waterTreatment': return WATER_CONFIG.recipe.power;
+    case 'ventilation': return ventPower(room.level);
+    case 'kitchen': return KITCHEN_CONFIG.minOperatingPower;
+    default: return 0;
+  }
+}
+
+export function allocatePower(power: PowerSnapshot, rooms: readonly Room[], modifiers: TechnologyModifiers,
+  applianceDemand?: ReadonlyMap<string, number>): PowerAllocation {
   const sortedRooms = [...rooms].sort((a,b) => a.id.localeCompare(b.id));
-  const flows = new Map(sortedRooms.map(r => [r.id, getRoomPowerFlow(r, modifiers)]));
+  const flows = new Map(sortedRooms.map(r => {
+    const base = getRoomPowerFlow(r, modifiers);
+    const reserved = applianceDemand?.get(r.id) ?? appliancePowerDemand(r);
+    return [r.id, { ...base, demand: base.demand + reserved }] as const;
+  }));
   const priorities = new Map(power.overrides.map(o => [o.roomId, o.priority]));
   const priorityOf = (r: Room): PowerPriority => priorities.get(r.id) ?? defaultPriority(r);
   if (power.mode === 'legacy') {
@@ -210,8 +230,8 @@ export function allocatePower(power: PowerSnapshot, rooms: readonly Room[], modi
     activeRoomIds:statuses.filter(s => s.status === 'online').map(s => s.roomId) };
 }
 export function canActivateNetwork(power: PowerSnapshot, rooms: readonly Room[],
-                                   modifiers: TechnologyModifiers): boolean {
+  modifiers: TechnologyModifiers, applianceDemand?: ReadonlyMap<string, number>): boolean {
   if (power.mode === 'physical') return true;
-  const proposal = allocatePower({ ...power, mode:'physical' }, rooms, modifiers);
+  const proposal = allocatePower({ ...power, mode:'physical' }, rooms, modifiers, applianceDemand);
   return proposal.rooms.every(r => r.status === 'online');
 }
