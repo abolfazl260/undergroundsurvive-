@@ -1,0 +1,100 @@
+name: Manual game quality tests
+
+# Extended tests never run on push, PR, schedule or automatically after a release.
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Select how much to verify
+        type: choice
+        required: true
+        default: full
+        options:
+          - integration
+          - full
+          - release-gate
+      simulated_hours:
+        description: Simulated active game hours for soak (1-48)
+        type: string
+        default: '4'
+        required: true
+      browser_tests:
+        description: Run actual Chromium mobile-touch and corrupt-save journeys
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: On-demand quality suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: game
+        shell: bash
+    env:
+      GAME_SOAK_HOURS: ${{ inputs.simulated_hours }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate soak input
+        run: |
+          [[ "$GAME_SOAK_HOURS" =~ ^([1-9]|[1-3][0-9]|4[0-8])$ ]] || {
+            echo "::error::simulated_hours must be an integer from 1 to 48"
+            exit 1
+          }
+      - name: Install dependencies (manual quality mode)
+        run: |
+          npm install --no-audit --no-fund --package-lock=false
+          npm install --no-save --no-package-lock --no-audit --no-fund "@rollup/rollup-linux-x64-gnu@$(node -p "require('./node_modules/rollup/package.json').version")"
+      - name: Test economy, save recovery and session determinism
+        run: npm run quality:integration
+      - name: Simulated long-duration session
+        if: ${{ inputs.suite != 'integration' }}
+        run: npm run quality:soak
+      - name: Enforce lifetime save limits for release
+        if: ${{ inputs.suite == 'release-gate' }}
+        run: npm run quality:limits
+      - name: Install and run real browser touch tests (manually selected)
+        if: ${{ inputs.browser_tests }}
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+          npm run build
+          npm run preview -- --port 4173 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [[ "$ready" -ne 1 ]]; then echo "::error::Preview server failed"; exit 1; fi
+          npm run quality:browser
+      - name: Verify reproducible clean install and web assets for release
+        if: ${{ inputs.suite == 'release-gate' }}
+        run: npm run quality:repro
+      - name: Record selected test plan
+        if: always()
+        run: |
+          mkdir -p quality-evidence
+          {
+            echo "Selected suite: ${{ inputs.suite }}"
+            echo "Simulated hours: $GAME_SOAK_HOURS"
+            echo "Browser checks: ${{ inputs.browser_tests }}"
+            echo "Commit: $GITHUB_SHA"
+            echo "Extended checks execute only on manual dispatch."
+          } > quality-evidence/plan.txt
+      - name: Upload evidence (including failure screenshots)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manual-game-quality-${{ github.run_number }}
+          path: game/quality-evidence/
+          if-no-files-found: warn
+          retention-days: 14
