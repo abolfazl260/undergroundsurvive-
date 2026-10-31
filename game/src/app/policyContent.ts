@@ -144,7 +144,7 @@ const english: PolicyDocument = {
       paragraphs: [
         'You can disable music and sound effects, change language and reduce decorative motion. These preferences are stored separately from shelter progress.',
         '“New game” resets game progress but does not necessarily erase language, audio settings, story progress or a retained recovery copy of a corrupted save.',
-        'To remove all local data for this version, use your browser’s site-data/local-storage clearing controls for the game origin. Clearing site data or uninstalling the application can permanently remove progress; there is currently no cloud sync or account-based recovery.'
+        'To remove all local data for this version, use your browser’s site-data/local-storage clearing controls for the game origin. Clearing site data or uninstalling the application can permanently remove progress; there is currently no cloud sync or account-based recovery. Android automatic system backup is disabled for this build.'
       ]
     },
     {
