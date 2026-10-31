@@ -287,7 +287,7 @@ const storyViewer = storyButton ? mountStoryViewer(storyButton, {
 }) : null;
 firstRunTutorial = mountFirstRunTutorial({
   hasSave: savedGame !== null,
-  openStory: () => { void storyViewer?.openChapter('prologue-90-days', true); },
+  openStory: () => { void storyViewer?.openChapter('prologue-90-days'); },
   selectWater: () => {
     activeRoom = 'waterTreatment';
     activeTool = 'build';
