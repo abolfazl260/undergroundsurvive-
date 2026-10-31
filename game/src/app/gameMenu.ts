@@ -4,10 +4,12 @@ import type { AudioSettings } from '../modules/audio/settings';
 import { loadMenuSettings, saveMenuSettings, type MenuSettings } from './menuSettings';
 import { getLocale, setLocale, subscribeLocaleChange, t, formatNumber } from '../i18n';
 import { renderPolicyContent } from './policyContent';
+import { renderHelpContent } from './helpContent';
 
-type MenuScreen = 'home' | 'pause' | 'settings' | 'policies' | 'confirm-new' | 'defeat';
+type MenuScreen = 'home' | 'pause' | 'settings' | 'help' | 'policies' | 'confirm-new' | 'defeat';
 type ReturnScreen = 'home' | 'pause';
 type PolicyReturnScreen = ReturnScreen | 'settings';
+type HelpReturnScreen = ReturnScreen | 'settings';
 
 /** The modal makes other DOM controls inert while the Phaser scene is paused. */
 export function setupGameMenu(
@@ -19,6 +21,7 @@ export function setupGameMenu(
   const dialog = document.querySelector<HTMLDialogElement>('#game-menu-dialog');
   const menuButton = document.querySelector<HTMLButtonElement>('#menu-toggle');
   const toolsPolicyButton = document.querySelector<HTMLButtonElement>('#menu-policies-from-tools');
+  const toolsHelpButton = document.querySelector<HTMLButtonElement>('#menu-help-from-tools');
   const continueButton = document.querySelector<HTMLButtonElement>('#menu-continue');
   const continueLabel = document.querySelector<HTMLElement>('[data-menu-continue-label]');
   const pauseTitle = document.querySelector<HTMLElement>('#menu-pause-title');
@@ -26,6 +29,7 @@ export function setupGameMenu(
   const reducedMotion = document.querySelector<HTMLInputElement>('#menu-reduced-motion');
   const language = document.querySelector<HTMLSelectElement>('#menu-language');
   const policyContent = document.querySelector<HTMLElement>('#menu-policy-content');
+  const helpContent = document.querySelector<HTMLElement>('#menu-help-content');
   const mute = document.querySelector<HTMLButtonElement>('#menu-audio-mute');
   const musicEnabled = document.querySelector<HTMLInputElement>('#menu-music-enabled');
   const effectsEnabled = document.querySelector<HTMLInputElement>('#menu-effects-enabled');
@@ -34,13 +38,14 @@ export function setupGameMenu(
   const musicValue = document.querySelector<HTMLOutputElement>('#menu-music-volume-value');
   const effectsValue = document.querySelector<HTMLOutputElement>('#menu-effects-volume-value');
   if (!dialog || !menuButton || !continueButton || !continueLabel || !pauseTitle || !newButton || !reducedMotion || !mute ||
-      !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue || !language || !policyContent) return () => {};
+      !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue || !language || !policyContent || !helpContent) return () => {};
 
   let playing = false;
   let hasSave = savedGameExists;
   let screen: MenuScreen = 'home';
   let returnScreen: ReturnScreen = 'home';
   let policyReturnScreen: PolicyReturnScreen = 'home';
+  let helpReturnScreen: HelpReturnScreen = 'home';
   let settings: MenuSettings = loadMenuSettings();
 
   // Reuse the existing modal to prevent a second competing overlay on mobile.
@@ -139,6 +144,7 @@ export function setupGameMenu(
     });
     dialog!.setAttribute('aria-labelledby', 'menu-' + next + '-title');
     if (next === 'settings') renderAudio();
+    if (next === 'help') renderHelpContent(helpContent!, getLocale());
     if (next === 'policies') renderPolicyContent(policyContent!, getLocale());
     dialog!.scrollTop = 0;
     dialog!.querySelector<HTMLElement>('#menu-' + next + '-title')?.focus();
@@ -181,6 +187,13 @@ export function setupGameMenu(
   showScreen('home');
   // Let the game finish booting before placing this modal in the top layer.
   menuButton.addEventListener('click', openPauseMenu);
+  toolsHelpButton?.addEventListener('click', () => {
+    if (!playing || dialog!.open) return;
+    scene.pauseGameplay();
+    helpReturnScreen = 'pause';
+    showScreen('help');
+    dialog!.showModal();
+  });
   toolsPolicyButton?.addEventListener('click', () => {
     if (!playing || dialog!.open) return;
     scene.pauseGameplay();
@@ -197,6 +210,7 @@ export function setupGameMenu(
     renderAudio();
     if (screen === 'defeat') renderDefeat();
     if (screen === 'policies') renderPolicyContent(policyContent!, getLocale());
+    if (screen === 'help') renderHelpContent(helpContent!, getLocale());
   });
   mute.addEventListener('click', () => changeAudio({ muted: !audio.getSettings().muted }));
   musicEnabled.addEventListener('change', () => changeAudio({ musicEnabled: musicEnabled.checked }));
@@ -232,12 +246,16 @@ export function setupGameMenu(
         returnScreen = screen === 'pause' ? 'pause' : 'home';
         showScreen('settings');
         break;
+      case 'help':
+        helpReturnScreen = screen === 'settings' ? 'settings' : screen === 'pause' ? 'pause' : 'home';
+        showScreen('help');
+        break;
       case 'policies':
         policyReturnScreen = screen === 'settings' ? 'settings' : screen === 'pause' ? 'pause' : 'home';
         showScreen('policies');
         break;
       case 'back':
-        showScreen(screen === 'policies' ? policyReturnScreen : returnScreen);
+        showScreen(screen === 'help' ? helpReturnScreen : screen === 'policies' ? policyReturnScreen : returnScreen);
         break;
       case 'main':
         hasSave = true;
@@ -251,6 +269,7 @@ export function setupGameMenu(
     event.preventDefault();
     if (screen === 'defeat') return;
     if (screen === 'pause') resume();
+    else if (screen === 'help') showScreen(helpReturnScreen);
     else if (screen === 'policies') showScreen(policyReturnScreen);
     else if (screen !== 'home') showScreen(returnScreen);
   });
