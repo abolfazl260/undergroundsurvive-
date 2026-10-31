@@ -16,10 +16,12 @@ export function nextTutorialStep(step: TutorialStep, snapshot: Pick<GameSnapshot
   if (step === 'water' && snapshot.base.rooms.some((room) => room.type === 'waterTreatment')) {
     step = 'upgrade';
   }
-  if (step === 'upgrade' && snapshot.base.rooms.some((room) => room.level >= 2)) {
-    return 'done';
-  }
   return step;
+}
+
+/** An upgrade counts only when it actually succeeds after the water objective. */
+export function afterSuccessfulUpgrade(step: TutorialStep, previousLevel: number, nextLevel: number): TutorialStep {
+  return step === 'upgrade' && previousLevel === 1 && nextLevel === 2 ? 'done' : step;
 }
 
 interface FirstRunTutorialOptions {
@@ -35,6 +37,7 @@ interface FirstRunTutorialOptions {
 export interface FirstRunTutorial {
   start(): void;
   storyFinished(): void;
+  roomUpgraded(previousLevel: number, nextLevel: number): void;
   sync(snapshot: Pick<GameSnapshot, 'base'>): void;
   getStep(): TutorialStep;
 }
@@ -141,6 +144,9 @@ export function mountFirstRunTutorial(options: FirstRunTutorialOptions): FirstRu
       if (step !== 'story') return;
       setStep('water');
       options.selectWater();
+    },
+    roomUpgraded(previousLevel, nextLevel) {
+      setStep(afterSuccessfulUpgrade(step, previousLevel, nextLevel));
     },
     sync(snapshot) {
       const before = step;
