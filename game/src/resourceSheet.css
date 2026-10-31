@@ -527,7 +527,7 @@ html.native-android #app > .topbar .screen-fullscreen {display:none!important;}
 #app .play-area .upgrade-panel,
 #app .play-area .upgrade-panel:not(.has-selection) {
   position:absolute;z-index:46;top:calc(var(--hud-top-occupied,70px) + 10px);
-  bottom:auto;left:50%;right:auto;inset-inline:auto;
+  bottom:auto;inset-inline:auto;left:50%;right:auto;
   transform:translateX(-50%);
   width:min(740px,calc(100vw - 20px));max-height:calc(100dvh - var(--hud-top-occupied,70px) - 19px);
   margin:0;overflow-y:auto;pointer-events:auto;
