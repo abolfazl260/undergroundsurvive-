@@ -20,7 +20,7 @@ import { SURVIVOR_ART, survivorGeometry, survivorFrame, hitSurvivor } from './su
 import { AssetManager } from './assets/assetManager';
 import { TWO_CELL_CONSTRUCTION_ART_ASSET, TwoCellConstructionAnimation } from './twoCellConstruction';
 import { DIGGING_ART_ASSET, DiggingAnimation } from './diggingAnimation';
-import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
+import { CINEMATIC_BUNKER_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
 import { roomCorridors } from './roomCorridors';
 import { roomUtilityWarnings } from './roomUtilityWarnings';
 import { clampZoom, constrainScroll, fitCameraZoom, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport, type ZoomLimits } from './viewport';
@@ -56,7 +56,7 @@ export class GameScene extends Phaser.Scene {
     height: number;
   }>();
   private readonly assets = new AssetManager(
-    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, RUINED_CITY_BACKGROUND, SURVIVOR_ART, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, LEVEL_TWO_ADDITIONAL_ART_ASSET, LEVEL_TWO_COMMAND_ART_ASSET, MISSING_ROOM_ART_ASSET, TWO_CELL_CONSTRUCTION_ART_ASSET, DIGGING_ART_ASSET], import.meta.env.BASE_URL,
+    [ROOM_ART_ASSET, GARDEN_MEDBAY_ART_ASSET, CINEMATIC_BUNKER_BACKGROUND, SURVIVOR_ART, LAB_WATER_ART_ASSET, LEVEL_TWO_ROOM_ART_ASSET, LEVEL_TWO_ADDITIONAL_ART_ASSET, LEVEL_TWO_COMMAND_ART_ASSET, MISSING_ROOM_ART_ASSET, TWO_CELL_CONSTRUCTION_ART_ASSET, DIGGING_ART_ASSET], import.meta.env.BASE_URL,
     Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
   );
   private get layout(): BuildingLayout { return this.session.layout; }
@@ -843,19 +843,19 @@ export class GameScene extends Phaser.Scene {
 
   private drawBackdrop(): void {
     // Keep an oversized solid fallback behind the artwork for panning, zooming
-    // out, or a failed texture request. The artwork itself maps 1:1 onto the
-    // The view stays portrait while the sealed shaft occupies two extra levels.
+    // out, or a failed texture request. The background stays behind gameplay
+    // layers and the independent, interactive elevator/exit-door graphics.
     const fallback = this.add.graphics().setDepth(-1);
     fallback.fillStyle(0x211f2a).fillRect(-600, -400, 2160, WORLD.groundLineY + 400);
     fallback.fillStyle(0x33271e).fillRect(-600, WORLD.groundLineY, 2160, 1000);
 
-    const background = this.assets.resolve(RUINED_CITY_BACKGROUND.key, this.textures);
+    const background = this.assets.resolve(CINEMATIC_BUNKER_BACKGROUND.key, this.textures);
     if (background) {
       this.add.image(0, 0, background.key)
         .setOrigin(0, 0)
         .setDisplaySize(GAME_VIEW.worldWidth, 600)
         .setDepth(0);
-      // Continue only the soil strip; scaling the skyline shifts the surface.
+      // Extend the bottom rock strip beneath the cutaway without repeating skyline.
       this.add.image(0, 600, background.key)
         .setOrigin(0, 0)
         .setCrop(0, 1000, 1920, 200)
