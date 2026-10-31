@@ -1,4 +1,5 @@
 import { contaminationState } from '../modules/radiation/radiation';
+import { confirmDestructiveAction } from './confirmDestructiveAction';
 import { paintElevatorCars, paintElevatorShaft } from './elevatorArt';
 import { ELEVATOR_DEFINITION } from '../modules/world/elevators';
 import { canWire, POWER_BALANCE, type PowerAllocation } from '../modules/power/network';
@@ -749,14 +750,15 @@ export class GameScene extends Phaser.Scene {
       successMessage = 'اتاق به محل جدید منتقل شد.';
       if (result.ok) this.pendingMoveId = null;
     } else {
+      // Destruction is irreversible: require an explicit second action.
       const room = this.layout.getRoomAt(x, y);
       if (!room) {
         this.onAudioCue('error');
         this.notify('در این موقعیت اتاقی وجود ندارد.');
         return;
       }
-      result = this.session.removeRoom(room.id);
-      successMessage = 'اتاق تخریب شد.';
+      void this.removeRoomWithConfirmation(room.id);
+      return;
     }
     if (result.ok) {
       if (this.mode === 'build') {
@@ -780,6 +782,38 @@ export class GameScene extends Phaser.Scene {
     this.paintPreview();
     this.onAudioCue(result.ok ? cue : 'error');
     this.notify(result.ok ? successMessage : result.reason);
+  }
+
+  private async removeRoomWithConfirmation(roomId: string): Promise<void> {
+    const room = this.layout.rooms.find((candidate) => candidate.id === roomId);
+    if (!room || !this.layout.canEditRoom(room)) {
+      this.onAudioCue('error');
+      this.notify(room ? LEGACY_SURFACE_READ_ONLY_REASON : 'اتاق انتخاب‌شده دیگر وجود ندارد.');
+      return;
+    }
+    const persian = getLocale() === 'fa';
+    const accepted = await confirmDestructiveAction({
+      title: persian ? 'تخریب اتاق؟' : 'Demolish room?',
+      description: persian
+        ? 'این اتاق و منابع صرف‌شده برای ساخت آن حذف می‌شوند. این عملیات قابل بازگشت نیست.'
+        : 'This room and its construction investment will be lost. This cannot be undone.',
+      confirmLabel: persian ? 'تخریب اتاق' : 'Demolish',
+      cancelLabel: persian ? 'انصراف' : 'Cancel'
+    });
+    if (!accepted || this.gameplayPaused || this.mode !== 'remove') return;
+    // Revalidate the exact room after the modal closes, never destroy a new occupant of the same cell.
+    const current = this.layout.rooms.find((candidate) => candidate.id === roomId);
+    if (!current || !this.layout.canEditRoom(current)) return;
+    const result = this.session.removeRoom(roomId);
+    if (result.ok) {
+      this.paintTerrain();
+      this.paintRooms();
+      this.paintPower();
+      this.refreshResidentPath();
+    }
+    this.paintPreview();
+    this.onAudioCue(result.ok ? 'remove' : 'error');
+    this.notify(result.ok ? 'اتاق تخریب شد.' : result.reason);
   }
 
   private notify(message: string): void {
