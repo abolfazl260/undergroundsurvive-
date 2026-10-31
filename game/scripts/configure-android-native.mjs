@@ -32,10 +32,22 @@ export function patchAndroidLaunchTheme(xml) {
   const match = xml.match(/(<style\b[^>]*name=["']AppTheme\.NoActionBarLaunch["'][^>]*>)([\s\S]*?)(<\/style>)/);
   if (!match) throw new Error('Capacitor launch theme not found');
   let body = match[2];
-  for (const [key, value] of [
-    ['windowSplashScreenBackground', '@color/underground_background'],
-    ['windowSplashScreenAnimatedIcon', '@drawable/underground_launcher']
-  ]) {
+  // AndroidX Theme.SplashScreen defines unprefixed items. Capacitor's default
+  // AppTheme.NoActionBar does not; on that template use Android 12 platform
+  // attributes to avoid "resource attr/windowSplashScreen... not found".
+  const androidx = /parent=["']Theme\.SplashScreen["']/.test(match[1]);
+  const items = androidx
+    ? [
+        ['android:background', '@drawable/underground_launcher'],
+        ['windowSplashScreenBackground', '@color/underground_background'],
+        ['windowSplashScreenAnimatedIcon', '@drawable/underground_launcher']
+      ]
+    : [
+        ['android:background', '@drawable/underground_launcher'],
+        ['android:windowSplashScreenBackground', '@color/underground_background'],
+        ['android:windowSplashScreenAnimatedIcon', '@drawable/underground_launcher']
+      ];
+  for (const [key, value] of items) {
     const pattern = new RegExp('<item\\s+name=["\x27]' + key + '["\x27]\\s*>[\\s\\S]*?<\\/item>');
     const item = '<item name="' + key + '">' + value + '</item>';
     if (pattern.test(body)) body = body.replace(pattern, item);
