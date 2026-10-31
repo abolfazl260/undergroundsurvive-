@@ -55,7 +55,7 @@ Filter changes and language changes rebuild only the affected list.
 Locked and unlocked achievements use identical **full-color** artwork; progress, border,
 medal and status communicate completion.
 
-Generated artwork totals about 180 KiB for 22 files in the current set (subject to
+Generated artwork totals about 256 KiB for 22 files in the current set (subject to
 future source changes). Run `python3 game/scripts/prepare-achievement-webp.py` from
 the repository root after installing Pillow when artwork changes, then commit the
 resulting individual WebPs. The original sprite source is retained only for
@@ -63,7 +63,16 @@ reproducible authoring, not as a served asset. Run
 `node game/scripts/check-achievement-webp.mjs` to verify file presence,
 WebP validity, uniqueness and the asset-size budget. This check also runs in web CI.
 
-No achievement rule, badge ID, or artwork file changes.
+Four refreshed milestones use the separate original artwork at
+`game/artwork-sources/milestones-four-master.webp` (760×253 pixels per scene,
+stacked in the order `upper-floor`, `steady-shelter`, `first-cycles`, `upgrader`).
+The asset preparation script selects this source for those four illustrations
+and the legacy sheet for the other seven. Each new panorama is bundled as its
+own 360×120 and 540×180 WebP file, with no runtime shared sprite sheet.
+
+The displayed `first-cycles` title is now **چرخهٔ پایدار** (Sustainable cycle).
+Achievement identifiers, unlock criteria (five resource cycles for this milestone),
+coin rewards, progression and saved game schema are unchanged.
 
 
 ## Asset URLs on GitHub Pages

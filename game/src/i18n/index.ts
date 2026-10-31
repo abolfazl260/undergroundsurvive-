@@ -136,7 +136,7 @@ const english: Readonly<Record<string, string>> = {
   "اولین طبقهٔ بالایی را باز کنید.": "Unlock the first upper floor.",
   "بر فراز ویرانه‌ها": "Above the ruins",
   "۲ طبقهٔ بالایی را باز کنید.": "Unlock 2 upper floors.",
-  "چرخهٔ بقا": "Cycle of survival",
+  "چرخهٔ پایدار": "Sustainable cycle",
   "۵ چرخهٔ تولید منابع را پشت سر بگذارید.": "Complete 5 resource cycles.",
   "پناهگاه پایدار": "Sustainable shelter",
   "۲۵ چرخهٔ تولید منابع را پشت سر بگذارید.": "Complete 25 resource cycles.",
