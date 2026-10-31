@@ -238,3 +238,61 @@
 @media(prefers-reduced-motion:reduce) {
   #action-dock > button {transition:none;}
 }
+
+/* Touch/interaction audit: targets remain usable on coarse pointers and compact displays. */
+#app:has(#game-sheet:not([hidden])) .topbar { z-index:35; }
+.topbar #menu-toggle,.topbar #open-more {
+  flex:0 0 44px; width:44px; min-width:44px; height:44px; min-height:44px;
+}
+.topbar #resource-details-toggle {
+  width:44px; min-width:44px; height:44px; min-height:44px;
+}
+#game-sheet #close-game-sheet { width:44px; min-width:44px; height:44px; min-height:44px; }
+.room-categories button { min-height:44px; }
+#game-sheet .dock-tools-container .zoom-controls button { width:44px; min-width:44px; min-height:44px; height:44px; }
+.game-menu .menu-close { width:44px; min-width:44px; height:44px; min-height:44px; }
+.story-toolbar select { min-height:44px; }
+@media(pointer:coarse) {
+  #app button,.game-menu button,.achievements-dialog button,.story-dialog button,
+  .game-confirm-dialog button { min-width:44px; min-height:44px; touch-action:manipulation; }
+}
+@media(max-width:380px) {
+  .topbar .hud-tile:not(.hud-tile-coins) {display:none;}
+  .topbar .hud-bar { flex:1 1 0; }
+  .topbar .resource-panel .cycle-label {display:none;}
+  .topbar .resource-panel-header {padding:0 2px;}
+}
+
+/* Landscape/short-screen action feedback must never disappear with the footer. */
+#game-action-toast {
+  position:absolute;z-index:29;pointer-events:none;
+  top:calc(var(--hud-top-occupied, 64px) + 6px);
+  left:50%;transform:translateX(-50%);
+  width:max-content;max-width:calc(100% - 28px);
+  padding:9px 14px;border-radius:12px;border:1px solid rgba(118,226,200,.7);
+  color:#f5fff9;background:rgba(7,35,44,.96);box-shadow:0 12px 28px #0009;
+  font-size:12px;font-weight:700;line-height:1.7;text-align:center;direction:rtl;
+}
+#game-action-toast[hidden] {display:none!important;}
+html[dir="ltr"] #game-action-toast {direction:ltr;}
+
+/* Accessible, cancellable confirmation for irreversible actions. */
+.game-confirm-dialog {
+  width:min(430px,calc(100vw - 28px));
+  max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  margin:auto;padding:22px;border:1px solid #ba7e74;border-radius:17px;
+  color:#f4f9fa;background:linear-gradient(150deg,#152b38,#091a26);
+  box-shadow:0 18px 65px #000b;direction:rtl;text-align:start;
+}
+html[dir="ltr"] .game-confirm-dialog {direction:ltr;}
+.game-confirm-dialog::backdrop {background:rgba(1,8,14,.77);backdrop-filter:blur(2px);}
+.game-confirm-dialog h2 {font-size:19px;line-height:1.5;margin:0 0 12px;}
+.game-confirm-dialog p {font-size:13px;line-height:1.9;color:#d0dfe0;margin:0 0 20px;}
+.game-confirm-actions {display:flex;gap:10px;flex-wrap:wrap;}
+.game-confirm-dialog button {
+  flex:1 1 120px;min-height:48px;min-width:44px;padding:11px 14px;
+  border:1px solid #577787;border-radius:11px;background:#234351;
+  color:#f0faf9;font:700 13px inherit;cursor:pointer;touch-action:manipulation;
+}
+.game-confirm-dialog .game-confirm-accept {background:#9a3840;border-color:#e18e8e;color:white;}
+.game-confirm-dialog button:focus-visible {outline:3px solid #a7ffe3;outline-offset:2px;}
