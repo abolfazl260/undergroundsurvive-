@@ -633,3 +633,135 @@ html.native-android #app > .topbar .screen-fullscreen {display:none!important;}
 @media(prefers-reduced-motion:reduce) {
   #app > .resource-panel[data-expanded="true"] .resource-details {animation:none;}
 }
+
+/* Compact command center: keep all primary controls in at most TWO rows.
+   Secondary actions remain reachable in the existing More sheet. */
+#app #game-sheet .mobile-secondary-actions {display:none;}
+#app #game-sheet[data-sheet="more"] .mobile-secondary-actions {
+  display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;
+  margin:0 0 10px;direction:rtl;
+}
+#app #game-sheet[data-sheet="more"] .mobile-secondary-actions .story-navigation {
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));
+  flex:1 1 260px;gap:8px;margin:0;
+  position:static;inset:auto;transform:none;
+}
+#app #game-sheet[data-sheet="more"] .mobile-secondary-actions .story-navigation > button {
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  width:100%;min-width:44px;min-height:48px;
+  padding:8px;border-radius:10px;font-size:12px;
+  color:#eafff7;border:1px solid #438c8c;background:#133947;
+  white-space:normal;
+}
+#app #game-sheet[data-sheet="more"] .mobile-secondary-actions .story-navigation > button > span,
+#app #game-sheet[data-sheet="more"] .mobile-secondary-actions .story-navigation > button output {
+  display:inline;
+}
+#app #game-sheet[data-sheet="more"] .mobile-secondary-actions .screen-fullscreen {
+  display:grid;place-items:center;position:static;inset:auto;
+  flex:0 0 48px;min-width:48px;width:48px;min-height:48px;height:48px;
+  margin:0;background:#123947;border:1px solid #438c8c;border-radius:10px;
+}
+html.native-android #app #game-sheet[data-sheet="more"] .mobile-secondary-actions .screen-fullscreen {display:none!important;}
+#app #game-sheet[data-sheet="more"] .mobile-secondary-actions button:focus-visible {
+  outline:3px solid #adffe9;outline-offset:2px;
+}
+@media(max-width:1160px) {
+  #app > .topbar {
+    display:grid;
+    grid-template-columns:44px minmax(36px,1fr) minmax(72px,auto) 44px 44px;
+    grid-template-rows:44px 44px;
+    column-gap:clamp(3px,.6vw,8px);row-gap:5px;
+    min-height:0;height:auto;
+    padding:calc(5px + var(--game-safe-top)) max(6px,env(safe-area-inset-right))
+            5px max(6px,env(safe-area-inset-left));
+    background:linear-gradient(180deg,rgba(4,21,32,.94),rgba(5,28,41,.85));
+  }
+  #app > .topbar #menu-toggle {grid-column:1;grid-row:1;}
+  #app > .topbar .brand {grid-column:2;grid-row:1;max-width:100%;min-width:0;}
+  #app > .topbar .hud-bar {grid-column:3;grid-row:1;width:auto;max-width:none;min-width:0;}
+  #app > .topbar .top-resource-control {grid-column:4;grid-row:1;justify-self:center;}
+  #app > .topbar #open-more {grid-column:5;grid-row:1;}
+  #app > .topbar .story-navigation {display:none;}
+  #app > .topbar #action-dock {
+    grid-column:1 / -1;grid-row:2;
+    justify-self:start;align-self:center;
+    width:min(44%,320px);max-width:none;
+    display:flex;gap:5px;
+  }
+  #app > .topbar #action-dock > button {
+    flex:1 1 0;min-width:0;max-width:none;
+    height:44px;min-height:44px;
+    padding:5px 7px;gap:5px;
+    font-size:clamp(10px,1.25vw,13px);
+  }
+  #app > .topbar #action-dock > button .ui-icon {width:19px;height:19px;}
+  #app > .topbar .top-view-controls {
+    grid-column:1 / -1;grid-row:2;
+    justify-self:end;align-self:center;
+    width:min(48%,268px);max-width:none;gap:5px;
+  }
+  #app > .topbar .top-view-controls .zoom-controls {
+    flex:1 1 auto;width:100%;min-width:0;justify-content:space-between;
+  }
+  #app > .topbar .top-view-controls #zoom-level {
+    flex:1 1 auto;min-width:30px;max-width:none;width:auto;
+  }
+  #app > .topbar .top-view-controls .zoom-controls button,
+  #app > .topbar .top-view-controls .zoom-controls button:last-child {
+    flex:0 0 44px;width:44px;min-width:44px;min-height:44px;height:44px;
+  }
+  #app > .topbar .top-view-controls .screen-fullscreen {display:none;}
+  #app > .topbar .top-resource-control .cycle-label {display:none;}
+}
+@media(max-width:850px) {
+  #app > .topbar {
+    grid-template-rows:44px 44px;
+    min-height:0;
+    row-gap:4px;
+  }
+  #app > .topbar .brand {grid-column:2;grid-row:1;justify-self:start;}
+  #app > .topbar .hud-bar {grid-column:3;grid-row:1;}
+  #app > .topbar .top-resource-control {grid-column:4;grid-row:1;}
+  #app > .topbar #open-more {grid-column:5;grid-row:1;}
+  #app > .topbar #action-dock {
+    grid-column:1 / -1;grid-row:2;justify-self:start;justify-content:flex-start;
+    width:43.5%;
+  }
+  #app > .topbar .top-view-controls {
+    grid-column:1 / -1;grid-row:2;justify-self:end;
+    width:55%;
+  }
+  #app > .topbar .top-resource-control .top-resources-text {display:none;}
+  #app > .topbar .top-resource-control #resource-details-toggle {
+    width:44px;min-width:44px;padding:0;
+  }
+  #app > .topbar .brand-name {font-size:11px;}
+  #app > .topbar .hud-bar .hud-tile:not(.hud-tile-coins) {display:flex;}
+}
+@media(max-width:540px) {
+  #app > .topbar .brand-name {display:none;}
+  #app > .topbar .hud-bar .hud-tile:not(.hud-tile-coins) {display:none;}
+  #app > .topbar .hud-bar {justify-content:flex-end;min-width:0;}
+  #app > .topbar #action-dock > button {
+    padding:5px 3px;gap:3px;min-width:0;font-size:10px;
+  }
+  #app > .topbar #action-dock > button .ui-icon {width:17px;height:17px;}
+  #app > .topbar .top-view-controls .zoom-controls {gap:0;}
+  #app > .topbar .top-view-controls #zoom-level {min-width:25px;font-size:10px;}
+}
+@media(max-width:380px) {
+  #app > .topbar {column-gap:3px;padding-inline:4px;}
+  #app > .topbar .hud-bar .hud-tile-coins {min-width:58px;}
+  #app > .topbar #action-dock {width:44%;}
+  #app > .topbar .top-view-controls {width:55%;}
+  #app > .topbar #action-dock > button {font-size:9px;letter-spacing:-.1px;}
+}
+@media(max-height:490px) {
+  #app > .topbar {row-gap:3px;}
+  #app #game-sheet,
+  #app #game-sheet[data-sheet="rooms"],
+  #app #game-sheet[data-sheet="tools"] {
+    max-height:calc(100dvh - var(--hud-top-occupied,100px) - 8px);
+  }
+}
