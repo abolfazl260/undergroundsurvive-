@@ -7,10 +7,18 @@ export const GAME_VIEW = { width: 480, height: 600, worldWidth: 960, worldHeight
 /** Frame the 14-cell playfield rather than its much wider decorative margins. */
 export const GAME_FOCUS = { width: 804, height: 660 } as const;
 
-/** 100% zoom covers the viewport while keeping room artwork at a useful size. */
+/** At phone-portrait sizes keep some vertical map outside the viewport.
+ * Fitting almost the entire 720-unit world into a 660-unit screen left only
+ * ~60 units to scroll, making one-finger vertical panning look unresponsive.
+ * Larger viewports and landscape retain their existing composition.
+ */
+export const PHONE_PORTRAIT_FOCUS_HEIGHT = 540;
+
 export function fitCameraZoom(width: number, height: number): number {
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return 1;
-  return Math.max(width / GAME_FOCUS.width, height / GAME_FOCUS.height);
+  const focusHeight = height > width && width <= 900
+    ? PHONE_PORTRAIT_FOCUS_HEIGHT : GAME_FOCUS.height;
+  return Math.max(width / GAME_FOCUS.width, height / focusHeight);
 }
 
 export interface ZoomLimits { min: number; max: number }
@@ -69,6 +77,23 @@ export function zoomToWorldAnchor(view: Viewport, proposedZoom: number, world: P
 
 export function zoomAt(view: Viewport, proposedZoom: number, screen: Point, limits: ZoomLimits = ZOOM): Viewport {
   return zoomToWorldAnchor(view, proposedZoom, screenToWorld(view, screen), screen, limits);
+}
+
+/** First touch movement must not be discarded when a gesture turns into a drag.
+ * `threshold`, positions and deltas share Phaser's canvas-pixel coordinates.
+ * Return null until the gesture is a drag, so a short tap still edits a cell.
+ */
+export function singlePointerPan(
+  start: Point, previous: Point, current: Point, alreadyDragging: boolean, threshold: number
+): { dragging: boolean; delta: Point | null } {
+  const dragging = alreadyDragging ||
+    Math.hypot(current.x - start.x, current.y - start.y) >= threshold;
+  if (!dragging) return { dragging: false, delta: null };
+  const origin = alreadyDragging ? previous : start;
+  return {
+    dragging: true,
+    delta: { x: current.x - origin.x, y: current.y - origin.y }
+  };
 }
 
 /** Dragging the picture right moves the camera left (screen pixels / zoom). */
