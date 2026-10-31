@@ -3,7 +3,7 @@
   display:inline-flex; align-items:center; justify-content:center; gap:5px;
   flex:0 0 auto; min-height:44px; min-width:44px; padding:7px 10px;
   color:#ccfff0; background:#124b4a; border:1px solid #67c9ba;
-  border-radius:11px; cursor:pointer; touch-action:manipulation; font:700 12px/1.25 inherit;
+  border-radius:11px; cursor:pointer; touch-action:manipulation; font-weight:700; font-size:12px; line-height:1.25; font-family:inherit;
 }
 .online-leaderboard-trigger .ui-icon { width:19px; height:19px; }
 .online-leaderboard-trigger[hidden] { display:none !important; }
