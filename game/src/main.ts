@@ -274,7 +274,8 @@ const scene = new GameScene((snapshot, message) => {
 (progress) => startup.assets(progress),
 (key) => startup.assetUnavailable(key),
 () => startup.worldReady(),
-() => startup.finish(openStartMenu));
+() => startup.finish(openStartMenu),
+(previousLevel, nextLevel) => firstRunTutorial?.roomUpgraded(previousLevel, nextLevel));
 
 // Defer opening the initial modal until the game and loader finish.
 const openStartMenu = setupGameMenu(scene, savedGame !== null, audio, renderAudioControls,
