@@ -1,5 +1,5 @@
 import type { Room } from '../modules/building/placement';
-import type { PowerAllocation } from '../modules/power/network';
+import { appliancePowerDemand, type PowerAllocation } from '../modules/power/network';
 import type { LifeSupportRoomStatus } from '../modules/life-support/lifeSupport';
 import { WATER_CONFIG, type WaterCycle } from '../modules/water/water';
 import type { VentState } from '../modules/air/air';
@@ -36,14 +36,17 @@ export function roomUtilityWarnings(input: RoomUtilityInputs): Map<string, RoomU
 
   for (const room of input.rooms) {
     const circuit = grid.get(room.id);
-    // Dedicated processors consume electricity without a recipe in the
-    // shared ResourceEngine, so their minimum operating cost is explicit.
-    const appliancePower = room.type === 'waterTreatment' ? WATER_CONFIG.recipe.power :
-      room.type === 'kitchen' || room.type === 'ventilation' ? 1 : 0;
+    // The grid already includes appliance demand. Use the same centralized
+    // default only for older/legacy projections that have demand=0.
+    const vent = vents.get(room.id);
+    const applianceEnabled = room.type === 'waterTreatment' ? (cycles.get(room.id)?.enabled ?? true) :
+      room.type === 'ventilation' ? (vent?.enabled ?? true) && (vent?.health ?? 100) > 0 : true;
+    const appliancePower = applianceEnabled ? appliancePowerDemand({
+      ...room, x: 0, y: 0, width: 1, height: 1, level: 1
+    }) : 0;
     const requiredPower = Math.max(circuit?.demand ?? 0, appliancePower);
     const disconnected = input.power.mode === 'physical' &&
       circuit !== undefined && circuit.status !== 'online';
-    const vent = vents.get(room.id);
     const unpoweredVent = room.type === 'ventilation' && input.ventilationHasTicked &&
       !!vent?.enabled && vent.health > 0 && !vent.powered;
     const power = requiredPower > 0 &&
