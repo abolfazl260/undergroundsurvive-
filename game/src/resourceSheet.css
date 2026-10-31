@@ -592,7 +592,6 @@ html.native-android #app > .topbar .screen-fullscreen {display:none!important;}
   #app > .topbar .brand {grid-column:2;grid-row:1;justify-self:start;}
   #app > .topbar .brand-name {display:none;}
   #app > .topbar .hud-bar {grid-column:3;grid-row:1;}
-  #app > .topbar .hud-bar .hud-tile:not(.hud-tile-coins) {display:none;}
   #app > .topbar .top-resource-control {grid-column:4;grid-row:1;}
   #app > .topbar .top-resource-control .top-resources-text {display:none;}
   #app > .topbar .top-resource-control #resource-details-toggle {
@@ -756,6 +755,9 @@ html.native-android #app #game-sheet[data-sheet="more"] .mobile-secondary-action
   #app > .topbar #action-dock {width:44%;}
   #app > .topbar .top-view-controls {width:55%;}
   #app > .topbar #action-dock > button {font-size:9px;letter-spacing:-.1px;}
+}
+@media(max-width:340px) {
+  #app > .topbar .hud-bar .hud-tile:not(.hud-tile-coins) {display:none;}
 }
 @media(max-height:490px) {
   #app > .topbar {row-gap:3px;}
