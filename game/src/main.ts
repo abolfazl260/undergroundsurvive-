@@ -357,7 +357,9 @@ toolButtons.forEach((button) => {
 powerOverlayButton?.addEventListener('click', () => {
   scene.togglePowerOverlay();
   const view = scene.powerView();
-  powerOverlayButton.setAttribute('aria-pressed',String(view.enabled));
+  powerOverlayButton.setAttribute('aria-pressed', String(view.enabled));
+  // The electrical visualization must not remain hidden behind its own sheet.
+  gameDock.showSheet(null);
 });
 confirmUpgrade?.addEventListener('click', () => scene.upgradeSelected());
 bonusButton?.addEventListener('click', () => scene.claimDemoBonus());
