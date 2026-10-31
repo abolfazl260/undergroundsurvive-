@@ -447,6 +447,7 @@ export class GameSession {
   canAfford(cost: number): boolean { return this.purse.canAfford(cost); }
 
   private execute(cost: number, kind: SpendKind, apply: (layout: BuildingLayout) => PlacementResult): CommandResult {
+    if (this.isGameOver) return { ok: false, reason: 'بازی پایان یافته است؛ برای ادامه بازی جدیدی شروع کنید.' };
     // Mutate an isolated candidate first; failed placement must not charge the wallet.
     const candidate = BuildingLayout.restore(this.world.snapshot());
     if (!candidate) return { ok: false, reason: 'اطلاعات نقشه معتبر نیست.' };
@@ -479,6 +480,7 @@ export class GameSession {
   }
 
   upgradeRoom(id: string, operationId?: string): CommandResult {
+    if (this.isGameOver) return { ok: false, reason: 'بازی پایان یافته است.' };
     const details = this.upgradeDetails(id);
     if (!details) return { ok: false, reason: 'اتاق انتخاب‌شده وجود ندارد.' };
     if (!this.world.canEditRoom(this.world.rooms.find((room) => room.id === id)!))
@@ -500,6 +502,7 @@ export class GameSession {
   }
 
   claimDemoBonus(): CommandResult {
+    if (this.isGameOver) return { ok: false, reason: 'بازی پایان یافته است.' };
     if (this.bonusClaimed) return { ok: false, reason: 'کمک‌هزینهٔ آزمایشی قبلاً دریافت شده است.' };
     if (!this.purse.credit(DEMO_BONUS_COINS, 'demo-bonus'))
       return { ok: false, reason: 'افزایش موجودی ممکن نیست.' };
