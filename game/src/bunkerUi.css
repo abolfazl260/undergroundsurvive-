@@ -292,7 +292,7 @@ html[dir="ltr"] .game-confirm-dialog {direction:ltr;}
 .game-confirm-dialog button {
   flex:1 1 120px;min-height:48px;min-width:44px;padding:11px 14px;
   border:1px solid #577787;border-radius:11px;background:#234351;
-  color:#f0faf9;font:700 13px inherit;cursor:pointer;touch-action:manipulation;
+  color:#f0faf9;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation;
 }
 .game-confirm-dialog .game-confirm-accept {background:#9a3840;border-color:#e18e8e;color:white;}
 .game-confirm-dialog button:focus-visible {outline:3px solid #a7ffe3;outline-offset:2px;}
