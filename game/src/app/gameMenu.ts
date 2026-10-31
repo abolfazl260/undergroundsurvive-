@@ -5,7 +5,7 @@ import { loadMenuSettings, saveMenuSettings, type MenuSettings } from './menuSet
 import { getLocale, setLocale, subscribeLocaleChange, t, formatNumber } from '../i18n';
 import { renderPolicyContent } from './policyContent';
 
-type MenuScreen = 'home' | 'pause' | 'settings' | 'policies' | 'confirm-new';
+type MenuScreen = 'home' | 'pause' | 'settings' | 'policies' | 'confirm-new' | 'defeat';
 type ReturnScreen = 'home' | 'pause';
 type PolicyReturnScreen = ReturnScreen | 'settings';
 
@@ -42,6 +42,52 @@ export function setupGameMenu(
   let returnScreen: ReturnScreen = 'home';
   let policyReturnScreen: PolicyReturnScreen = 'home';
   let settings: MenuSettings = loadMenuSettings();
+
+  // Reuse the existing modal to prevent a second competing overlay on mobile.
+  const defeat = document.createElement('section');
+  defeat.className = 'menu-screen--defeat';
+  defeat.dataset.menuScreen = 'defeat';
+  defeat.hidden = true;
+  const defeatKicker = document.createElement('p');
+  defeatKicker.className = 'defeat-kicker';
+  const defeatTitle = document.createElement('h2');
+  defeatTitle.id = 'menu-defeat-title';
+  defeatTitle.tabIndex = -1;
+  const defeatMeter = document.createElement('div');
+  defeatMeter.className = 'defeat-meter';
+  defeatMeter.setAttribute('aria-label', 'Air 0 percent');
+  defeatMeter.textContent = '0%';
+  const defeatDescription = document.createElement('p');
+  defeatDescription.className = 'defeat-description';
+  const defeatRestart = document.createElement('button');
+  defeatRestart.type = 'button';
+  defeatRestart.dataset.menuAction = 'restart-after-defeat';
+  defeatRestart.className = 'defeat-restart';
+  defeat.append(defeatKicker, defeatTitle, defeatMeter, defeatDescription, defeatRestart);
+  dialog.append(defeat);
+
+  function renderDefeat(): void {
+    const en = getLocale() === 'en';
+    defeat.dir = en ? 'ltr' : 'rtl';
+    defeatKicker.textContent = en ? 'SHELTER EMERGENCY' : 'وضعیت اضطراری پناهگاه';
+    defeatTitle.textContent = en ? 'Game over' : 'بازی تمام شد';
+    defeatMeter.setAttribute('aria-label', en ? 'Air quality zero percent' : 'کیفیت هوا صفر درصد');
+    defeatDescription.textContent = en
+      ? 'The shelter ran out of breathable air. You lost. Starting again permanently resets this run and its progress.'
+      : 'هوای قابل تنفس پناهگاه به صفر رسید و شما شکست خوردید. شروع دوباره، پیشرفت این دور را به‌طور کامل بازنشانی می‌کند.';
+    defeatRestart.textContent = en ? 'Start a new game' : 'شروع بازی جدید';
+  }
+
+  function showDefeat(): void {
+    scene.pauseGameplay();
+    playing = false;
+    hasSave = true;
+    renderDefeat();
+    showScreen('defeat');
+    menuButton!.hidden = true;
+    if (!dialog!.open) dialog!.showModal();
+    defeatRestart.focus();
+  }
 
   function renderHome(): void {
     // Preserve the decorated button and its click handler when changing the label.
@@ -99,6 +145,7 @@ export function setupGameMenu(
   }
 
   function resume(): void {
+    if (scene.isGameOver) { showDefeat(); return; }
     playing = true;
     hasSave = true;
     renderHome();
@@ -110,6 +157,7 @@ export function setupGameMenu(
   }
 
   function openPauseMenu(): void {
+    if (scene.isGameOver) { showDefeat(); return; }
     if (!playing || dialog!.open) return;
     scene.pauseGameplay();
     showScreen('pause');
@@ -147,6 +195,7 @@ export function setupGameMenu(
     renderHome();
     renderPauseHeading();
     renderAudio();
+    if (screen === 'defeat') renderDefeat();
     if (screen === 'policies') renderPolicyContent(policyContent!, getLocale());
   });
   mute.addEventListener('click', () => changeAudio({ muted: !audio.getSettings().muted }));
@@ -170,6 +219,10 @@ export function setupGameMenu(
       case 'new':
         returnScreen = screen === 'pause' ? 'pause' : 'home';
         showScreen('confirm-new');
+        break;
+      case 'restart-after-defeat':
+        scene.resetLayout();
+        resume();
         break;
       case 'confirm-new':
         scene.resetLayout();
@@ -196,6 +249,7 @@ export function setupGameMenu(
 
   dialog.addEventListener('cancel', (event) => {
     event.preventDefault();
+    if (screen === 'defeat') return;
     if (screen === 'pause') resume();
     else if (screen === 'policies') showScreen(policyReturnScreen);
     else if (screen !== 'home') showScreen(returnScreen);
@@ -209,5 +263,8 @@ export function setupGameMenu(
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) openPauseMenu();
   });
-  return () => { if (!dialog.open) dialog.showModal(); };
+  return (forceDefeat = false) => {
+    if (forceDefeat || scene.isGameOver) { showDefeat(); return; }
+    if (!dialog.open) dialog.showModal();
+  };
 }
