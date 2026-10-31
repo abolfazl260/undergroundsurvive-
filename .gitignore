@@ -13,3 +13,12 @@ game/android/
 game/ios/
 
 game/ui-evidence/
+
+# Android signing credentials and build outputs must never be committed.
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.apk
+*.aab
+*.hprof
