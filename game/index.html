@@ -11,9 +11,112 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet" />
     <title>Underground Survive — Building Prototype</title>
+    <style>
+      /* Inline critical CSS: visible before the game bundle or remote fonts load. */
+      [hidden] { display: none !important; }
+      #startup-screen { position:fixed; inset:0; z-index:2147483647; display:grid; place-items:center;
+        overflow:auto; padding:max(22px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right))
+        max(22px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
+        font-family:Vazirmatn,Tahoma,Arial,sans-serif; color:#eaf5f4;
+        background:radial-gradient(ellipse at 50% 15%,#193b45 0%,#0c1b2a 42%,#040b13 100%);
+        box-sizing:border-box; transition:opacity .22s ease,visibility .22s ease; }
+      #startup-screen *,#startup-screen *::before,#startup-screen *::after { box-sizing:border-box; }
+      #startup-screen::before { content:'';position:absolute;inset:0;pointer-events:none;opacity:.24;
+        background:repeating-linear-gradient(0deg,transparent 0 37px,#64958f24 38px 39px),
+        repeating-linear-gradient(90deg,transparent 0 43px,#64958f1d 44px 45px);
+        mask-image:linear-gradient(transparent,#000 20%,#000 90%,transparent); }
+      .startup-shell { position:relative; width:min(100%,470px); margin:auto; text-align:center; }
+      .startup-kicker { display:block;color:#83d6c0;font:700 11px/1.5 system-ui,sans-serif;
+        letter-spacing:3.5px;margin:0 0 9px;direction:ltr; }
+      .startup-brand { font:900 clamp(23px,6.5vw,37px)/1.24 system-ui,Arial,sans-serif;
+        letter-spacing:1.7px;color:#f5f9ff;margin:0;direction:ltr; }
+      .startup-brand span {color:#79d9bd}
+      .startup-caption { margin:10px 0 0; color:#adc6cb; font-size:12px; line-height:2; }
+      .startup-graphic { position:relative; height:186px;margin:23px auto 24px; width:min(88%,370px);
+        border-top:2px solid #90b6b5; border-radius:6px 6px 24px 24px; overflow:hidden;
+        background:linear-gradient(180deg,#2342506a,#0c202b 38%,#081520 100%);box-shadow:0 25px 80px #0006; }
+      .startup-graphic::before { content:'';position:absolute;inset:0;
+        background:repeating-linear-gradient(180deg,transparent 0 33px,#a8d6d11a 34px 35px);
+        opacity:.85; }
+      .startup-shaft {position:absolute;top:-2px;bottom:0;left:50%;width:78px;transform:translateX(-50%);
+        border-inline:5px solid #668783; background:linear-gradient(90deg,#193940,#0e242d 49%,#193940);
+        box-shadow:inset 0 0 0 2px #304f54,0 0 30px #041019; }
+      .startup-shaft::before {content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 26px,#91b1ac55 27px 29px); }
+      .startup-lift {position:absolute;top:37px;left:50%;width:56px;height:47px;transform:translateX(-50%);
+        border:3px solid #d0dacf;border-radius:5px 5px 2px 2px;background:linear-gradient(90deg,#3b646a 0 47%,#223b44 48% 52%,#3b646a 53%);
+        box-shadow:0 0 21px #8fe1b956,0 9px 20px #0008; animation:startup-descend 3.3s ease-in-out infinite alternate; }
+      .startup-lift::before {content:'';position:absolute;inset:8px 8px 7px;border:1px solid #d3e8d7ad;border-radius:1px; }
+      .startup-level {position:absolute;width:calc(50% - 51px);height:27px;display:flex;align-items:center;gap:6px;
+        padding:0 7px;background:linear-gradient(90deg,#27454a,#17313d);border:1px solid #58706e;border-radius:3px; }
+      .startup-level::before {content:'';width:10px;height:10px;border-radius:2px;background:#e3ba72;box-shadow:0 0 12px #edb46070; }
+      .startup-level::after {content:'';height:2px;flex:1;background:#77c9b2;opacity:.45; }
+      .startup-level.a {top:46px;right:10px}.startup-level.b {top:89px;left:10px}
+      .startup-level.c {top:137px;right:10px}
+      .startup-pulse {position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#91e8c0,transparent);
+        box-shadow:0 0 24px #73daba;animation:startup-sweep 2.8s ease-in-out infinite; }
+      .startup-stage {font-size:14px;font-weight:800;min-height:27px;line-height:1.9;margin:0 0 14px;color:#f0f9f8;}
+      .startup-progress-head {display:flex;justify-content:space-between;align-items:center;gap:12px;
+        color:#9cb9c0;font-size:11px;margin:0 0 9px;}
+      #startup-percent {font:700 14px/1 system-ui,sans-serif;color:#9de9cb;direction:ltr;unicode-bidi:isolate;}
+      #startup-meter {height:9px;border-radius:99px;background:#152d38;border:1px solid #31525d;overflow:hidden;}
+      #startup-fill {display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#46aa96,#a4ebc3);
+        box-shadow:0 0 18px #88e6c060;transition:width .18s linear;}
+      .startup-detail {font-size:11px;line-height:1.8;min-height:20px;color:#93aeb5;margin:14px 0 0;}
+      #startup-retry {margin:14px auto 0;background:#286c5b;border:1px solid #79d7b5;border-radius:10px;
+        padding:11px 24px;font:700 13px Vazirmatn,Tahoma,sans-serif;color:#fff;cursor:pointer;}
+      #startup-retry:focus-visible {outline:3px solid #d9ffea;outline-offset:3px;}
+      #startup-screen.startup-screen--done {opacity:0;visibility:hidden;pointer-events:none;}
+      @keyframes startup-descend {from{transform:translate(-50%,0)}to{transform:translate(-50%,89px)}}
+      @keyframes startup-sweep {from{transform:translateY(0);opacity:.35}to{transform:translateY(-175px);opacity:1}}
+      @media(max-width:420px) {
+        .startup-graphic {height:160px;width:100%;margin-block:18px 22px}
+        .startup-level.a{top:35px}.startup-level.b{top:73px}.startup-level.c{top:116px}
+        .startup-graphic .startup-pulse {animation:none;}
+        .startup-caption{font-size:11px}
+      }
+      @media(prefers-reduced-motion:reduce) {
+        #startup-screen, #startup-fill{transition:none}
+        .startup-lift,.startup-pulse{animation:none}
+      }
+    </style>
   </head>
   <body>
-    <div id="app">
+    <section id="startup-screen" dir="rtl" aria-label="در حال آماده‌سازی بازی">
+      <div class="startup-shell">
+        <span class="startup-kicker">SURVIVAL PROTOCOL // 90 DAYS</span>
+        <h1 class="startup-brand">UNDERGROUND <span>SURVIVE</span></h1>
+        <p class="startup-caption">پناهگاهی در دل شهر خاموش</p>
+        <div class="startup-graphic" aria-hidden="true">
+          <div class="startup-level a"></div><div class="startup-level b"></div><div class="startup-level c"></div>
+          <div class="startup-shaft"></div><div class="startup-lift"></div><div class="startup-pulse"></div>
+        </div>
+        <p id="startup-stage" class="startup-stage" role="status" aria-live="polite">در حال راه‌اندازی پناهگاه…</p>
+        <div class="startup-progress-head"><span>آماده‌سازی بازی</span><output id="startup-percent">۰٪</output></div>
+        <div id="startup-meter" role="progressbar" aria-label="پیشرفت آماده‌سازی بازی" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span id="startup-fill"></span>
+        </div>
+        <p id="startup-detail" class="startup-detail">منابع لازم برای اجرای بازی آماده می‌شوند.</p>
+        <button id="startup-retry" type="button" hidden>تلاش مجدد</button>
+      </div>
+    </section>
+    <script>
+      // The fallback also works when the game JavaScript never downloads.
+      window.setTimeout(function () {
+        var splash = document.getElementById('startup-screen');
+        if (!splash || splash.hasAttribute('data-boot-mounted')) return;
+        var stage = document.getElementById('startup-stage');
+        var retry = document.getElementById('startup-retry');
+        if (stage) stage.textContent = 'راه‌اندازی بازی طول کشیده است. اتصال را بررسی کنید.';
+        if (retry) {
+          retry.hidden = false;
+          retry.addEventListener('click', function () { window.location.reload(); }, { once:true });
+        }
+      }, 30000);
+    </script>
+    <noscript><p style="position:fixed;bottom:8px;inset-inline:16px;z-index:2147483647;color:#fff;text-align:center;background:#4d302f;padding:12px">
+      برای اجرای بازی باید JavaScript را فعال کنید.
+    </p></noscript>
+    <div id="app" inert aria-hidden="true">
       <header class="topbar">
         <div class="brand">
           <span class="brand-mark" data-ui-icon="bunker" aria-hidden="true">◆</span>
@@ -67,8 +170,12 @@
             <div class="resource-item"><span>جیره</span><strong id="resource-meal">۱۲ / ۳۰</strong></div>
             <div class="resource-item"><span>سنگ معدن</span><strong id="resource-ore">۰ / ۳۰</strong></div>
             <div class="resource-item"><span>تجهیزات</span><strong id="resource-supplies">۰ / ۳۰</strong></div>
+            <div class="resource-item life-resource" data-no-i18n><strong id="life-resource-water">آب ۰ / ۳۰</strong></div>
+            <div class="resource-item life-resource" data-no-i18n><strong id="life-resource-oxygen">اکسیژن ۱۸ / ۳۰</strong></div>
           </div>
           <p id="resource-warning" role="status" aria-live="polite">تولید هر ۵ ثانیه از زمان فعال بازی محاسبه می‌شود.</p>
+          <p id="life-resource-warning" role="status" aria-live="polite" data-no-i18n>ذخیرهٔ اضطراری فعال است.</p>
+          <section id="power-panel" class="power-panel" data-no-i18n aria-label="شبکه توزیع برق"></section>
         </div>
       </section>
       <main class="workspace">
@@ -130,6 +237,10 @@
             <button type="button" class="tool-button ui-button" data-tool="upgrade" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="arrow-up" aria-hidden="true">↑</span><span class="ui-control-label">ارتقا</span></button>
             <button type="button" class="tool-button ui-button" data-tool="remove" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="trash" aria-hidden="true">×</span><span class="ui-control-label">تخریب</span></button>
             <button type="button" class="tool-button ui-button" data-tool="navigate" aria-label="مسیریابی آدمک" aria-pressed="false"><span class="ui-control-icon" data-ui-icon="route" aria-hidden="true">•</span><span class="ui-control-label">آدمک</span></button>
+            <button type="button" class="tool-button ui-button" data-tool="cable" aria-pressed="false">کابل · ۱۵</button>
+            <button type="button" class="tool-button ui-button" data-tool="riser" aria-pressed="false">رابط عمودی · ۳۵</button>
+            <button type="button" class="tool-button ui-button" data-tool="cutCable" aria-pressed="false">حذف کابل</button>
+            <button type="button" class="tool-button ui-button" id="power-overlay-toggle" aria-pressed="false" aria-label="نمایش کابل و اتاق‌های بی‌برق">نمایش شبکه برق</button>
           </div>
           <section class="upgrade-panel" id="upgrade-panel" aria-label="جزئیات ارتقای اتاق" aria-live="polite" hidden>
             <strong id="upgrade-title">یک اتاق انتخاب کنید</strong>

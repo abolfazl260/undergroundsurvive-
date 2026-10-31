@@ -15,7 +15,7 @@ export function setupGameMenu(
   savedGameExists: boolean,
   audio: AudioManager,
   onAudioChange: () => void
-): void {
+): () => void {
   const dialog = document.querySelector<HTMLDialogElement>('#game-menu-dialog');
   const menuButton = document.querySelector<HTMLButtonElement>('#menu-toggle');
   const toolsPolicyButton = document.querySelector<HTMLButtonElement>('#menu-policies-from-tools');
@@ -34,7 +34,7 @@ export function setupGameMenu(
   const musicValue = document.querySelector<HTMLOutputElement>('#menu-music-volume-value');
   const effectsValue = document.querySelector<HTMLOutputElement>('#menu-effects-volume-value');
   if (!dialog || !menuButton || !continueButton || !continueLabel || !pauseTitle || !newButton || !reducedMotion || !mute ||
-      !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue || !language || !policyContent) return;
+      !musicEnabled || !effectsEnabled || !musicVolume || !effectsVolume || !musicValue || !effectsValue || !language || !policyContent) return () => {};
 
   let playing = false;
   let hasSave = savedGameExists;
@@ -131,7 +131,7 @@ export function setupGameMenu(
   language.value = getLocale();
   reducedMotion.checked = settings.reducedMotion;
   showScreen('home');
-  dialog.showModal();
+  // Let the game finish booting before placing this modal in the top layer.
   menuButton.addEventListener('click', openPauseMenu);
   toolsPolicyButton?.addEventListener('click', () => {
     if (!playing || dialog!.open) return;
@@ -209,4 +209,5 @@ export function setupGameMenu(
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) openPauseMenu();
   });
+  return () => { if (!dialog.open) dialog.showModal(); };
 }

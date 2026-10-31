@@ -1,28 +1,18 @@
-# Issue #94 — Dedicated room interiors
+# Issue #94 — Dedicated Level 1 room artwork
 
-## Implemented in the feature branch
-- Four distinct painterly/industrial underground interiors (kitchen, ventilation,
-  recreation and guard post), without characters or overlaid labels.
-- No shared habitat/command frames for recreation/guardPost.
-- A single four-frame WebP atlas with compressed 160×53 and 480×159
-  frame variants. Frame order stays fixed: kitchen, ventilation, recreation,
-  guardPost.
-- `roomArtCandidates` prioritizes the existing special Level 2 kitchen art,
-  then the new dedicated Level 1 art. Other room art is unaffected.
-- Reuses the existing graphics fallback if WebP assets are unavailable.
-- Existing ventilation status text and scene overlays remain intact.
+## Implemented
+- Four independent, consistent industrial cutaway interiors with no people, baked-in names or redundant colored borders.
+- Real, source-derived WebP atlas for kitchen, recreation, guard post and ventilation.
+- **Atlas layout:** 2 columns × 2 rows, row-major frames: kitchen (0), recreation (1), guardPost (2), ventilation (3).
+- **1×:** 320×106 px atlas, 160×53 px per frame.
+- **HD 3.5×:** 1120×372 px atlas, 560×186 px per frame.
+- Registered in `roomArt.ts` and preloaded by `GameScene`. Distinct Level 1 art is preferred; existing Level 2 artwork still has highest priority.
+- Ventilation status overlay, nameplate and corridor paint remain unchanged. Failed image requests keep the safe placeholder.
 
-## Quality gate
-- Visual design must be reviewed and approved before merging this draft PR.
-- Inspect 75%, 100%, and 250% camera zoom; mobile portrait, mobile landscape,
-  tablet and desktop screens.
-- Run `cd game && npm test && npm run build`.
-- Confirm no image duplicate, crop clipping, room-border doubling or text
-  baked into the new WebP sheets. Keep the existing Level 2 kitchen frame.
+## Verification
+- `cd game && npm test && npm run build`.
+- Confirm correct mapping, real WebP dimensions, the existing five first Level 2 frames and nine other new Level 2 frames.
+- Inspect 75%, 100%, 250% zoom, mobile portrait/landscape and desktop.
+- No gameplay, economy, persistence, character navigation or room footprint changes.
 
-## Scope
-No changes to room economics, construction constraints, save states, upgrades
-or character movement.
-
-Reference: issue #94. Asset art is original image-generation output,
-cropped from finished room panels with the UI labels excluded.
+Artwork: original, high-resolution bunker-room images, not enlarged from the low-resolution spritesheet.

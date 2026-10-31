@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { parseManifest, parseChapter, safeContentPath, contentUrl } from './content';
 
 const validChapter = () => ({
@@ -60,5 +61,16 @@ describe('versioned story data contract', () => {
       .toBe('https://example.com/undergroundsurvive-/content/media/images/scene.png');
     expect(contentUrl('manifest.json', '/', 'https://example.com/undergroundsurvive-/'))
       .toBe('https://example.com/content/manifest.json');
+  });
+
+  it('keeps developer-platform references out of both localized sample chapters', () => {
+    for (const file of ['demo-shelter.json', 'demo-shelter.en.json']) {
+      const chapter = parseChapter(JSON.parse(readFileSync(
+        new URL('../../../public/content/story/' + file, import.meta.url), 'utf8'
+      )));
+      const copy = [chapter.title, ...chapter.scenes.flatMap((scene) =>
+        [scene.title ?? '', scene.text])].join(' ');
+      expect(copy).not.toMatch(/git[ -]?hub|گیت[ ‌-]*هاب/i);
+    }
   });
 });

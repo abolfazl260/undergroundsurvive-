@@ -247,3 +247,27 @@ html[dir="ltr"] .topbar .resource-panel[data-expanded="true"] .resource-details 
 .play-area:has(.upgrade-panel:not([hidden])) .zoom-controls {
   top:calc(var(--hud-top-occupied, 70px) + 12px);
 }
+
+/* Grid diagnostics live inside the existing collapsible resource HUD. */
+.power-panel { margin-top: 8px; border-top: 1px solid #4d7b88; padding-top: 8px;
+  color: #e8f8f9; font-size: 12px; line-height: 1.45; }
+.power-panel p { margin: 5px 0; }
+.power-panel button { min-height: 36px; padding: 6px 9px; border-radius: 8px;
+  border: 1px solid #678f9c; background: rgba(15,44,56,.9); color: #fff; cursor: pointer; }
+.power-panel button[aria-pressed="true"] { background: #1c685b; border-color: #8ceaca; }
+.power-network-summary { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.power-room-list { max-height: 180px; overflow-y: auto; overscroll-behavior: contain; }
+.power-room-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px;
+  align-items: center; border-bottom: 1px solid #395865; padding: 5px 0; }
+.power-room-row[data-status="disconnected"],.power-room-row[data-status="shed"] {
+  border-inline-start: 3px solid #e39b69; padding-inline-start: 5px; }
+.power-priority-options { display: flex; gap: 4px; flex-wrap: wrap; }
+.power-priority-options button { min-height: 34px; }
+@media (pointer: coarse) { .power-panel button { min-height: 44px; } }
+
+/* Life-support readouts share the existing mobile-first resource panel. */
+.topbar #life-resource-warning {font-size:11px; margin:8px 0 0; line-height:1.5;}
+.topbar #life-resource-warning[data-shortage="true"] {color:#ffd9a1;}
+.topbar .life-resource strong {direction:auto; text-align:start;}
+#water-panel .life-support-network {padding:10px 0; border-block:1px solid #355664;}
+#water-panel .life-support-network .life-support-valve {min-height:44px; width:100%; display:block; margin-block:6px; text-align:start; overflow-wrap:anywhere;}

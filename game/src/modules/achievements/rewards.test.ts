@@ -80,7 +80,7 @@ describe('achievement reward economy', () => {
     expect(migrated).not.toBeNull();
     const payout = rewardForAchievement('first-room') + rewardForAchievement('first-cycles');
     expect(migrated.wallet.balance).toBe(legacy.wallet.balance + payout);
-    expect(migrated.snapshot().schemaVersion).toBe(14);
+    expect(migrated.snapshot().schemaVersion).toBe(16);
     expect(migrated.snapshot().achievements.rewardGrantedAchievementIds)
       .toEqual(['first-room', 'first-cycles']);
     const again = GameSession.restore(migrated.snapshot())!;

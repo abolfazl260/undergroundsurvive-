@@ -133,7 +133,7 @@ export class AirSystem {
   }
 
   /** Called after the resource recipe tick, exactly once per 5-second simulation tick. */
-  advanceTo(nowMs: number, rooms: readonly Room[], population: number, emissions: number, power: AirPower): number {
+  advanceTo(nowMs: number, rooms: readonly Room[], population: number, emissions: number, power: AirPower, poweredRooms?: ReadonlySet<string>): number {
     if (!Number.isSafeInteger(nowMs) || nowMs < this.state.nowMs ||
       nowMs - this.state.nowMs > 60_000 || nowMs % AIR_CONFIG.tickMs !== 0 ||
       this.state.nowMs % AIR_CONFIG.tickMs !== 0) return 0;
@@ -141,7 +141,8 @@ export class AirSystem {
     let ticks = 0;
     while (this.state.nowMs < nowMs) {
       const units = this.state.vents.map(vent => ({
-        ...vent, level: rooms.find(r => r.id === vent.id)!.level,
+        ...vent, enabled: vent.enabled && (!poweredRooms || poweredRooms.has(vent.id)),
+        level: rooms.find(r => r.id === vent.id)!.level,
       }));
       const result = simulateAir(AIR_CONFIG.tickMs, population, emissions,
         { quality: this.state.quality, units }, power.available());

@@ -16,9 +16,11 @@ import './fullscreen.css';
 import './gameHud.css';
 import './gameMenu.css';
 import './achievements.css';
+import './bunkerUi.css';
 import { createIcon } from './ui/icons';
 import { enhanceIcons, setButtonLabel, setPressed } from './ui/components';
 import { createGame } from './app/createGame';
+import { mountStartupScreen } from './startupScreen';
 import { GameScene, type ToolMode } from './app/GameScene';
 import { ZOOM } from './app/viewport';
 import { AudioManager } from './modules/audio/AudioManager';
@@ -32,9 +34,12 @@ import type { UpgradeDetails } from './modules/economy/session';
 import type { TransactionKind } from './modules/economy/wallet';
 import type { GameSnapshot } from './modules/economy/session';
 import { mountResourcePanel } from './app/ui/resourcePanel';
+import { mountPowerPanel } from './app/ui/powerPanel';
 import { formatNumber, loadLocale, localizeGameMessage, mountStaticTranslations, setLocale, subscribeLocaleChange, t } from './i18n';
 
 setLocale(loadLocale());
+const startup = mountStartupScreen();
+startup.restoring();
 mountStaticTranslations(document);
 enhanceIcons();
 const gameDock = mountGameDock();
@@ -43,10 +48,14 @@ const audio = new AudioManager();
 const status = document.querySelector<HTMLElement>('#status');
 const renderHud = mountHud(document);
 const resourcePanel = mountResourcePanel(document);
+const renderPower = mountPowerPanel(document,
+  () => scene.activatePowerNetwork(),
+  (id,priority) => scene.prioritizePower(id,priority));
+const powerOverlayButton = document.querySelector<HTMLButtonElement>('#power-overlay-toggle');
 const savedGame = loadLocalBase();
 const announceMigrationRewards = savedGame !== null &&
   !(typeof savedGame === 'object' && 'schemaVersion' in savedGame &&
-    savedGame.schemaVersion === 14);
+    typeof savedGame.schemaVersion === 'number' && savedGame.schemaVersion >= 14);
 const renderAchievements = mountAchievements(document, announceMigrationRewards);
 const bonusButton = document.querySelector<HTMLButtonElement>('#demo-bonus');
 const historyNode = document.querySelector<HTMLElement>('#transaction-list');
@@ -136,7 +145,6 @@ renderDigLabel();
 
 let activeRoom: BuildableRoomType = 'habitat';
 let activeTool: ToolMode = 'build';
-
 let lastSnapshot: GameSnapshot | null = null;
 let lastSaved = false;
 let lastMessage = '';
@@ -147,6 +155,9 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   renderHud(snapshot, saved);
   renderAchievements(snapshot);
   resourcePanel.render(snapshot);
+  const powerView = scene.powerView();
+  renderPower(snapshot,powerView.allocation);
+  if(powerOverlayButton)powerOverlayButton.setAttribute('aria-pressed',String(powerView.enabled));
   renderWater(snapshot);
   renderAir(snapshot);
   renderAirHud(snapshot);
@@ -180,7 +191,7 @@ const renderCommand = mountCommandPanel(document.querySelector<HTMLElement>('#co
 const renderRadiation = mountRadiationPanel(document.querySelector<HTMLElement>('#radiation-panel')!,()=>{scene.toggleRadiation();if(lastSnapshot)renderRadiation(lastSnapshot);gameDock.showSheet(null);},()=>scene.radiationView(),()=>scene.cleanupRadiation(),()=>scene.filterRadiation());
 const renderSurvivors=mountSurvivorPanel(document.querySelector<HTMLElement>('#survivor-panel')!,(id,room)=>scene.assignSurvivor(id,room),id=>scene.releaseSurvivor(id));
 const renderResearch = mountResearchPanel(document.querySelector<HTMLElement>('#research-panel')!,id=>scene.startResearch(id));
-const renderWater = mountWaterPanel(document.querySelector<HTMLElement>('#water-panel')!, () => scene.collectWater(), id => scene.toggleWater(id));
+const renderWater = mountWaterPanel(document.querySelector<HTMLElement>('#water-panel')!, () => scene.collectWater(), id => scene.toggleWater(id), (a, b) => scene.toggleLifeSupportLink(a, b));
 const renderAir = mountAirPanel(document.querySelector<HTMLElement>('#air-panel')!, id => scene.toggleVent(id), id => scene.repairVent(id));
 const renderAirHud = mountAirHud(document);
 const renderKitchen = mountKitchenPanel(document.querySelector<HTMLElement>('#kitchen-panel')!,
@@ -199,10 +210,16 @@ const scene = new GameScene((snapshot, message) => {
 }, (cue) => audio.play(cue), () => audio.activate(), (details) => {
   upgradeSelection = details;
   renderUpgradePanel();
-}, (seconds) => resourcePanel.renderCountdown(seconds));
+}, (seconds) => resourcePanel.renderCountdown(seconds),
+(progress) => startup.assets(progress),
+(key) => startup.assetUnavailable(key),
+() => startup.worldReady(),
+() => startup.finish(openStartMenu));
 
+// Defer opening the initial modal until the game and loader finish.
+const openStartMenu = setupGameMenu(scene, savedGame !== null, audio, renderAudioControls);
+startup.assets(0);
 createGame(scene);
-setupGameMenu(scene, savedGame !== null, audio, renderAudioControls);
 function renderAudioControls(): void {
   const settings = audio.getSettings();
   if (audioMute) {
@@ -271,6 +288,12 @@ function updateSelectedButtons(): void {
     const active = button.dataset.tool === activeTool;
     setPressed(button, active);
   });
+  const selected = document.querySelector<HTMLElement>('#selected-room-summary');
+  if (selected) {
+    const title = Array.from(roomButtons).find((button) => button.dataset.room === activeRoom)
+      ?.querySelector<HTMLElement>('strong')?.textContent ?? t('انتخاب اتاق');
+    selected.textContent = title + ' · ' + formatCoins(BUILD_COSTS[activeRoom]) + ' ' + t('سکه');
+  }
   renderUpgradePanel();
 }
 
@@ -282,8 +305,14 @@ roomButtons.forEach((button) => {
     activeTool = 'build';
     scene.selectRoom(type);
     updateSelectedButtons();
-    gameDock.showSheet(null);
+    // Picking an illustrated card updates the preview. The explicit action below
+    // closes the gallery and makes room placement available on the world.
   });
+});
+
+document.querySelector<HTMLButtonElement>('#confirm-room-placement')?.addEventListener('click', () => {
+  scene.selectRoom(activeRoom);
+  gameDock.showSheet(null);
 });
 
 toolButtons.forEach((button) => {
@@ -305,11 +334,18 @@ toolButtons.forEach((button) => {
   });
 });
 
+powerOverlayButton?.addEventListener('click', () => {
+  scene.togglePowerOverlay();
+  const view = scene.powerView();
+  powerOverlayButton.setAttribute('aria-pressed',String(view.enabled));
+});
 confirmUpgrade?.addEventListener('click', () => scene.upgradeSelected());
 bonusButton?.addEventListener('click', () => scene.claimDemoBonus());
 document.querySelector<HTMLButtonElement>('#reset-layout')?.addEventListener('click', () => {
   scene.resetLayout();
 });
+
+updateSelectedButtons();
 
 const storyButton = document.querySelector<HTMLButtonElement>('#story-open');
 if (storyButton) mountStoryViewer(storyButton);
@@ -324,7 +360,7 @@ subscribeLocaleChange(() => {
     if (cost) cost.setAttribute('aria-label', t('هزینه: {value} سکه', { value: formatCoins(BUILD_COSTS[type]) }));
   });
   renderDigLabel();
-  renderUpgradePanel();
+  updateSelectedButtons();
   renderAudioControls();
   scene.refreshLanguage();
 });

@@ -44,8 +44,7 @@ it('preserves level-one art, upgrades level two, and falls back on failed loads'
   ]);
   expect(roomArtCandidates('kitchen', 1)).toEqual([{ key: 'missing-room-art', frame: 0 }]);
   expect(roomArtCandidates('kitchen', 2)).toEqual([
-    { key: 'level-two-room-art', frame: 2 },
-    { key: 'missing-room-art', frame: 0 }
+    { key: 'level-two-room-art', frame: 2 }, { key: 'missing-room-art', frame: 0 }
   ]);
   expect(roomArtCandidates('laboratory', 3)[0]).toEqual({ key: 'level-two-room-art', frame: 4 });
   expect(roomArtCandidates('mine', 2)).toEqual([
@@ -71,14 +70,30 @@ it('provides distinct Level 2 WebP artwork for every one of the fourteen room ty
   expect(LEVEL_TWO_ADDITIONAL_ART_ASSET.frameHeight).toBe(53);
   expect(LEVEL_TWO_COMMAND_ART_ASSET.frameWidth).toBe(240);
   expect(LEVEL_TWO_COMMAND_ART_ASSET.frameHeight).toBe(53);
-  expect(LEVEL_TWO_ADDITIONAL_ART_ASSET.variants.map(v => v.scale)).toEqual([1, 2.25]);
-  expect(LEVEL_TWO_COMMAND_ART_ASSET.variants.map(v => v.scale)).toEqual([1, 2.25]);
+  expect(LEVEL_TWO_ADDITIONAL_ART_ASSET.variants[1]).toEqual({
+    scale: 3.5, path: 'assets/rooms/level2-additions-v2-hd.webp', frameWidth: 560, frameHeight: 186
+  });
+  expect(LEVEL_TWO_COMMAND_ART_ASSET.variants[1]).toEqual({
+    scale: 3.5, path: 'assets/rooms/level2-command-v2-hd.webp', frameWidth: 840, frameHeight: 186
+  });
+  expect(LEVEL_TWO_ADDITIONAL_ART_ASSET.variants.map(v => v.scale)).toEqual([1, 3.5]);
+  expect(LEVEL_TWO_COMMAND_ART_ASSET.variants.map(v => v.scale)).toEqual([1, 3.5]);
   for (const asset of [LEVEL_TWO_ADDITIONAL_ART_ASSET, LEVEL_TWO_COMMAND_ART_ASSET]) {
     for (const variant of asset.variants) {
       const data = readFileSync('public/' + variant.path);
       expect(data.toString('ascii', 0, 4)).toBe('RIFF');
       expect(data.toString('ascii', 8, 12)).toBe('WEBP');
-      expect(data.length).toBeLessThan(160_000);
+      // The newer HD artwork is measured by encoded pixel dimensions, not an upscaled mobile frame.
+      expect(data.toString('ascii', 12, 16)).toBe('VP8 ');
+      const width = data.readUInt16LE(26) & 0x3fff;
+      const height = data.readUInt16LE(28) & 0x3fff;
+      const expectedWidth = variant.frameWidth ?? asset.frameWidth * variant.scale;
+      const expectedHeight = variant.frameHeight ?? asset.frameHeight * variant.scale;
+      const frameCount = asset.key === 'level-two-command-art' ? 1 : 8;
+      const columns = asset.key === 'level-two-command-art' ? 1 : 4;
+      const rows = Math.ceil(frameCount / columns);
+      expect([width, height]).toEqual([expectedWidth * columns, expectedHeight * rows]);
+      expect(data.length).toBeLessThan(220_000);
     }
   }
   const roomTypes = [
@@ -92,54 +107,61 @@ it('provides distinct Level 2 WebP artwork for every one of the fourteen room ty
   expect(roomArtCandidates('command', 2)[0]).toEqual({key:'level-two-command-art', frame:0});
   expect(roomArtCandidates('ventilation', 2)[0]).toEqual({key:'level-two-additional-art', frame:7});
   expect(roomArtCandidates('command', 1)).toEqual([{key:'room-art',frame:1}]);
-  expect(roomArtCandidates('ventilation', 1)).toEqual([{key:'missing-room-art',frame:1}]);
+  expect(roomArtCandidates('ventilation', 1)).toEqual([{key:'missing-room-art',frame:3}]);
 });
 
-it('renders four previously missing/reused Level 1 room interiors from unique WebP frames', () => {
+it('shows unique Level 1 WebP interiors for kitchen, recreation, guard post and ventilation', () => {
   expect(MISSING_ROOM_FRAME_BY_TYPE).toEqual({
-    kitchen: 0, ventilation: 1, recreation: 2, guardPost: 3
+    kitchen: 0, recreation: 1, guardPost: 2, ventilation: 3
   });
   expect(new Set(Object.values(MISSING_ROOM_FRAME_BY_TYPE)).size).toBe(4);
-  // Legacy shared-frame aliases must not come back.
   expect(ROOM_FRAME_BY_TYPE.recreation).toBeUndefined();
   expect(ROOM_FRAME_BY_TYPE.guardPost).toBeUndefined();
+
   for (const [type, frame] of Object.entries(MISSING_ROOM_FRAME_BY_TYPE)) {
-    expect(roomArtCandidates(type as keyof typeof MISSING_ROOM_FRAME_BY_TYPE, 1))
-      .toEqual([{ key: MISSING_ROOM_ART_ASSET.key, frame }]);
+    const room = type as keyof typeof MISSING_ROOM_FRAME_BY_TYPE;
+    expect(roomArtCandidates(room, 1)).toEqual([{ key: MISSING_ROOM_ART_ASSET.key, frame }]);
   }
-  expect(roomArtCandidates('kitchen', 2)[0])
-    .toEqual({ key: LEVEL_TWO_ROOM_ART_ASSET.key, frame: 2 });
-  expect(roomArtCandidates('kitchen', 2)[1])
-    .toEqual({ key: MISSING_ROOM_ART_ASSET.key, frame: 0 });
-  expect(roomArtCandidates('ventilation', 3)).toEqual([
-    { key: LEVEL_TWO_ADDITIONAL_ART_ASSET.key, frame: 7 },
-    { key: MISSING_ROOM_ART_ASSET.key, frame: 1 }
+  // Level 2 art stays the first choice, Level 1 art only falls back on load errors.
+  expect(roomArtCandidates('kitchen', 2)).toEqual([
+    { key: LEVEL_TWO_ROOM_ART_ASSET.key, frame: 2 },
+    { key: MISSING_ROOM_ART_ASSET.key, frame: 0 }
   ]);
   expect(roomArtCandidates('recreation', 2)).toEqual([
     { key: LEVEL_TWO_ADDITIONAL_ART_ASSET.key, frame: 5 },
-    { key: MISSING_ROOM_ART_ASSET.key, frame: 2 }
+    { key: MISSING_ROOM_ART_ASSET.key, frame: 1 }
   ]);
   expect(roomArtCandidates('guardPost', 2)).toEqual([
     { key: LEVEL_TWO_ADDITIONAL_ART_ASSET.key, frame: 6 },
+    { key: MISSING_ROOM_ART_ASSET.key, frame: 2 }
+  ]);
+  expect(roomArtCandidates('ventilation', 3)).toEqual([
+    { key: LEVEL_TWO_ADDITIONAL_ART_ASSET.key, frame: 7 },
     { key: MISSING_ROOM_ART_ASSET.key, frame: 3 }
   ]);
 });
 
-it('ships optimized 1x and 3x WebP sprite sheets with correct frame geometry', () => {
+it('bundles real, sharp 1× and 3.5× WebP atlas frames in a 2×2 layout', () => {
   expect(MISSING_ROOM_ART_ASSET.kind).toBe('spritesheet');
   if (MISSING_ROOM_ART_ASSET.kind !== 'spritesheet') throw new Error('Expected spritesheet');
   expect(MISSING_ROOM_ART_ASSET.frameWidth).toBe(160);
   expect(MISSING_ROOM_ART_ASSET.frameHeight).toBe(53);
   expect(MISSING_ROOM_ART_ASSET.variants).toEqual([
     { scale: 1, path: 'assets/rooms/missing-room-atlas.webp' },
-    { scale: 3, path: 'assets/rooms/missing-room-atlas-hd.webp', frameWidth: 480, frameHeight: 159 }
+    { scale: 3.5, path: 'assets/rooms/missing-room-atlas-hd.webp', frameWidth: 560, frameHeight: 186 }
   ]);
   for (const variant of MISSING_ROOM_ART_ASSET.variants) {
     const bytes = readFileSync('public/' + variant.path);
     expect(bytes.toString('ascii', 0, 4)).toBe('RIFF');
     expect(bytes.toString('ascii', 8, 12)).toBe('WEBP');
-    expect(bytes.length).toBeLessThan(40_000);
+    expect(bytes.toString('ascii', 12, 16)).toBe('VP8 ');
+    const frameWidth = variant.frameWidth ?? MISSING_ROOM_ART_ASSET.frameWidth * variant.scale;
+    const frameHeight = variant.frameHeight ?? MISSING_ROOM_ART_ASSET.frameHeight * variant.scale;
+    // VP8 lossy frame width and height are stored at offsets 26 and 28.
+    expect([bytes.readUInt16LE(26) & 0x3fff, bytes.readUInt16LE(28) & 0x3fff])
+      .toEqual([frameWidth * 2, frameHeight * 2]);
+    expect(bytes.length).toBeLessThan(160_000);
   }
-  const scene = readFileSync('src/app/GameScene.ts', 'utf8');
-  expect(scene).toContain('MISSING_ROOM_ART_ASSET');
+  const sceneSource = readFileSync('src/app/GameScene.ts', 'utf8');
+  expect(sceneSource).toContain('MISSING_ROOM_ART_ASSET, TWO_CELL_CONSTRUCTION_ART_ASSET');
 });

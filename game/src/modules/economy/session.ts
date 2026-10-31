@@ -1,4 +1,5 @@
 import { RECREATION_CONFIG } from '../recreation/recreation';
+import { LifeSupportService, type LifeSupportSnapshot, type LifeSupportView } from '../life-support/lifeSupport';
 import type { AssignmentBlock } from '../survivors/roster';
 import { laboratoryFacilities, researchFacility, type LaboratoryFacility } from '../laboratory/laboratory';
 import { SurvivorRoster, type SurvivorSnapshot } from '../survivors/roster';
@@ -13,6 +14,9 @@ import { AirSystem, ROOM_AIR_EMISSIONS, type AirSystemState } from '../air/air';
 import { BuildingLayout, type BaseSnapshot } from '../building/layout';
 import { Wallet, type WalletSnapshot } from './wallet';
 import { ResourceEngine, type ResourceSnapshot } from './resources';
+import { POWER_BALANCE, allocatePower, canActivateNetwork, canWire, installWire, legacyPower, removeWire,
+  restorePower, setRoomPriority, starterPower, type PowerAllocation, type PowerPriority,
+  type PowerSnapshot } from '../power/network';
 import {
   STARTING_COINS, DEMO_BONUS_COINS, DIG_COST,
   getBuildCost, getFloorCost, getUpgradeCost
@@ -24,7 +28,10 @@ import { ACHIEVEMENTS, AchievementTracker, rewardForAchievement, type Achievemen
 import { LEGACY_SURFACE_READ_ONLY_REASON } from '../building/constructionPolicy';
 
 export interface GameSnapshot {
-  schemaVersion: 14;
+  schemaVersion: 16;
+  lifeSupport: LifeSupportSnapshot;
+  lifeSupportView: LifeSupportView;
+  power: PowerSnapshot;
   air: AirSystemState;
   kitchen: CookingSnapshot;
   laboratories:LaboratoryFacility[];
@@ -67,6 +74,7 @@ export class GameSession {
     return this.kitchenState.block(roomId, recipeId, this.cookingContext());
   }
   startCooking(roomId: string, recipeId: string, operationId: string): CookingBlock | null {
+    if(!this.powerStatus().activeRoomIds.includes(roomId))return 'power';
     return this.kitchenState.start(roomId, recipeId, operationId, this.cookingContext());
   }
   toggleCooking(roomId: string): boolean { return this.kitchenState.toggle(roomId); }
@@ -86,15 +94,19 @@ export class GameSession {
 
   private commandState=new CapabilityGate();
   get commandCenter():CapabilityGate{return this.commandState;}
-  commandStatus(){return this.commandState.status(this.world.rooms,this.resources.snapshot().stock.power);}
+  commandStatus(){
+    const allowed = new Set(this.powerStatus().activeRoomIds);
+    return this.commandState.status(this.world.rooms.filter(r=>allowed.has(r.id)),
+      this.resources.snapshot().stock.power);
+  }
   canBuild(type:BuildableRoomType,x:number,y:number):CommandResult {
     const placement=this.world.canPlace(type,x,y);if(!placement.ok)return placement;
     const capability=this.commandState.forRoom(type);
     const block=capability?this.commandState.block(capability,this.world.rooms,this.resources.snapshot().stock.power):null;
     return block?{ok:false,reason:CAPABILITY_REASONS[block]}:{ok:true};
   }
-  moveRoom(id:string,x:number,y:number):CommandResult {this.commandStatus();const result=this.world.move(id,x,y);this.survivors.setLayout(this.world);this.kitchenState.sync(this.world.rooms);this.commandStatus();return result;}
-  removeRoom(id:string):CommandResult {this.commandStatus();const result=this.world.remove(id);this.survivors.setLayout(this.world);this.commandStatus();return result;}
+  moveRoom(id:string,x:number,y:number):CommandResult {this.commandStatus();const result=this.world.move(id,x,y);this.survivors.setLayout(this.world);this.kitchenState.sync(this.world.rooms);this.lifeSupportState.sync(this.world.rooms);this.commandStatus();return result;}
+  removeRoom(id:string):CommandResult {this.commandStatus();const result=this.world.remove(id);if(result.ok)this.powerState={...this.powerState,overrides:this.powerState.overrides.filter(o=>o.roomId!==id)};this.survivors.setLayout(this.world);this.lifeSupportState.sync(this.world.rooms);this.commandStatus();return result;}
   private radiationState = new RadiationField();
   private radiationOccupants: readonly RadiationOccupant[] = [];
   get radiation():RadiationField {return this.radiationState;}
@@ -111,13 +123,26 @@ export class GameSession {
   }
   laboratories():LaboratoryFacility[] {
     this.survivors.reconcile(this.resources.snapshot().stock.power);
-    return laboratoryFacilities(this.world.rooms,this.survivors.assignments,this.resources.snapshot().stock.power);
+    const allowed = new Set(this.powerStatus().activeRoomIds);
+    return laboratoryFacilities(this.world.rooms.filter(r=>allowed.has(r.id)),
+      this.survivors.assignments,this.resources.snapshot().stock.power);
   }
   researchFacility() {return researchFacility(this.laboratories());}
   assignScientist(id:string,roomId:string,op:string) {return this.survivors.assign(id,roomId,'scientist',op);}
 
   startResearch(id:string,operationId:string):boolean {
     return this.researchState.start(id,operationId,this.researchFacility(),this.wallet.balance,n=>this.purse.spend(n,'research'));
+  }
+  private lifeSupportState = new LifeSupportService();
+  get lifeSupport(): LifeSupportService { return this.lifeSupportState; }
+  toggleLifeSupportLink(a: string, b: string): boolean {
+    return this.lifeSupportState.toggleLink(a, b, this.world.rooms);
+  }
+  private lifeSupportWaterAdapter() {
+    return { available: () => this.waterState.snapshot().clean,
+      capacity: () => this.waterState.capacity(this.world.rooms),
+      spend: (amount: number) => this.waterState.spendClean(amount),
+      records: () => this.waterState.snapshot().ledger };
   }
   private airState = new AirSystem();
   get air(): AirSystem { return this.airState; }
@@ -139,9 +164,10 @@ export class GameSession {
   private bonusClaimed = false;
   private resourceState: ResourceEngine;
   private achievementState: AchievementTracker;
+  private powerState: PowerSnapshot;
 
   private constructor(layout: BuildingLayout, wallet: Wallet, claimed = false,
-                      resources = ResourceEngine.create(), achievements = new AchievementTracker()) {
+                      resources = ResourceEngine.create(), achievements = new AchievementTracker(), power = starterPower()) {
     this.world = layout;
     this.survivors=new SurvivorRoster(layout);
     this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,()=>this.resources.snapshot().stock.power);
@@ -150,6 +176,7 @@ export class GameSession {
     this.resourceState = resources;
     this.kitchenState.sync(layout.rooms);
     this.achievementState = achievements;
+    this.powerState = power;
     this.commandStatus();
   }
 
@@ -161,7 +188,7 @@ export class GameSession {
     if (!raw || typeof raw !== 'object') return null;
     const value = raw as Partial<Omit<GameSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
     const version=value.schemaVersion;
-    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>14||typeof value.demoBonusClaimed!=='boolean')return null;
+    if(typeof version!=='number'||!Number.isInteger(version)||version<2||version>16||typeof value.demoBonusClaimed!=='boolean')return null;
     const world = BuildingLayout.restore(value.base);
     const wallet = Wallet.restore(value.wallet);
     const resources = (version>=3)
@@ -173,7 +200,9 @@ export class GameSession {
     const bonusCount = wallet.transactions.filter((t) => t.kind === 'demo-bonus').length;
     if ((value.demoBonusClaimed && bonusCount !== 1) ||
         (!value.demoBonusClaimed && bonusCount !== 0)) return null;
-    const session = new GameSession(world, wallet, value.demoBonusClaimed, resources, achievements);
+    const power = version >= 15 ? restorePower(value.power, world.rooms, world.terrain) : legacyPower();
+    if (!power) return null;
+    const session = new GameSession(world, wallet, value.demoBonusClaimed, resources, achievements, power);
     if (version>=5) {
       const water = WaterProductionProcessor.restore(value.water);
       if (!water) return null;
@@ -219,26 +248,28 @@ export class GameSession {
       session.airState = AirSystem.restore(seed)!;
     }
     session.airState.sync(world.rooms);
+    if (version >= 16) {
+      const lifeSupport = LifeSupportService.restore(value.lifeSupport);
+      if (!lifeSupport) return null;
+      session.lifeSupportState = lifeSupport;
+    }
+    session.lifeSupportState.sync(world.rooms);
     session.kitchenState.sync(world.rooms);
     session.survivors.reconcile(session.resources.snapshot().stock.power);
     session.commandStatus();
     session.waterState.sync(world.rooms);
-    const rewarded = wallet.transactions.filter((txn) => txn.kind === 'achievement-reward');
-    // Payment markers and ledger entries must correspond in a current save.
-    // A torn or tampered v14 snapshot is rejected rather than double-credited.
-    if (version >= 14) {
+    const rewarded = wallet.transactions.filter(txn=>txn.kind==='achievement-reward');
+    // v14+ achievements record both payment receipts and granted milestones.
+    if (version>=14) {
       const granted = achievements.snapshot().rewardGrantedAchievementIds;
       if (value.achievements?.schemaVersion !== 2 || rewarded.length !== granted.length ||
-          rewarded.some((txn) => !ACHIEVEMENTS.some((entry) =>
-            entry.id === txn.achievementId && entry.rewardCoins === txn.delta) ||
+          rewarded.some(txn=>!ACHIEVEMENTS.some(entry=>
+            entry.id===txn.achievementId && entry.rewardCoins===txn.delta) ||
             !granted.includes(txn.achievementId as typeof ACHIEVEMENTS[number]['id']))) return null;
-    } else if (rewarded.some((txn) => !ACHIEVEMENTS.some((entry) =>
-      entry.id === txn.achievementId && entry.rewardCoins === txn.delta))) return null;
-    // Earlier saves have recorded unlocks but no coin payments. Mixed-version
-    // snapshots can already contain a paid wallet entry; consume that receipt
-    // instead of crediting it a second time.
+    } else if (rewarded.some(txn=>!ACHIEVEMENTS.some(entry=>
+      entry.id===txn.achievementId && entry.rewardCoins===txn.delta))) return null;
     session.refreshAchievementRewards();
-    if (rewarded.some((txn) => !session.achievementState.snapshot()
+    if (rewarded.some(txn=>!session.achievementState.snapshot()
       .rewardGrantedAchievementIds.includes(txn.achievementId as typeof ACHIEVEMENTS[number]['id']))) return null;
     return session;
   }
@@ -246,27 +277,63 @@ export class GameSession {
   // Existing v1 browser saves contain only a layout; migrate without losing rooms.
   static fromSave(raw: unknown): GameSession {
     return GameSession.restore(raw) ??
-      new GameSession(BuildingLayout.restore(raw) ?? new BuildingLayout(), Wallet.create(STARTING_COINS));
+      new GameSession(BuildingLayout.restore(raw) ?? new BuildingLayout(), Wallet.create(STARTING_COINS),
+        false, ResourceEngine.create(), new AchievementTracker(),
+        BuildingLayout.restore(raw) ? legacyPower() : starterPower());
   }
 
   get layout(): BuildingLayout { return this.world; }
   get wallet(): Wallet { return this.purse; }
   get resources(): ResourceEngine { return this.resourceState; }
   get demoBonusClaimed(): boolean { return this.bonusClaimed; }
+  get power(): PowerSnapshot { return { ...this.powerState,
+    cables: this.powerState.cables.map(c => ({...c})),
+    overrides: this.powerState.overrides.map(o => ({...o})) }; }
+  powerStatus(): PowerAllocation {
+    return allocatePower(this.powerState, this.world.rooms, this.researchState.modifiers());
+  }
+  /** Cable operations validate geometry and funds before mutating anything. */
+  installCable(x: number, y: number, riser = false): CommandResult {
+    const reason = canWire(this.powerState, this.world.terrain, x, y, riser);
+    if (reason) return { ok:false, reason };
+    const cost = riser ? POWER_BALANCE.riserCost : POWER_BALANCE.cableCost;
+    if (!this.purse.canAfford(cost)) return {ok:false,reason:'سکهٔ کافی برای کابل ندارید.'};
+    const next = installWire(this.powerState, this.world.terrain, x, y, riser);
+    if (!next || !this.purse.spend(cost,'build')) return {ok:false,reason:'نصب کابل ممکن نیست.'};
+    this.powerState = next;
+    return {ok:true};
+  }
+  removeCable(x: number, y: number): CommandResult {
+    const next = removeWire(this.powerState,x,y);
+    if (!next) return {ok:false,reason:'در این خانه کابل وجود ندارد.'};
+    this.powerState = next;
+    return {ok:true};
+  }
+  prioritizeRoom(id: string, priority: PowerPriority): CommandResult {
+    const room = this.world.rooms.find(r => r.id === id);
+    if (!room) return {ok:false,reason:'اتاق موردنظر وجود ندارد.'};
+    const next = setRoomPriority(this.powerState, room, priority);
+    if (!next) return {ok:false,reason:'تغییر اولویت بیش از یک سطح مجاز نیست.'};
+    this.powerState = next;
+    return {ok:true};
+  }
+  activatePowerNetwork(): CommandResult {
+    if (this.powerState.mode === 'physical') return {ok:false,reason:'شبکهٔ فیزیکی فعال است.'};
+    if (!canActivateNetwork(this.powerState,this.world.rooms,this.researchState.modifiers()))
+      return {ok:false,reason:'ابتدا تمام اتاق‌ها را با کابل به نیروگاه متصل کنید.'};
+    this.powerState = {...this.powerState,mode:'physical'};
+    return {ok:true};
+  }
 
-  /** Award new (or historical) unlocks from game state, never from opening the dialog. */
+  /** Award new or historical achievement unlocks once without double spending. */
   private refreshAchievementRewards(): void {
     this.achievementState.evaluate({
-      base: this.world.snapshot(),
-      wallet: this.purse.snapshot(),
+      base: this.world.snapshot(), wallet: this.purse.snapshot(),
       resources: this.resourceState.snapshot()
     });
     for (const id of this.achievementState.pendingRewards()) {
       if (this.purse.creditAchievement(rewardForAchievement(id), id) ||
-          this.purse.hasAchievementReward(id)) {
-        this.achievementState.markRewardGranted(id);
-      }
-      // A full wallet leaves the achievement unlocked but unpaid for a later retry.
+          this.purse.hasAchievementReward(id)) this.achievementState.markRewardGranted(id);
     }
   }
 
@@ -277,21 +344,26 @@ export class GameSession {
     while (remaining > 0) {
       const step = Math.min(remaining, this.resources.remainingMs);
       this.survivors.advance(step,this.resources.snapshot().stock.power);
-      const completed = this.resourceState.advance(step, this.world.rooms,this.researchState.modifiers());
+      const completed = this.resourceState.advance(step, this.world.rooms,this.researchState.modifiers(),this.powerStatus());
       ticks += completed;
       if (completed) {
-        this.waterState.advance(5000, this.world.rooms, this.powerAdapter());
-        this.kitchenState.advance(5000, this.cookingContext());
+        const poweredRooms = new Set(this.powerStatus().activeRoomIds);
+        this.waterState.advance(5000, this.world.rooms, this.powerAdapter(), poweredRooms);
+        this.kitchenState.advance(5000, this.cookingContext(), poweredRooms);
         this.researchState.advanceTo(this.resources.tickCount*5000,this.researchFacility());
         // Water, kitchen and research get their power before ventilation.
         this.airState.advanceTo(this.resources.tickCount * 5000, this.world.rooms,
-          this.survivors.survivors.length, ROOM_AIR_EMISSIONS.emissions(this.world.rooms), this.powerAdapter());
+          this.survivors.survivors.length, ROOM_AIR_EMISSIONS.emissions(this.world.rooms), this.powerAdapter(), poweredRooms);
+        const vents = this.airState.snapshot().vents;
+        this.lifeSupportState.tick(this.world.rooms, this.lifeSupportWaterAdapter(),
+          { population: () => this.survivors.survivors.length },
+          { powered: (id) => vents.some(v => v.id === id && v.powered) }, vents);
         this.radiationState.advanceTo(this.resources.tickCount*5000,this.radiationState.world(this.world.terrain,this.world.rooms),this.radiationOccupants);
         if(this.resources.tickCount%24===0)this.radiationState.triggerSurge('leaking-pipe');
       }
       remaining -= step;
     }
-    if (ticks) this.refreshAchievementRewards();
+    if(ticks) this.refreshAchievementRewards();
     return ticks;
   }
 
@@ -332,6 +404,7 @@ export class GameSession {
     this.world = candidate;
     this.survivors.setLayout(this.world);
     this.kitchenState.sync(this.world.rooms);
+    this.lifeSupportState.sync(this.world.rooms);
     this.refreshAchievementRewards();
     return { ok: true };
   }
@@ -389,6 +462,7 @@ export class GameSession {
     this.waterState = new WaterProductionProcessor();
     this.kitchenState = new KitchenProcessor();
     this.airState = new AirSystem();
+    this.lifeSupportState = new LifeSupportService();
     this.world = new BuildingLayout();
     this.survivors=new SurvivorRoster(this.world);
     this.guardPosts=new GuardPosts(()=>this.world.rooms,this.survivors,()=>this.resources.snapshot().stock.power);
@@ -396,6 +470,7 @@ export class GameSession {
     this.bonusClaimed = false;
     this.resourceState = ResourceEngine.create();
     this.achievementState = new AchievementTracker();
+    this.powerState = starterPower();
   }
 
   snapshot(): GameSnapshot {
@@ -404,6 +479,7 @@ export class GameSession {
     this.waterState.sync(this.world.rooms);
     this.kitchenState.sync(this.world.rooms);
     this.airState.sync(this.world.rooms);
+    this.lifeSupportState.sync(this.world.rooms);
     this.radiationState.reconcileRooms(this.world.rooms);
     this.survivors.reconcile(this.resources.snapshot().stock.power);
     const base = this.world.snapshot();
@@ -411,7 +487,10 @@ export class GameSession {
     const wallet = this.purse.snapshot();
     const resources = this.resourceState.snapshot();
     return {
-      schemaVersion: 14,
+      schemaVersion: 16,
+      lifeSupport: this.lifeSupportState.snapshot(),
+      lifeSupportView: this.lifeSupportState.view(this.world.rooms, this.lifeSupportWaterAdapter()),
+      power: this.power,
       air: this.airState.snapshot(),
       kitchen: this.kitchenState.snapshot(),
       laboratories:this.laboratories(),
