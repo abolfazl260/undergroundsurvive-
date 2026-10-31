@@ -74,7 +74,7 @@ async function run(width, height) {
   await page.locator('[data-menu-screen="pause"] [data-menu-action="settings"]').tap();
   await checkTapTargets(page, 'settings', width, height);
   await page.locator('[data-menu-screen="settings"] [data-menu-action="back"]').tap();
-  await page.locator('[data-menu-screen="pause"] [data-menu-action="resume"]').tap();
+  await page.locator('[data-menu-screen="pause"] .menu-choice[data-menu-action="resume"]').tap();
   assert.equal(await page.locator('#game-menu-dialog').isVisible(), false);
   assert.deepEqual(pageErrors, [], `Browser errors at ${width}x${height}`);
   await context.close();
