@@ -10,7 +10,7 @@ describe('cinematic background / live elevator alignment', () => {
     );
     expect(placement).toMatchObject({
       width: 1920, height: 1440, ground: 624,
-      skylineTop: 360, skylineHeight: 264, rockHeight: 816
+      skylineTop: 0, skylineHeight: 624, rockHeight: 816
     });
     expect(placement.skylineTop + placement.skylineHeight).toBe(placement.ground);
     expect(placement.ground + placement.rockHeight).toBe(placement.height);
