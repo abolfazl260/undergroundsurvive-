@@ -173,7 +173,13 @@ export function mountGameDock(root: Document = document): {
   // All persistent gameplay actions live in one top HUD; never pin controls
   // to a side rail or the bottom of the game canvas.
   const storyNavigation = root.querySelector<HTMLElement>('.story-navigation');
-  if (storyNavigation) topbar.insertBefore(storyNavigation, moreButton);
+  if (storyNavigation) {
+    topbar.insertBefore(storyNavigation, moreButton);
+    const story = storyNavigation.querySelector<HTMLButtonElement>('#story-open');
+    const achievements = storyNavigation.querySelector<HTMLButtonElement>('#achievements-open');
+    if (story) story.setAttribute('aria-label', t('داستان تصویری'));
+    if (achievements) achievements.setAttribute('aria-label', t('دستاوردها'));
+  }
   // Reparent original controls instead of cloning them; event handlers stay connected.
   const toolsContainer = root.createElement('section');
   toolsContainer.className = 'dock-tools-container';
@@ -372,6 +378,8 @@ export function mountGameDock(root: Document = document): {
     toolsContainer.setAttribute('aria-label', t('ابزارهای زمین و اتاق'));
     resourceTrigger.setAttribute('aria-label', t('منابع و چرخهٔ زمانی پناهگاه'));
     resourcesText.textContent = t('منابع');
+    storyNavigation?.querySelector<HTMLButtonElement>('#story-open')?.setAttribute('aria-label', t('داستان تصویری'));
+    storyNavigation?.querySelector<HTMLButtonElement>('#achievements-open')?.setAttribute('aria-label', t('دستاوردها'));
     const translatedCards: HTMLButtonElement[] = [
       ...Array.from(toolGrid.querySelectorAll<HTMLButtonElement>('.tool-card')),
       ...Array.from(powerGrid.querySelectorAll<HTMLButtonElement>('.tool-card'))
