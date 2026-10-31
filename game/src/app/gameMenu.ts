@@ -16,7 +16,8 @@ export function setupGameMenu(
   scene: GameScene,
   savedGameExists: boolean,
   audio: AudioManager,
-  onAudioChange: () => void
+  onAudioChange: () => void,
+  onResumed: () => void = () => {}
 ): (forceDefeat?: boolean) => void {
   const dialog = document.querySelector<HTMLDialogElement>('#game-menu-dialog');
   const menuButton = document.querySelector<HTMLButtonElement>('#menu-toggle');
@@ -160,6 +161,7 @@ export function setupGameMenu(
     dialog!.close();
     menuButton!.hidden = false;
     menuButton!.focus();
+    onResumed();
   }
 
   function openPauseMenu(): void {

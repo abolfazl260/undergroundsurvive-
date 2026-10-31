@@ -4,7 +4,16 @@ import { readStoryProgress, saveStoryPosition, storyCompleted, storyResumeIndex 
 import { getLocale, mountStaticTranslations, subscribeLocaleChange, t } from '../../i18n';
 import './viewer.css';
 
-export function mountStoryViewer(openButton: HTMLButtonElement): void {
+export interface StoryViewer {
+  openChapter(chapterId: string, restart?: boolean): Promise<void>;
+}
+export interface StoryViewerOptions {
+  onChapterFinished?: (chapterId: string) => void;
+  onOpen?: () => void;
+  onClose?: () => void;
+}
+
+export function mountStoryViewer(openButton: HTMLButtonElement, options: StoryViewerOptions = {}): StoryViewer {
   const dialog = document.createElement('dialog');
   dialog.className = 'story-dialog';
   dialog.setAttribute('aria-label', 'سناریوهای تصویری و ویدیویی');
@@ -158,7 +167,7 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
   }
 
   function close(): void {
-    dialog.close();
+    if (dialog.open) dialog.close();
   }
 
   function advance(): void {
@@ -166,6 +175,7 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
     if (!chapter) return;
     if (sceneIndex >= chapter.scenes.length - 1) {
       saveStoryPosition(storage, chapter, chapter.scenes.length);
+      options.onChapterFinished?.(chapter.id);
       close();
     } else {
       sceneIndex++;
@@ -186,19 +196,25 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
   next.addEventListener('click', advance);
   skip.addEventListener('click', () => {
     const chapter = activeChapter();
-    if (chapter) saveStoryPosition(storage, chapter, chapter.scenes.length);
+    if (chapter) {
+      saveStoryPosition(storage, chapter, chapter.scenes.length);
+      options.onChapterFinished?.(chapter.id);
+    }
     close();
   });
   dialog.querySelector<HTMLButtonElement>('.story-close')!.addEventListener('click', close);
-  dialog.addEventListener('close', stopMedia);
+  dialog.addEventListener('close', () => { stopMedia(); options.onClose?.(); });
 
-  async function open(): Promise<void> {
+  async function open(chapterId?: string, restart = false): Promise<void> {
     if (dialog.open) return;
     dialog.showModal();
+    options.onOpen?.();
     if (loadedLocale !== getLocale()) loaded = false;
     if (loaded) {
+      const found = chapters.findIndex((chapter) => chapter.id === chapterId);
+      if (found >= 0) chapterIndex = found;
       const chapter = activeChapter();
-      if (chapter) sceneIndex = storyResumeIndex(chapter, readStoryProgress(storage));
+      if (chapter) sceneIndex = restart ? 0 : storyResumeIndex(chapter, readStoryProgress(storage));
       render();
       return;
     }
@@ -223,8 +239,9 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
         status.textContent = catalog.errors.length + ' ' + t('فصل بارگذاری نشد.');
       }
       if (chapters.length) {
-        chapterIndex = 0;
-        sceneIndex = storyResumeIndex(chapters[0], progress);
+        const selected = chapters.findIndex((chapter) => chapter.id === chapterId);
+        chapterIndex = selected >= 0 ? selected : 0;
+        sceneIndex = restart ? 0 : storyResumeIndex(chapters[chapterIndex], progress);
         if (dialog.open) render();
       } else {
         message(t(catalog.errors.length ? 'فصل‌ها قابل بارگذاری نیستند. فایل‌های محتوا را بررسی کنید.' : 'هنوز فصل فعالی وجود ندارد.'));
@@ -237,4 +254,5 @@ export function mountStoryViewer(openButton: HTMLButtonElement): void {
     }
   }
   openButton.addEventListener('click', () => { void open(); });
+  return { openChapter: (chapterId, restart = false) => open(chapterId, restart) };
 }

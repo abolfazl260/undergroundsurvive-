@@ -81,6 +81,8 @@ export class GameScene extends Phaser.Scene {
   }>();
   private airBadges: {id: string; label: Phaser.GameObjects.Text}[] = [];
   private preview?: Phaser.GameObjects.Graphics;
+  private tutorialGuide: 'water' | 'upgrade' | null = null;
+  private tutorialGuideLayer?: Phaser.GameObjects.Graphics;
   private powerOverlay=false;
   private powerLayer?: Phaser.GameObjects.Graphics;
   private radiationOverlay=false;
@@ -128,7 +130,8 @@ export class GameScene extends Phaser.Scene {
     private readonly onAssetProgress: (progress: number) => void = () => {},
     private readonly onAssetUnavailable: (key: string) => void = () => {},
     private readonly onAssetsComplete: () => void = () => {},
-    private readonly onBootReady: () => void = () => {}
+    private readonly onBootReady: () => void = () => {},
+    private readonly onRoomUpgraded: (previousLevel: number, nextLevel: number) => void = () => {}
   ) {
     super({ key: 'UndergroundScene' });
     this.recoveryFailed = saved != null && !GameSession.restore(saved) && !BuildingLayout.restore(saved);
@@ -183,6 +186,7 @@ export class GameScene extends Phaser.Scene {
     this.roomLayer = this.add.container(0, 0).setDepth(3);
     this.diggingLayer = this.add.container(0, 0).setDepth(2.9);
     this.preview = this.add.graphics().setDepth(6);
+    this.tutorialGuideLayer = this.add.graphics().setDepth(6.5);
     this.paintTerrain();
     this.paintRooms();
     this.paintPower();
@@ -450,6 +454,45 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** Draw a non-interactive guide around a legal building site or upgradeable room. */
+  setTutorialGuide(guide: 'water' | 'upgrade' | null): void {
+    this.tutorialGuide = guide;
+    this.paintTutorialGuide();
+  }
+
+  private paintTutorialGuide(): void {
+    const graphics = this.tutorialGuideLayer;
+    if (!graphics) return;
+    graphics.clear();
+    let target: { x: number; y: number; width: number; height: number } | null = null;
+    if (this.tutorialGuide === 'water') {
+      // Prefer the starter-floor opening beside command. Fall back to any legal
+      // footprint so continuing a partially played tutorial still works.
+      const preferred = [{ x: 8, y: -1 }];
+      for (let y = -1; y >= WORLD.minY; y--) {
+        for (let x = 0; x < WORLD.cols - 1; x++) preferred.push({ x, y });
+      }
+      const position = preferred.find(({ x, y }) => this.session.canBuild('waterTreatment', x, y).ok);
+      if (position) target = { ...position, width: 2, height: 1 };
+    } else if (this.tutorialGuide === 'upgrade') {
+      const rooms = this.layout.rooms;
+      const candidate = [...rooms].sort((a, b) =>
+        Number(b.id === 'initial-habitat') - Number(a.id === 'initial-habitat')
+      ).find((room) => {
+        const details = this.session.upgradeDetails(room.id);
+        return room.level === 1 && details?.cost !== null &&
+          details?.cost !== undefined && this.session.canAfford(details.cost);
+      });
+      if (candidate) target = candidate;
+    }
+    if (!target) return;
+    const { left, top } = toPixels(target.x, target.y);
+    const width = target.width * WORLD.cellSize;
+    const height = target.height * WORLD.cellSize;
+    graphics.fillStyle(0x60e5b9, 0.16).fillRoundedRect(left + 2, top + 2, width - 4, height - 4, 6);
+    graphics.lineStyle(4, 0xa7ffdb, 0.95).strokeRoundedRect(left + 2, top + 2, width - 4, height - 4, 6);
+  }
+
   selectRoom(type: BuildableRoomType): void {
     this.selectedRoom = type;
     this.setTool('build');
@@ -526,6 +569,8 @@ export class GameScene extends Phaser.Scene {
     if(result.ok) {
       this.beginUpgradeConstruction(id!, previousLevel);
       this.paintRooms();
+      const nextLevel = this.layout.rooms.find(room => room.id === id)?.level;
+      if (previousLevel !== undefined && nextLevel !== undefined) this.onRoomUpgraded(previousLevel, nextLevel);
     }
     this.notify(result.ok?'فرماندهی ارتقا یافت.':result.reason);
   }
@@ -698,6 +743,8 @@ export class GameScene extends Phaser.Scene {
     if (result.ok) {
       this.beginUpgradeConstruction(id, previousLevel);
       this.paintRooms();
+      const nextLevel = this.layout.rooms.find(room => room.id === id)?.level;
+      if (previousLevel !== undefined && nextLevel !== undefined) this.onRoomUpgraded(previousLevel, nextLevel);
     }
     this.onUpgradeSelection(this.session.upgradeDetails(id));
     this.paintPreview();
@@ -874,6 +921,7 @@ export class GameScene extends Phaser.Scene {
 
   private notify(message: string): void {
     const snapshot = this.session.snapshot();
+    this.paintTutorialGuide();
     // Also react immediately to resource spending, refills and toggles;
     // waiting for the next five-second cycle would leave a stale icon.
     this.refreshRoomUtilityWarnings();

@@ -14,6 +14,7 @@ import { mountOnlineLeaderboard } from './app/ui/onlineLeaderboard';
 import './onlineLeaderboard.css';
 import { confirmDestructiveAction } from './app/confirmDestructiveAction';
 import { mountStoryViewer } from './modules/narrative/viewer';
+import { mountFirstRunTutorial, type FirstRunTutorial } from './app/firstRunTutorial';
 import { setupGameMenu } from './app/gameMenu';
 import './audio.css';
 import './ui/ui.css';
@@ -174,6 +175,7 @@ let lastSnapshot: GameSnapshot | null = null;
 const onlineLeaderboard = mountOnlineLeaderboard(document, () => lastSnapshot);
 let lastSaved = false;
 let lastMessage = '';
+let firstRunTutorial: FirstRunTutorial | null = null;
 
 function syncPowerOverlayUi(view: ReturnType<GameScene['powerView']>): void {
   if (powerOverlayButton) {
@@ -256,6 +258,7 @@ const scene = new GameScene((snapshot, message) => {
   lastSaved = saved;
   lastMessage = message;
   renderSceneUi(snapshot, saved, message);
+  firstRunTutorial?.sync(snapshot);
   // Show a durable defeat modal on the terminal tick and after restoring a
   // zero-air save; the existing menu controls restarting from a new run.
   if (snapshot.air.quality <= 0) openStartMenu(true);
@@ -271,10 +274,38 @@ const scene = new GameScene((snapshot, message) => {
 (progress) => startup.assets(progress),
 (key) => startup.assetUnavailable(key),
 () => startup.worldReady(),
-() => startup.finish(openStartMenu));
+() => startup.finish(openStartMenu),
+(previousLevel, nextLevel) => firstRunTutorial?.roomUpgraded(previousLevel, nextLevel));
 
 // Defer opening the initial modal until the game and loader finish.
-const openStartMenu = setupGameMenu(scene, savedGame !== null, audio, renderAudioControls);
+const openStartMenu = setupGameMenu(scene, savedGame !== null, audio, renderAudioControls,
+  () => firstRunTutorial?.start());
+const storyButton = document.querySelector<HTMLButtonElement>('#story-open');
+const storyViewer = storyButton ? mountStoryViewer(storyButton, {
+  onChapterFinished: (id) => { if (id === 'prologue-90-days') firstRunTutorial?.storyFinished(); },
+  onOpen: () => scene.pauseGameplay(),
+  onClose: () => scene.resumeGameplay()
+}) : null;
+firstRunTutorial = mountFirstRunTutorial({
+  hasSave: savedGame !== null,
+  openStory: () => { void storyViewer?.openChapter('prologue-90-days'); },
+  selectWater: () => {
+    activeRoom = 'waterTreatment';
+    activeTool = 'build';
+    gameDock.showSheet(null);
+    scene.selectRoom('waterTreatment');
+    scene.setTutorialGuide('water');
+    updateSelectedButtons();
+  },
+  clearGuide: () => scene.setTutorialGuide(null),
+  selectUpgrade: () => {
+    activeTool = 'upgrade';
+    gameDock.showSheet(null);
+    scene.setTool('upgrade');
+    scene.setTutorialGuide('upgrade');
+    updateSelectedButtons();
+  }
+});
 startup.assets(0);
 createGame(scene);
 function renderAudioControls(): void {
@@ -415,9 +446,6 @@ document.querySelector<HTMLButtonElement>('#reset-layout')?.addEventListener('cl
 });
 
 updateSelectedButtons();
-
-const storyButton = document.querySelector<HTMLButtonElement>('#story-open');
-if (storyButton) mountStoryViewer(storyButton);
 
 installAndroidRuntime({
   getSheet: gameDock.getSheet,
