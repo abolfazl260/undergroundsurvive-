@@ -1,12 +1,12 @@
 import type { TextureAsset } from './assets/assetManager';
 
-/** Original 1920×1200 cutaway art displayed at the game's 960×600 logical size. */
-export const RUINED_CITY_BACKGROUND: TextureAsset = {
-  key: 'ruined-city-background',
+/** Optimized 1920×1200 cinematic cutaway; displayed at 960×600 world units. */
+export const CINEMATIC_BUNKER_BACKGROUND: TextureAsset = {
+  key: 'cinematic-bunker-background',
   kind: 'image',
   filter: 'linear',
   variants: [
-    { scale: 2, path: 'assets/backgrounds/ruined-city-hd.webp' }
+    { scale: 2, path: 'assets/backgrounds/cinematic-bunker-hd.webp' }
   ]
 };
 

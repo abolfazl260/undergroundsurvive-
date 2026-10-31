@@ -48,7 +48,7 @@ export function assetProblems(root) {
     'index.html', 'content/manifest.json', 'content/manifest.en.json',
     'content/story/demo-shelter.json', 'content/story/demo-shelter.en.json',
     'licenses/vazirmatn-OFL-1.1.txt',
-    'assets/backgrounds/ruined-city-hd.webp',
+    'assets/backgrounds/cinematic-bunker-hd.webp',
     'assets/rooms/room-atlas.webp',
     'assets/rooms/garden-medbay-atlas.webp'
   ];
