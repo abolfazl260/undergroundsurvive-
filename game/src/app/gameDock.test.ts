@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { nextGameSheet, ROOM_CATEGORY, ROOM_CATEGORIES, roomMatchesCategory } from './gameDock';
+import { nextGameSheet, ROOM_CATEGORY, ROOM_CATEGORIES, roomMatchesCategory, PRIMARY_EDITOR_TOOLS, POWER_EDITOR_TOOLS } from './gameDock';
 import { ROOM_DEFINITIONS } from '../modules/building/catalog';
 
 describe('unified bottom-sheet navigation', () => {
@@ -31,5 +31,22 @@ describe('illustrated room gallery filters', () => {
     expect(roomMatchesCategory('laboratory', 'research')).toBe(true);
     expect(roomMatchesCategory('waterTreatment', 'resources')).toBe(true);
     expect(roomMatchesCategory('guardPost', 'defense')).toBe(true);
+  });
+});
+
+describe('illustrated editor tool layout', () => {
+  it('preserves all original build and editing tools with unique touch targets', () => {
+    expect(PRIMARY_EDITOR_TOOLS.map((tool) => tool.id)).toEqual([
+      'elevator', 'build', 'dig', 'move', 'upgrade', 'remove', 'navigate'
+    ]);
+    expect(new Set(PRIMARY_EDITOR_TOOLS.map((tool) => tool.id)).size).toBe(PRIMARY_EDITOR_TOOLS.length);
+  });
+  it('keeps power actions separate and includes a distinct functional overlay toggle', () => {
+    expect(POWER_EDITOR_TOOLS.map((tool) => tool.id)).toEqual([
+      'cable', 'riser', 'cutCable', 'power-overlay-toggle'
+    ]);
+    const all = [...PRIMARY_EDITOR_TOOLS, ...POWER_EDITOR_TOOLS];
+    expect(new Set(all.map((tool) => tool.id)).size).toBe(all.length);
+    expect(all.every((tool) => tool.label.length > 0 && tool.hint.length > 0)).toBe(true);
   });
 });

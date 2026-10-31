@@ -174,7 +174,12 @@ let lastMessage = '';
 function syncPowerOverlayUi(view: ReturnType<GameScene['powerView']>): void {
   if (powerOverlayButton) {
     setPressed(powerOverlayButton, view.enabled);
-    powerOverlayButton.textContent = t(view.enabled ? 'پنهان‌کردن شبکه برق' : 'نمایش شبکه برق');
+    // Keep the illustrated card intact as the overlay's state changes.
+    const overlayTitle = view.enabled ? 'پنهان‌کردن شبکه برق' : 'نمایش شبکه برق';
+    powerOverlayButton.dataset.toolLabel = overlayTitle;
+    const caption = powerOverlayButton.querySelector<HTMLElement>('.ui-control-label');
+    if (caption) caption.textContent = t(overlayTitle);
+    else powerOverlayButton.textContent = t(overlayTitle);
     powerOverlayButton.setAttribute('aria-label',
       t(view.enabled ? 'پنهان‌کردن شبکه برق' : 'نمایش کابل و اتاق‌های بی‌برق'));
   }

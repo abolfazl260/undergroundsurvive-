@@ -3,6 +3,22 @@ export type GameLocale = 'fa' | 'en';
 export const DEFAULT_LOCALE: GameLocale = 'fa';
 export const LANGUAGE_STORAGE_KEY = 'underground-survive:language:v1';
 const english: Readonly<Record<string, string>> = {
+  "ابزارهای اصلی": "Main tools",
+  "ابزارهای شبکه برق": "Power network tools",
+  "توسعه شفت آسانسور": "Extend elevator shaft",
+  "اتاق جدید بسازید": "Build a new room",
+  "۳۵ سکه برای هر خانه": "35 coins per cell",
+  "انتقال اتاق": "Relocate room",
+  "افزایش سطح اتاق": "Upgrade room level",
+  "حذف سازه": "Remove structure",
+  "هدایت بازماندگان": "Move survivors",
+  "کابل · ۱۵": "Cable · 15",
+  "کابل‌کشی بین اتاق‌ها": "Wire rooms together",
+  "رابط عمودی · ۳۵": "Vertical riser · 35",
+  "اتصال بین طبقات": "Connect floors",
+  "حذف کابل": "Remove cable",
+  "حذف اتصال انتخابی": "Remove selected wire",
+  "نمایش اتصال‌ها و قطعی‌ها": "Show connections and outages",
   "نمایش شبکه برق": "Show power grid",
   "پنهان‌کردن شبکه برق": "Hide power grid",
   "نمایش کابل و اتاق‌های بی‌برق": "Show wiring and unpowered rooms",
