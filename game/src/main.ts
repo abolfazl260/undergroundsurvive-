@@ -10,6 +10,8 @@ import { mountKitchenPanel } from './app/ui/kitchenPanel';
 import './kitchen.css';
 import './style.css';
 import { mountGameDock } from './app/gameDock';
+import { mountOnlineLeaderboard } from './app/ui/onlineLeaderboard';
+import './onlineLeaderboard.css';
 import { confirmDestructiveAction } from './app/confirmDestructiveAction';
 import { mountStoryViewer } from './modules/narrative/viewer';
 import { setupGameMenu } from './app/gameMenu';
@@ -168,6 +170,7 @@ renderDigLabel();
 let activeRoom: BuildableRoomType = 'habitat';
 let activeTool: ToolMode = 'build';
 let lastSnapshot: GameSnapshot | null = null;
+const onlineLeaderboard = mountOnlineLeaderboard(document, () => lastSnapshot);
 let lastSaved = false;
 let lastMessage = '';
 
@@ -201,6 +204,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   latestBalance = snapshot.wallet.balance;
   renderUpgradePanel();
   renderHud(snapshot, saved);
+  onlineLeaderboard.render();
   renderAchievements(snapshot);
   resourcePanel.render(snapshot);
   const powerView = scene.powerView();
