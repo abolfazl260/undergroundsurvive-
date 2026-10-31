@@ -6,7 +6,7 @@ export interface DefensePostProvider {getDefensePosts():readonly GuardPostState[
 export interface GuardEquipmentProvider {getAssignedEquipment(survivorId:string):readonly string[]}
 export class GuardPosts implements DefensePostProvider {
   private health=new Map<string,number>();
-  constructor(private rooms:()=>readonly Room[],private roster:SurvivorRoster,private power:()=>number,private equipment?:GuardEquipmentProvider){}
+  constructor(private rooms:()=>readonly Room[],private roster:SurvivorRoster,private power:(roomId:string)=>number|boolean,private equipment?:GuardEquipmentProvider){}
   setEquipmentProvider(provider:GuardEquipmentProvider):void {this.equipment=provider;}
   setHealth(roomId:string,health:number):boolean {
     const room=this.rooms().find(r=>r.id===roomId&&r.type==='guardPost');
@@ -18,9 +18,9 @@ export class GuardPosts implements DefensePostProvider {
     for(const id of this.health.keys())if(!rooms.some(r=>r.id===id))this.health.delete(id);
     return rooms.map(r=>{
       const assignments=this.roster.assignments.filter(a=>a.roomId===r.id&&a.kind==='guard');
-      const present=assignments.filter(a=>a.state!=='enRoute'),maxHealth=GUARD_CONFIG.health[r.level-1],health=Math.min(maxHealth,this.health.get(r.id)??maxHealth);
-      const powered=this.power()>=GUARD_CONFIG.power;
-      return {roomId:r.id,level:r.level,guardCapacity:GUARD_CONFIG.capacity[r.level-1],guards:present.length,enRoute:assignments.length-present.length,
+      const present=assignments.filter(a=>a.state==='active'),maxHealth=GUARD_CONFIG.health[r.level-1],health=Math.min(maxHealth,this.health.get(r.id)??maxHealth);
+      const value=this.power(r.id),powered=typeof value==='number'?value>=GUARD_CONFIG.power:value;
+      return {roomId:r.id,level:r.level,guardCapacity:GUARD_CONFIG.capacity[r.level-1],guards:present.length,enRoute:assignments.filter(a=>a.state==='enRoute').length,
         readiness:powered&&health>0?present.length/GUARD_CONFIG.capacity[r.level-1]:0,health,maxHealth,defenseBonus:GUARD_CONFIG.defenseBonus[r.level-1],
         equipment:present.flatMap(a=>[...(this.equipment?.getAssignedEquipment(a.survivorId)??[])]),status:!health?'damaged':!powered?'unpowered':present.length?'ready':'empty'};
     });
