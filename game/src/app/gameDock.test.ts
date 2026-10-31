@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { nextGameSheet, ROOM_CATEGORY, ROOM_CATEGORIES, roomMatchesCategory, PRIMARY_EDITOR_TOOLS, POWER_EDITOR_TOOLS } from './gameDock';
+import { readFileSync } from 'node:fs';
+import { nextGameSheet, ROOM_CATEGORY, ROOM_CATEGORIES, roomMatchesCategory, PRIMARY_EDITOR_TOOLS, POWER_EDITOR_TOOLS, DIG_TOOL_ART } from './gameDock';
 import { ROOM_DEFINITIONS } from '../modules/building/catalog';
 
 describe('unified bottom-sheet navigation', () => {
@@ -48,5 +49,19 @@ describe('illustrated editor tool layout', () => {
     const all = [...PRIMARY_EDITOR_TOOLS, ...POWER_EDITOR_TOOLS];
     expect(new Set(all.map((tool) => tool.id)).size).toBe(all.length);
     expect(all.every((tool) => tool.label.length > 0 && tool.hint.length > 0)).toBe(true);
+  });
+});
+
+describe('digging artwork replacement', () => {
+  it('ships a lightweight transparent WebP for the excavation card', () => {
+    expect(DIG_TOOL_ART).toBe('assets/ui/dig-pickaxe.webp');
+    const bytes = readFileSync('public/' + DIG_TOOL_ART);
+    expect(bytes.toString('ascii', 0, 4)).toBe('RIFF');
+    expect(bytes.toString('ascii', 8, 12)).toBe('WEBP');
+    expect(bytes.toString('ascii', 12, 16)).toBe('VP8X');
+    expect(bytes.readUIntLE(24, 3) + 1).toBe(96);
+    expect(bytes.readUIntLE(27, 3) + 1).toBe(96);
+    expect(bytes.length).toBeLessThan(8_000);
+    expect(PRIMARY_EDITOR_TOOLS.find((tool) => tool.id === 'dig')?.label).toBe('حفاری');
   });
 });
