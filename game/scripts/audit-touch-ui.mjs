@@ -49,6 +49,19 @@ async function run(width, height) {
   assert.equal(await page.locator('#game-sheet').getAttribute('data-sheet'), 'tools');
   await checkTapTargets(page, 'tools', width, height);
   await page.locator('#zoom-in').tap();
+
+  // The grid toggle must accept real touch taps, dismiss the sheet, and expose
+  // an obvious persistent state even when a saved shelter has no visible wiring.
+  await page.locator('#power-overlay-toggle').tap();
+  assert.equal(await page.locator('#power-overlay-toggle').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator('#game-sheet').isVisible(), false);
+  assert.equal(await page.locator('#power-overlay-indicator').isVisible(), true);
+  await page.locator('#dock-tools').tap();
+  await page.locator('#power-overlay-toggle').tap();
+  assert.equal(await page.locator('#power-overlay-toggle').getAttribute('aria-pressed'), 'false');
+  assert.equal(await page.locator('#power-overlay-indicator').isVisible(), false);
+  assert.equal(await page.locator('#game-sheet').isVisible(), false);
+
   await page.locator('#open-more').tap();
   assert.equal(await page.locator('#game-sheet').getAttribute('data-sheet'), 'more');
   await checkTapTargets(page, 'more', width, height);

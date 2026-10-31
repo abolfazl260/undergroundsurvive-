@@ -71,6 +71,7 @@ const renderPower = mountPowerPanel(document,
   () => scene.activatePowerNetwork(),
   (id,priority) => scene.prioritizePower(id,priority));
 const powerOverlayButton = document.querySelector<HTMLButtonElement>('#power-overlay-toggle');
+const powerOverlayIndicator = document.querySelector<HTMLElement>('#power-overlay-indicator');
 const savedGame = loadLocalBase();
 const announceMigrationRewards = savedGame !== null &&
   !(typeof savedGame === 'object' && 'schemaVersion' in savedGame &&
@@ -168,6 +169,32 @@ let lastSnapshot: GameSnapshot | null = null;
 let lastSaved = false;
 let lastMessage = '';
 
+function syncPowerOverlayUi(view: ReturnType<GameScene['powerView']>): void {
+  if (powerOverlayButton) {
+    setPressed(powerOverlayButton, view.enabled);
+    // Keep the illustrated card intact as the overlay's state changes.
+    const overlayTitle = view.enabled ? 'پنهان‌کردن شبکه برق' : 'نمایش شبکه برق';
+    powerOverlayButton.dataset.toolLabel = overlayTitle;
+    const caption = powerOverlayButton.querySelector<HTMLElement>('.ui-control-label');
+    if (caption) caption.textContent = t(overlayTitle);
+    else powerOverlayButton.textContent = t(overlayTitle);
+    powerOverlayButton.setAttribute('aria-label',
+      t(view.enabled ? 'پنهان‌کردن شبکه برق' : 'نمایش کابل و اتاق‌های بی‌برق'));
+  }
+  if (powerOverlayIndicator) {
+    powerOverlayIndicator.hidden = !view.enabled;
+    if (view.enabled) {
+      const offline = view.allocation.rooms.filter((room) =>
+        room.status === 'disconnected' || room.status === 'shed').length;
+      const summary = t('شبکه برق فعال · {cables} کابل · {rooms} اتاق بی‌برق', {
+        cables: formatNumber(view.cableCount),
+        rooms: formatNumber(offline)
+      });
+      if (powerOverlayIndicator.textContent !== summary) powerOverlayIndicator.textContent = summary;
+    }
+  }
+}
+
 function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string): void {
   latestBalance = snapshot.wallet.balance;
   renderUpgradePanel();
@@ -176,7 +203,7 @@ function renderSceneUi(snapshot: GameSnapshot, saved: boolean, message: string):
   resourcePanel.render(snapshot);
   const powerView = scene.powerView();
   renderPower(snapshot,powerView.allocation);
-  if(powerOverlayButton)powerOverlayButton.setAttribute('aria-pressed',String(powerView.enabled));
+  syncPowerOverlayUi(powerView);
   renderWater(snapshot);
   renderAir(snapshot);
   renderAirHud(snapshot);
@@ -356,9 +383,8 @@ toolButtons.forEach((button) => {
 
 powerOverlayButton?.addEventListener('click', () => {
   scene.togglePowerOverlay();
-  const view = scene.powerView();
-  powerOverlayButton.setAttribute('aria-pressed', String(view.enabled));
-  // The electrical visualization must not remain hidden behind its own sheet.
+  syncPowerOverlayUi(scene.powerView());
+  // Closing the tools sheet removes the scrim over the wiring layer.
   gameDock.showSheet(null);
 });
 confirmUpgrade?.addEventListener('click', () => scene.upgradeSelected());
