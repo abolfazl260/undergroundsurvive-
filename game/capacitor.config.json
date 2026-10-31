@@ -8,5 +8,12 @@
     "allowMixedContent": false,
     "webContentsDebuggingEnabled": false,
     "zoomEnabled": false
+  },
+  "plugins": {
+    "SystemBars": {
+      "hidden": true,
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover"
+    }
   }
 }
