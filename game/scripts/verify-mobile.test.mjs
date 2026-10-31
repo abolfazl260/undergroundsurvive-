@@ -6,7 +6,7 @@ const pkg = {
   dependencies: { '@capacitor/core': '8.5.3', '@capacitor/android': '8.5.3', '@capacitor/ios': '8.5.3', '@capacitor/app': '8.1.2', '@fontsource-variable/vazirmatn': '5.3.0' },
   devDependencies: { '@capacitor/cli': '8.5.3' }
 };
-const config = { appId: 'com.undergroundsurvive.game', appName: 'Underground Survive', webDir: 'dist', backgroundColor: '#0b1422', android: { backgroundColor: '#0b1422' } };
+const config = { appId: 'com.undergroundsurvive.game', appName: 'LAST SIGNAL', webDir: 'dist', backgroundColor: '#0b1422', android: { backgroundColor: '#0b1422' } };
 
 describe('Capacitor configuration', () => {
   it('accepts the offline app config and pinned compatible platform versions', () => {
