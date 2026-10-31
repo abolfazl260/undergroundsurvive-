@@ -71,3 +71,7 @@
 - صدور نسخهٔ عمومی، بارگذاری در Google Play، امضای iOS و ساخت IPA در دامنهٔ این Workflow نیستند.
 
 برای خروجی debug فعلی، Workflow مستقل `Capacitor Android checks` همچنان دستی باقی می‌ماند.
+
+## تغییرات سازگاری توسعهٔ Android
+
+فرمان `mobile:prepare:android` اکنون پس از Capacitor sync، تنظیمات امن Android Manifest و آیکون/صفحهٔ شروع اختصاصی را نیز بازتولید می‌کند. فونت فارسی در بستهٔ محلی قرار دارد و وابسته به Google Fonts نیست. پیش از عرضهٔ عمومی، آزمون‌های عملی و باقی الزامات را در [راهنمای آمادگی Android](ANDROID_READINESS.md) بررسی کنید.
