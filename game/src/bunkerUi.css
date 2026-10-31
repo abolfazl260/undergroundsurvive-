@@ -422,6 +422,23 @@ html[dir="ltr"] .game-confirm-dialog {direction:ltr;}
   stroke-width:1.7;filter:drop-shadow(0 3px 1px #071824) drop-shadow(0 0 11px var(--tool-color));
   transform:translateY(-5px);
 }
+/* Digging has its own small WebP icon rather than the generic incomplete pickaxe. */
+#game-sheet .dock-tools-container .tool-card--dig .tool-card-image {
+  display:block;
+  position:relative;
+  z-index:1;
+  width:78px;
+  height:78px;
+  max-width:90%;
+  object-fit:contain;
+  transform:translateY(-2px);
+  filter:drop-shadow(0 1px 6px #ffb55e42);
+  pointer-events:none;
+  user-select:none;
+}
+#game-sheet .dock-tools-container .tool-card--dig .tool-card-art::before {
+  opacity:.1;
+}
 #game-sheet .dock-tools-container .tool-card .tool-card-copy {
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:4px;width:100%;min-height:58px;padding:7px 5px 9px;
@@ -512,6 +529,7 @@ html[dir="ltr"] #game-sheet .dock-tools-container .tool-card-copy {direction:ltr
   #game-sheet .dock-tools-container .tools-grid .tool-card {min-height:104px;}
   #game-sheet .dock-tools-container .tool-card .tool-card-art {min-height:57px;flex-basis:57px;}
   #game-sheet .dock-tools-container .tool-card .tool-card-art .ui-icon {width:36px;height:36px;}
+  #game-sheet .dock-tools-container .tool-card--dig .tool-card-image {width:53px;height:53px;transform:translateY(-1px);}
   #game-sheet .dock-tools-container .tool-card .tool-card-platform {width:55px;height:16px;bottom:8px;}
   #game-sheet .dock-tools-container .tool-card .tool-card-copy {min-height:44px;padding:5px 2px;}
   #game-sheet .dock-tools-container .tool-card .tool-card-hint {display:none;}
