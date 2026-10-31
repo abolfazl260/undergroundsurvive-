@@ -18,6 +18,14 @@ describe('Native Android configuration', () => {
     assert.ok(updated.includes('postSplashScreenTheme'));
     assert.equal(patchAndroidLaunchTheme(updated), updated);
   });
+  it('handles Capacitor templates without AndroidX splash attributes', () => {
+    const noAndroidX = styles.replace('parent="Theme.SplashScreen"', 'parent="AppTheme.NoActionBar"');
+    const updated = patchAndroidLaunchTheme(noAndroidX);
+    assert.ok(updated.includes('name="android:windowSplashScreenBackground"'));
+    assert.ok(updated.includes('name="android:windowSplashScreenAnimatedIcon"'));
+    assert.ok(updated.includes('name="android:background"'));
+    assert.equal(patchAndroidLaunchTheme(updated), updated);
+  });
   it('fails closed for unsupported templates', () => {
     assert.throws(() => patchAndroidManifest('<manifest/>'));
     assert.throws(() => patchAndroidLaunchTheme('<resources/>'));
