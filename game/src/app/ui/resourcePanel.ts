@@ -105,13 +105,22 @@ export function mountResourcePanel(root: ParentNode): {
         ? ` · Water remaining: ${etaLabel(life.water.etaTicks)}, oxygen: ${etaLabel(life.oxygen.etaTicks)}`
         : ` · اتمام آب: ${etaLabel(life.water.etaTicks)}، اکسیژن: ${etaLabel(life.oxygen.etaTicks)}`;
       ticks.textContent = formatNumber(tickCount);
-      warning.dataset.shortage = String(lastShortages.length > 0);
+      const emptyEssentials = [
+        ...(stock.meal === 0 ? [t('جیره')] : []),
+        ...(life.water.stock === 0 ? [t('آب')] : []),
+        ...(life.oxygen.stock === 0 ? [t('اکسیژن')] : [])
+      ];
+      warning.dataset.shortage = String(lastShortages.length > 0 || emptyEssentials.length > 0);
       warning.textContent = lastShortages.length
         ? t('کمبود {resources} · {rooms} اتاق در چرخهٔ اخیر غیرفعال بود.', {
           resources: lastShortages.map((type) => t(titles[type])).join('، '),
           rooms: formatNumber(inactiveRooms)
         })
-        : t('چرخهٔ اخیر بدون کمبود منابع انجام شد. هنگام توقف بازی تولید متوقف می‌شود.');
+        : emptyEssentials.length
+          ? t('ذخیرهٔ {resources} خالی است؛ اتاق‌های تولید را بررسی کنید.', {
+            resources: emptyEssentials.join('، ')
+          })
+          : t('چرخهٔ اخیر بدون کمبود منابع انجام شد. هنگام توقف بازی تولید متوقف می‌شود.');
     },
     renderCountdown(seconds) {
       lastSeconds = seconds;
