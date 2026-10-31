@@ -23,6 +23,49 @@ async function checkTapTargets(page, state, width, height) {
   assert.deepEqual(failures, [], `Touch target sizes at ${width}x${height} (${state})`);
 }
 
+/** All persistent game controls must sit wholly inside the unified top HUD. */
+async function checkUnifiedTopControls(page, width, height) {
+  const result = await page.evaluate(() => {
+    const topbar = document.querySelector('.topbar');
+    const header = topbar.getBoundingClientRect();
+    const ids = [
+      '#menu-toggle', '#dock-build', '#dock-tools',
+      '#zoom-in', '#zoom-out', '#zoom-reset',
+      '#resource-details-toggle', '#story-open', '#achievements-open',
+      '#open-more', '#screen-fullscreen'
+    ];
+    const problems = [];
+    for (const id of ids) {
+      const button = document.querySelector(id);
+      if (!button) { problems.push(id + ': missing'); continue; }
+      if (!topbar.contains(button)) { problems.push(id + ': not part of topbar'); continue; }
+      if (getComputedStyle(button).display === 'none' || !button.getClientRects().length) continue;
+      const rect = button.getBoundingClientRect();
+      if (rect.top < header.top - 2 || rect.bottom > header.bottom + 2 ||
+          rect.left < -1 || rect.right > window.innerWidth + 1) {
+        problems.push(id + ': outside header ' + JSON.stringify({
+          top:rect.top, bottom:rect.bottom, left:rect.left, right:rect.right,
+          headerBottom:header.bottom
+        }));
+      }
+    }
+    return problems;
+  });
+  assert.deepEqual(result, [], `Only top-bar game controls at ${width}x${height}`);
+}
+
+async function checkPopoverBelowTopbar(page, selector) {
+  const geometry = await page.evaluate((target) => {
+    const header = document.querySelector('.topbar').getBoundingClientRect();
+    const panel = document.querySelector(target).getBoundingClientRect();
+    return { headerBottom: header.bottom, panelTop: panel.top, panelBottom: panel.bottom, viewport: innerHeight };
+  }, selector);
+  assert.ok(geometry.panelTop >= geometry.headerBottom - 3,
+    `${selector} must open below the header: ${JSON.stringify(geometry)}`);
+  assert.ok(geometry.panelBottom <= geometry.viewport + 2,
+    `${selector} must fit the viewport: ${JSON.stringify(geometry)}`);
+}
+
 async function run(width, height) {
   const context = await browser.newContext({
     viewport: { width, height }, isMobile: true, hasTouch: true, deviceScaleFactor: 1
@@ -34,10 +77,19 @@ async function run(width, height) {
   await page.locator('#menu-continue').tap();
   await page.locator('#game-canvas canvas').waitFor({ state: 'visible' });
   await checkTapTargets(page, 'playing', width, height);
+  await checkUnifiedTopControls(page, width, height);
+
+  // Resource details are a popover below the topbar, never a bottom-right drawer.
+  await page.locator('#resource-details-toggle').tap();
+  assert.equal(await page.locator('.resource-panel').getAttribute('data-expanded'), 'true');
+  await checkPopoverBelowTopbar(page, '.resource-panel');
+  await page.locator('#resource-details-toggle').tap();
+  assert.equal(await page.locator('.resource-panel').getAttribute('data-expanded'), 'false');
 
   // Build gallery: room selection and explicit confirmation.
   await page.locator('#dock-build').tap();
   assert.equal(await page.locator('#game-sheet').getAttribute('data-sheet'), 'rooms');
+  await checkPopoverBelowTopbar(page, '#game-sheet');
   await checkTapTargets(page, 'rooms', width, height);
   await page.locator('[data-room="generator"]').tap();
   assert.equal(await page.locator('[data-room="generator"]').getAttribute('aria-pressed'), 'true');
@@ -47,6 +99,7 @@ async function run(width, height) {
   // Tools -> More must be a single tap, even with the sheet scrim present.
   await page.locator('#dock-tools').tap();
   assert.equal(await page.locator('#game-sheet').getAttribute('data-sheet'), 'tools');
+  await checkPopoverBelowTopbar(page, '#game-sheet');
   await checkTapTargets(page, 'tools', width, height);
   await page.locator('#zoom-in').tap();
 

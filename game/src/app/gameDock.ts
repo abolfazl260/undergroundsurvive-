@@ -170,10 +170,16 @@ export function mountGameDock(root: Document = document): {
   const playArea = root.querySelector<HTMLElement>('.play-area');
   if (upgradePanel && playArea) playArea.append(upgradePanel);
 
-  // The right-side story buttons and zoom rail now live inside bottom-accessible sheets.
+  // All persistent gameplay actions live in one top HUD; never pin controls
+  // to a side rail or the bottom of the game canvas.
   const storyNavigation = root.querySelector<HTMLElement>('.story-navigation');
-  const heading = sheet.querySelector<HTMLElement>('.sidebar-heading');
-  if (storyNavigation && heading) sheet.insertBefore(storyNavigation, heading);
+  if (storyNavigation) {
+    topbar.insertBefore(storyNavigation, moreButton);
+    const story = storyNavigation.querySelector<HTMLButtonElement>('#story-open');
+    const achievements = storyNavigation.querySelector<HTMLButtonElement>('#achievements-open');
+    if (story) story.setAttribute('aria-label', t('داستان تصویری'));
+    if (achievements) achievements.setAttribute('aria-label', t('دستاوردها'));
+  }
   // Reparent original controls instead of cloning them; event handlers stay connected.
   const toolsContainer = root.createElement('section');
   toolsContainer.className = 'dock-tools-container';
@@ -206,11 +212,14 @@ export function mountGameDock(root: Document = document): {
   });
   powerSection.append(powerHeading, powerGrid);
   const viewControls = root.createElement('div');
-  viewControls.className = 'tool-viewport-controls';
+  viewControls.className = 'top-view-controls';
+  viewControls.setAttribute('role', 'group');
+  viewControls.setAttribute('aria-label', t('کنترل بزرگ‌نمایی نقشه'));
   const zoom = root.querySelector<HTMLElement>('.zoom-controls');
   if (zoom) viewControls.append(zoom);
   if (fullscreen) viewControls.append(fullscreen);
-  toolsContainer.append(mainSection, powerSection, viewControls);
+  topbar.insertBefore(viewControls, moreButton);
+  toolsContainer.append(mainSection, powerSection);
   sheet.append(toolsContainer);
 
   // Mode tabs mirror the illustrated reference design and remain keyboard accessible.
@@ -271,6 +280,24 @@ export function mountGameDock(root: Document = document): {
   const buildButton = dockButton(root, 'dock-build', 'package', 'ساخت اتاق', 'dock-primary');
   const toolsButton = dockButton(root, 'dock-tools', 'wrench', 'ابزارها', 'dock-secondary');
   dock.append(buildButton, toolsButton);
+  // Keep the original nav and listeners intact; move the dock into the header.
+  topbar.insertBefore(dock, viewControls);
+
+  // The resource toggle is an ordinary header action, while its long-form
+  // details remain in a separate viewport-level popover (no clipped overflow).
+  const resourceHeader = resourcePanel.querySelector<HTMLElement>('.resource-panel-header');
+  const cycle = resourceHeader?.querySelector<HTMLElement>('.cycle-label');
+  const resourceTrigger = root.createElement('div');
+  resourceTrigger.className = 'top-resource-control';
+  resourceTrigger.setAttribute('role', 'group');
+  resourceTrigger.setAttribute('aria-label', t('منابع و چرخهٔ زمانی پناهگاه'));
+  const resourcesText = root.createElement('span');
+  resourcesText.className = 'top-resources-text';
+  resourcesText.textContent = t('منابع');
+  resourceToggle.prepend(createIcon('bolt'), resourcesText);
+  resourceTrigger.append(resourceToggle);
+  if (cycle) resourceTrigger.append(cycle);
+  topbar.insertBefore(resourceTrigger, moreButton);
 
   let current: GameSheet = null;
   let returnFocus: HTMLElement | null = null;
@@ -291,7 +318,8 @@ export function mountGameDock(root: Document = document): {
   });
 
   const measureHud = () => {
-    root.documentElement.style.setProperty('--hud-dock-occupied', dock.getBoundingClientRect().height + 'px');
+    // No bottom bar remains; tools, zoom and navigation are all inside topbar.
+    root.documentElement.style.setProperty('--hud-dock-occupied', '0px');
     root.documentElement.style.setProperty('--hud-top-occupied', topbar.getBoundingClientRect().height + 'px');
   };
   if (typeof ResizeObserver !== 'undefined') {
@@ -348,6 +376,10 @@ export function mountGameDock(root: Document = document): {
     toolGrid.setAttribute('aria-label', t('ابزارهای اصلی'));
     powerGrid.setAttribute('aria-label', t('ابزارهای شبکه برق'));
     toolsContainer.setAttribute('aria-label', t('ابزارهای زمین و اتاق'));
+    resourceTrigger.setAttribute('aria-label', t('منابع و چرخهٔ زمانی پناهگاه'));
+    resourcesText.textContent = t('منابع');
+    storyNavigation?.querySelector<HTMLButtonElement>('#story-open')?.setAttribute('aria-label', t('داستان تصویری'));
+    storyNavigation?.querySelector<HTMLButtonElement>('#achievements-open')?.setAttribute('aria-label', t('دستاوردها'));
     const translatedCards: HTMLButtonElement[] = [
       ...Array.from(toolGrid.querySelectorAll<HTMLButtonElement>('.tool-card')),
       ...Array.from(powerGrid.querySelectorAll<HTMLButtonElement>('.tool-card'))
@@ -386,7 +418,8 @@ export function mountGameDock(root: Document = document): {
     resourceToggle.setAttribute('aria-expanded', String(open));
   });
   root.addEventListener('pointerdown', (event) => {
-    if (event.target instanceof Node && !resourcePanel.contains(event.target)) collapseResources();
+    if (event.target instanceof Node &&
+      !resourcePanel.contains(event.target) && !resourceToggle.contains(event.target)) collapseResources();
   });
   const updateFullscreen = () => fullscreen?.setAttribute('aria-pressed', String(!!root.fullscreenElement));
   fullscreen?.addEventListener('click', () => {

@@ -327,3 +327,309 @@ html[dir="ltr"] #app > .resource-panel .resource-grid {direction:ltr;}
   color:#fff;
   font:900 12px/1 system-ui,sans-serif;
 }
+
+
+/* Unified top command center. No permanent actions on the canvas sides/bottom.
+   Loaded last, overriding legacy floating/landscape rules in other stylesheets. */
+:root { --hud-dock-occupied:0px; }
+#app > .topbar {
+  position:absolute;
+  inset:0 0 auto 0;
+  z-index:60;
+  display:flex;
+  flex-direction:row;
+  flex-wrap:nowrap;
+  justify-content:space-between;
+  align-items:center;
+  gap:clamp(4px,.55vw,10px);
+  width:100%;
+  height:auto;
+  min-height:calc(60px + var(--game-safe-top));
+  margin:0;
+  padding:calc(7px + var(--game-safe-top))
+          max(10px,env(safe-area-inset-right))
+          7px
+          max(10px,env(safe-area-inset-left));
+  border-bottom:1px solid rgba(102,204,198,.47);
+  background:linear-gradient(180deg,rgba(5,22,34,.97),rgba(6,24,38,.93));
+  box-shadow:0 10px 25px #0006;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  direction:ltr;
+  overflow:visible;
+  pointer-events:auto;
+}
+#app > .topbar #menu-toggle {order:0;position:static;flex:0 0 44px;}
+#app > .topbar .brand {order:1;flex:0 1 195px;min-width:30px;max-width:240px;overflow:hidden;}
+#app > .topbar .hud-bar {
+  order:2;position:static;inset:auto;
+  flex:0 1 174px;width:auto;max-width:190px;
+  margin:0;min-width:70px;display:flex;direction:rtl;
+  justify-content:center;align-items:center;gap:5px;
+}
+#app > .topbar .hud-tile {
+  flex:0 1 auto;min-width:69px;min-height:44px;height:44px;
+  padding:5px 8px;gap:5px;border-radius:11px;
+}
+#app > .topbar .hud-icon {width:20px;height:20px;flex:0 0 20px;}
+#app > .topbar .hud-icon svg {width:19px;height:19px;}
+#app > .topbar .hud-label {font-size:9px;}
+#app > .topbar .hud-tile-content strong {font-size:13px;}
+#app > .topbar #action-dock {
+  order:3;position:static;inset:auto;z-index:auto;
+  flex:0 0 auto;width:auto;min-width:0;min-height:0;height:auto;
+  display:flex;justify-content:center;align-items:center;gap:6px;
+  margin:0;padding:0;
+  border:0;border-radius:0;background:transparent;box-shadow:none;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  direction:rtl;
+}
+#app > .topbar #action-dock > button {
+  flex:0 0 auto;min-width:90px;min-height:44px;height:44px;
+  padding:6px 11px;gap:7px;border-radius:11px;
+  font-size:12px;white-space:nowrap;
+}
+#app > .topbar #action-dock .dock-primary {
+  color:#07332f;background:linear-gradient(180deg,#53e4cb,#1baa9b);
+  box-shadow:0 0 13px #2ee5c73d;
+}
+#app > .topbar #action-dock .dock-secondary {
+  background:linear-gradient(180deg,#163e50,#0b2c3d);
+}
+#app > .topbar .top-view-controls {
+  order:4;position:static;inset:auto;z-index:auto;
+  display:flex;flex:0 0 auto;align-items:center;justify-content:center;gap:4px;
+  min-width:0;
+}
+#app > .topbar .top-view-controls .zoom-controls {
+  position:static;inset:auto;transform:none;
+  display:flex;flex-direction:row;align-items:center;justify-content:center;
+  flex:0 0 auto;gap:2px;margin:0;padding:1px;
+  border:1px solid rgba(105,172,183,.48);border-radius:11px;
+  background:rgba(10,41,56,.82);box-shadow:none;
+  backdrop-filter:none;
+  pointer-events:auto;
+}
+#app > .topbar .top-view-controls .zoom-controls button,
+#app > .topbar .top-view-controls .zoom-controls button:last-child {
+  flex:0 0 44px;display:grid;place-items:center;
+  width:44px;min-width:44px;height:44px;min-height:44px;
+  margin:0;padding:0;border-radius:9px;font-size:15px;
+  background:transparent;color:#ecfcfb;
+}
+#app > .topbar .top-view-controls #zoom-level {
+  flex:0 0 38px;min-width:38px;width:38px;max-width:38px;
+  font-size:10px;text-align:center;color:#b6dfdf;
+}
+#app > .topbar .top-view-controls .screen-fullscreen {
+  position:static;inset:auto;transform:none;
+  display:grid;flex:0 0 44px;place-items:center;
+  width:44px;min-width:44px;min-height:44px;height:44px;
+  margin:0;padding:0;border-radius:10px;
+  background:rgba(18,57,70,.85);border:1px solid rgba(105,172,183,.48);
+}
+html.native-android #app > .topbar .screen-fullscreen {display:none!important;}
+#app > .topbar .story-navigation {
+  order:5;position:static;inset:auto;z-index:auto;
+  display:flex;flex:0 0 auto;flex-direction:row;justify-content:center;
+  align-items:center;gap:4px;width:auto;max-width:none;
+  margin:0;padding:0;direction:rtl;transform:none;
+}
+#app > .topbar .story-navigation > button {
+  display:grid;flex:0 0 44px;place-items:center;
+  width:44px;min-width:44px;min-height:44px;height:44px;
+  margin:0;padding:3px;border-radius:11px;
+  font-size:0;line-height:1;white-space:nowrap;
+  border:1px solid rgba(107,196,179,.58);
+  background:rgba(14,61,67,.75);
+  cursor:pointer;touch-action:manipulation;
+}
+#app > .topbar .story-navigation > button > span:not(.ui-icon-slot),
+#app > .topbar .story-navigation > button output {display:none;}
+#app > .topbar .story-navigation > button .ui-icon {width:22px;height:22px;}
+#app > .topbar .top-resource-control {
+  order:6;display:flex;flex:0 0 auto;align-items:center;justify-content:center;
+  min-width:0;gap:5px;direction:rtl;
+}
+#app > .topbar .top-resource-control #resource-details-toggle {
+  display:flex;flex:0 0 auto;align-items:center;justify-content:center;
+  gap:6px;min-width:44px;width:auto;height:44px;min-height:44px;
+  margin:0;padding:0 10px;border:1px solid rgba(104,203,191,.63);
+  border-radius:11px;background:rgba(12,55,62,.82);
+  color:#dbfff5;box-shadow:0 3px 14px #0004;
+  transform:none;cursor:pointer;touch-action:manipulation;
+  font-size:11px;font-weight:800;
+}
+#app > .topbar .top-resource-control #resource-details-toggle .ui-icon {
+  width:19px;height:19px;color:#6ee9db;
+}
+#app > .topbar .top-resource-control #resource-details-toggle .resource-open-symbol,
+#app > .topbar .top-resource-control #resource-details-toggle .resource-close-symbol {
+  display:none;
+}
+#app:has(> .resource-panel[data-alert="true"]) > .topbar #resource-details-toggle {
+  border-color:#f58886;background:rgba(99,32,42,.92);
+  box-shadow:0 0 12px #a4384890;
+}
+#app > .topbar .top-resource-control .cycle-label {
+  display:flex;flex:0 0 auto;align-items:center;gap:3px;
+  color:#f0d299;font-size:10px;font-weight:800;white-space:nowrap;
+}
+#app > .topbar #open-more {order:7;position:static;flex:0 0 44px;margin:0;}
+#app > .topbar > #hud-save-status {pointer-events:none;}
+#app > .topbar button:focus-visible,
+#app > .topbar .top-view-controls button:focus-visible {
+  outline:2px solid #a8fff0;outline-offset:2px;
+}
+
+/* The build/tools/management sheets open DOWN from the unified header. */
+#app #game-sheet,
+#app #game-sheet[data-sheet="tools"],
+#app #game-sheet[data-sheet="rooms"] {
+  position:absolute;z-index:48;
+  inset:calc(var(--hud-top-occupied,70px) + 7px) auto auto 50%;
+  bottom:auto;left:50%;right:auto;
+  transform:translateX(-50%);
+  width:min(1500px,calc(100vw - 18px));
+  max-height:calc(100dvh - var(--hud-top-occupied,70px) - 16px);
+  margin:0;overscroll-behavior:contain;overflow-x:hidden;overflow-y:auto;
+  border-radius:14px 14px 20px 20px;
+}
+#app #game-sheet[data-sheet="tools"] {max-height:calc(100dvh - var(--hud-top-occupied,70px) - 16px);}
+#app #sheet-scrim {z-index:38;}
+#app:has(#game-sheet:not([hidden])) > .topbar {z-index:60;}
+
+/* The resource drawer remains a separate sibling of the world and is anchored
+   under the top bar. Collapsed state has NO floating bottom-side button. */
+#app > .resource-panel[data-expanded="false"] {display:none!important;}
+#app > .resource-panel[data-expanded="true"] {
+  position:absolute;z-index:51;
+  inset:calc(var(--hud-top-occupied,70px) + 7px) auto auto 50%;
+  top:calc(var(--hud-top-occupied,70px) + 7px);
+  bottom:auto;left:50%;right:auto;
+  transform:translateX(-50%);
+  display:flex;width:min(900px,calc(100vw - 18px));max-width:none;
+  max-height:calc(100dvh - var(--hud-top-occupied,70px) - 16px);
+  margin:0;border-radius:14px 14px 20px 20px;
+}
+#app > .resource-panel[data-expanded="true"] .resource-panel-header {
+  min-height:48px;padding:6px 14px;
+}
+#app > .resource-panel[data-expanded="true"] .resource-panel-header .resource-sheet-grip {display:none;}
+#app > .resource-panel[data-expanded="true"] .resource-panel-header .cycle-next {display:block;}
+#app > .resource-panel[data-expanded="true"] .resource-details {
+  padding:9px 12px 12px;
+  animation:top-sheet-reveal .2s ease-out both;
+}
+
+/* All contextual upgrade confirmation actions sit below the top HUD, never at
+   the side/bottom of the map. This is deliberately not a permanent tool rail. */
+#app .play-area .upgrade-panel,
+#app .play-area .upgrade-panel:not(.has-selection) {
+  position:absolute;z-index:46;top:calc(var(--hud-top-occupied,70px) + 10px);
+  bottom:auto;inset-inline:auto;left:50%;right:auto;
+  transform:translateX(-50%);
+  width:min(740px,calc(100vw - 20px));max-height:calc(100dvh - var(--hud-top-occupied,70px) - 19px);
+  margin:0;overflow-y:auto;pointer-events:auto;
+}
+#app:has(#game-sheet:not([hidden])) .play-area .upgrade-panel {
+  visibility:hidden;pointer-events:none;
+}
+#app .play-area .upgrade-panel[hidden] {display:none!important;}
+
+/* Non-interactive status remains available to assistive technology; visual
+   action messages and electric-grid indicators also appear near the top. */
+#app .scene-footer {
+  position:absolute!important;width:1px!important;height:1px!important;
+  left:0!important;bottom:auto!important;top:0!important;
+  padding:0!important;overflow:hidden!important;clip-path:inset(50%)!important;
+  border:0!important;opacity:0!important;pointer-events:none!important;
+}
+#app #game-action-toast {
+  top:calc(var(--hud-top-occupied,70px) + 10px);
+  z-index:28;pointer-events:none;
+}
+#app .play-area #power-overlay-indicator {
+  top:calc(var(--hud-top-occupied,70px) + 10px);
+  pointer-events:none;
+}
+@keyframes top-sheet-reveal {
+  from {opacity:.7;transform:translateY(-9px);}
+  to {opacity:1;transform:translateY(0);}
+}
+
+/* Compact landscape/tablet: one HUD with two rows, without horizontal scroll. */
+@media(max-width:1160px) {
+  #app > .topbar {
+    display:grid;
+    grid-template-columns:44px minmax(40px,1fr) auto auto auto;
+    grid-template-rows:44px 44px;
+    gap:6px;
+    min-height:calc(105px + var(--game-safe-top));
+    padding:calc(5px + var(--game-safe-top)) max(6px,env(safe-area-inset-right)) 6px max(6px,env(safe-area-inset-left));
+    justify-content:stretch;
+  }
+  #app > .topbar #menu-toggle {grid-column:1;grid-row:1;min-width:44px;}
+  #app > .topbar .brand {grid-column:2;grid-row:1;flex:none;max-width:100%;min-width:0;}
+  #app > .topbar .hud-bar {grid-column:3;grid-row:1;flex:none;min-width:0;}
+  #app > .topbar .top-resource-control {grid-column:4;grid-row:1;justify-self:end;}
+  #app > .topbar #open-more {grid-column:5;grid-row:1;}
+  #app > .topbar #action-dock {grid-column:1 / 3;grid-row:2;justify-self:start;}
+  #app > .topbar .top-view-controls {grid-column:3 / 5;grid-row:2;justify-self:center;}
+  #app > .topbar .story-navigation {grid-column:5;grid-row:2;justify-self:end;}
+  #app > .topbar .story-navigation > button {width:44px;min-width:44px;}
+  #app > .topbar .brand-name {font-size:11px;}
+  #app > .topbar .hud-tile {min-width:62px;padding-inline:6px;}
+  #app > .topbar .top-resource-control .cycle-label {display:none;}
+}
+@media(max-width:850px) {
+  #app > .topbar {
+    grid-template-columns:44px minmax(28px,1fr) auto auto auto;
+    grid-template-rows:44px 44px 44px;
+    min-height:calc(155px + var(--game-safe-top));
+    gap:5px;
+  }
+  #app > .topbar .brand {grid-column:2;grid-row:1;justify-self:start;}
+  #app > .topbar .brand-name {display:none;}
+  #app > .topbar .hud-bar {grid-column:3;grid-row:1;}
+  #app > .topbar .hud-bar .hud-tile:not(.hud-tile-coins) {display:none;}
+  #app > .topbar .top-resource-control {grid-column:4;grid-row:1;}
+  #app > .topbar .top-resource-control .top-resources-text {display:none;}
+  #app > .topbar .top-resource-control #resource-details-toggle {
+    width:44px;min-width:44px;padding:0;
+  }
+  #app > .topbar #open-more {grid-column:5;grid-row:1;}
+  #app > .topbar #action-dock {
+    grid-column:1 / 4;grid-row:2;justify-self:stretch;justify-content:flex-start;
+  }
+  #app > .topbar #action-dock > button {flex:1 1 0;min-width:66px;padding:5px;gap:4px;}
+  #app > .topbar .story-navigation {grid-column:4 / 6;grid-row:2;justify-self:end;}
+  #app > .topbar .top-view-controls {grid-column:1 / 6;grid-row:3;justify-self:center;}
+  #app > .topbar .top-view-controls .zoom-controls button,
+  #app > .topbar .top-view-controls .zoom-controls button:last-child {
+    width:44px;min-width:44px;height:44px;min-height:44px;
+  }
+}
+@media(max-width:380px) {
+  #app > .topbar {column-gap:3px;padding-inline:4px;}
+  #app > .topbar #action-dock > button {font-size:11px;}
+  #app > .topbar #action-dock > button .ui-icon {width:18px;height:18px;}
+  #app > .topbar .hud-tile {min-width:58px;padding-inline:4px;}
+  #app > .topbar .hud-tile-content strong {font-size:12px;}
+}
+@media(max-height:490px) {
+  #app #game-sheet,
+  #app #game-sheet[data-sheet="tools"],
+  #app #game-sheet[data-sheet="rooms"] {
+    top:calc(var(--hud-top-occupied,112px) + 4px);
+    max-height:calc(100dvh - var(--hud-top-occupied,112px) - 8px);
+  }
+  #app > .resource-panel[data-expanded="true"],
+  #app .play-area .upgrade-panel {
+    top:calc(var(--hud-top-occupied,112px) + 4px);
+    max-height:calc(100dvh - var(--hud-top-occupied,112px) - 8px);
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  #app > .resource-panel[data-expanded="true"] .resource-details {animation:none;}
+}
