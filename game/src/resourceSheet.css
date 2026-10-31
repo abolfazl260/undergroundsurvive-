@@ -309,3 +309,21 @@ html[dir="ltr"] #app > .resource-panel .resource-grid {direction:ltr;}
 @media(prefers-reduced-transparency:reduce) {
   #app > .resource-panel {backdrop-filter:none;-webkit-backdrop-filter:none;background:#0b2533;}
 }
+
+/* Critical status remains discoverable without opening the resource sheet. */
+#app > .resource-panel[data-alert="true"][data-expanded="false"] {
+  border-color:#dc7376;
+  box-shadow:0 5px 22px #4f151c99;
+}
+#app > .resource-panel[data-alert="true"] .resource-sheet-title::before {
+  content:'!';
+  display:inline-grid;
+  place-items:center;
+  width:16px;
+  height:16px;
+  margin-inline-end:6px;
+  border-radius:5px;
+  background:#a9444e;
+  color:#fff;
+  font:900 12px/1 system-ui,sans-serif;
+}
