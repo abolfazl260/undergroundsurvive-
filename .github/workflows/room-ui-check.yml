@@ -29,6 +29,7 @@ jobs:
           npm run preview -- --port 4173 &
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173 >/dev/null && break || sleep 1; done
           node scripts/capture-room-ui.mjs http://127.0.0.1:4173 ui-evidence after
+          node scripts/audit-touch-ui.mjs http://127.0.0.1:4173
           git worktree add /tmp/room-ui-before "$BASE_SHA"
           ln -s "$PWD/node_modules" /tmp/room-ui-before/game/node_modules
           (cd /tmp/room-ui-before/game && npm run build && npm run preview -- --port 4174) &
