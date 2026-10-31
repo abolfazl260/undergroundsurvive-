@@ -17,7 +17,7 @@ export const ACHIEVEMENTS = [
   { id: 'upgrader', title: 'مهندس پناهگاه', description: '۳ ارتقای اتاق انجام دهید.', metric: 'upgrades', target: 3, rewardCoins: 75 },
   { id: 'upper-floor', title: 'رو به آسمان', description: 'اولین طبقهٔ بالایی را باز کنید.', metric: 'floors', target: 1, rewardCoins: 100 },
   { id: 'skyline', title: 'بر فراز ویرانه‌ها', description: '۲ طبقهٔ بالایی را باز کنید.', metric: 'floors', target: 2, rewardCoins: 220 },
-  { id: 'first-cycles', title: 'چرخهٔ بقا', description: '۵ چرخهٔ تولید منابع را پشت سر بگذارید.', metric: 'cycles', target: 5, rewardCoins: 60 },
+  { id: 'first-cycles', title: 'چرخهٔ پایدار', description: '۵ چرخهٔ تولید منابع را پشت سر بگذارید.', metric: 'cycles', target: 5, rewardCoins: 60 },
   { id: 'steady-shelter', title: 'پناهگاه پایدار', description: '۲۵ چرخهٔ تولید منابع را پشت سر بگذارید.', metric: 'cycles', target: 25, rewardCoins: 140 },
   { id: 'diverse-shelter', title: 'پناهگاهی برای همه', description: '۶ نوع اتاق متفاوت داشته باشید.', metric: 'roomTypes', target: 6, rewardCoins: 180 }
 ] as const satisfies readonly AchievementDefinition[];

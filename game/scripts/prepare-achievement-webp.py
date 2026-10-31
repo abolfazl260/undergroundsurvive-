@@ -21,6 +21,10 @@ NAMES = (
     "steady-shelter", "diverse-shelter",
 )
 SIZES = (360, 540)
+# Four refreshed panoramas are stored separately; the legacy source stays archival.
+FOUR_SOURCE = ROOT / "game" / "artwork-sources" / "milestones-four-master.webp"
+FOUR_NAMES = ("upper-floor", "steady-shelter", "first-cycles", "upgrader")
+FOUR_WIDTH, FOUR_HEIGHT = 760, 253
 
 def main() -> None:
     with Image.open(SOURCE) as sheet:
@@ -29,12 +33,22 @@ def main() -> None:
             f"Unexpected sheet dimensions: {width} x {height}"
         )
         colors = sheet.convert("RGB")
+    with Image.open(FOUR_SOURCE) as new_sheet:
+        assert new_sheet.size == (FOUR_WIDTH, FOUR_HEIGHT * len(FOUR_NAMES)), (
+            f"Unexpected new milestone sheet dimensions: {new_sheet.size}"
+        )
+        new_art = new_sheet.convert("RGB")
     TARGET.mkdir(parents=True, exist_ok=True)
     unique_images = set()
     total_bytes = 0
     for index, name in enumerate(NAMES):
         image = colors.crop((0, index * 180, 540, (index + 1) * 180))
-        if name == "skyline":
+        if name in FOUR_NAMES:
+            art_index = FOUR_NAMES.index(name)
+            image = new_art.crop(
+                (0, art_index * FOUR_HEIGHT, FOUR_WIDTH, (art_index + 1) * FOUR_HEIGHT)
+            ).resize((540, 180), Image.Resampling.LANCZOS)
+        elif name == "skyline":
             # The supplied skyline and upper-floor art in the source sheet are
             # visually identical. Build a distinct surface-expansion panorama:
             # the game's ruined city above a lit multi-floor shelter section.

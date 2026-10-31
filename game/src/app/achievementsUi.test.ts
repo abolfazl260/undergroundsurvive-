@@ -38,6 +38,17 @@ describe('achievement presentation categories', () => {
       .toBe('/undergroundsurvive-/assets/achievements/first-room-540.webp');
   });
 
+  it('pairs the four refreshed illustrations with their exact milestone titles', () => {
+    expect(ACHIEVEMENTS.filter((entry) =>
+      ['upper-floor', 'steady-shelter', 'first-cycles', 'upgrader'].includes(entry.id)
+    ).map((entry) => [entry.id, entry.title])).toEqual([
+      ['upgrader', 'مهندس پناهگاه'],
+      ['upper-floor', 'رو به آسمان'],
+      ['first-cycles', 'چرخهٔ پایدار'],
+      ['steady-shelter', 'پناهگاه پایدار']
+    ]);
+  });
+
   it('keeps catalog-derived filter totals consistent', () => {
     const totals = ACHIEVEMENTS.reduce<Record<string, number>>((counts, entry) => {
       const category = categoryForAchievement(entry.metric);
