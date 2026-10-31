@@ -348,11 +348,16 @@ export function mountGameDock(root: Document = document): {
     toolGrid.setAttribute('aria-label', t('ابزارهای اصلی'));
     powerGrid.setAttribute('aria-label', t('ابزارهای شبکه برق'));
     toolsContainer.setAttribute('aria-label', t('ابزارهای زمین و اتاق'));
-    for (const button of [...toolGrid.querySelectorAll<HTMLButtonElement>('.tool-card'),
-      ...powerGrid.querySelectorAll<HTMLButtonElement>('.tool-card')]) {
-      button.querySelector<HTMLElement>('.ui-control-label')!.textContent = t(button.dataset.toolLabel ?? '');
-      button.querySelector<HTMLElement>('.tool-card-hint')!.textContent = t(button.dataset.toolHint ?? '');
-    }
+    const translatedCards: HTMLButtonElement[] = [
+      ...Array.from(toolGrid.querySelectorAll<HTMLButtonElement>('.tool-card')),
+      ...Array.from(powerGrid.querySelectorAll<HTMLButtonElement>('.tool-card'))
+    ];
+    translatedCards.forEach((button) => {
+      const caption = button.querySelector<HTMLElement>('.ui-control-label');
+      const hint = button.querySelector<HTMLElement>('.tool-card-hint');
+      if (caption) caption.textContent = t(button.dataset.toolLabel ?? '');
+      if (hint) hint.textContent = t(button.dataset.toolHint ?? '');
+    });
     showSheet(current);
   });
   buildButton.addEventListener('click', () => toggleSheet('rooms'));
