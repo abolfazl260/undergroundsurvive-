@@ -154,3 +154,7 @@ html[dir="ltr"] .resource-panel-header span { text-align:end; }
 
 #sheet-scrim { position:absolute; z-index:30; inset:0; background:#020b13a0; pointer-events:auto; }
 #sheet-scrim[hidden] { display:none!important; }
+
+/* Android SystemBars handles immersive mode. */
+html.native-android .screen-fullscreen { display: none !important; }
+html.native-android, html.native-android body { overscroll-behavior: none; }

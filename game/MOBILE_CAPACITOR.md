@@ -74,3 +74,9 @@ Workflow آزمایشی موجود فقط Android Debug APK می‌سازد؛ Wo
 ## تفکیک تست‌ها
 
 `npm test` فقط پوشهٔ `src/` را به Vitest می‌دهد؛ `npm run mobile:test` تست‌های مستقل `node:test` را اجرا می‌کند. این تفکیک خطای `No test suite found in scripts/verify-mobile.test.mjs` را رفع می‌کند و از تکرار آن جلوگیری می‌کند.
+
+## سازگاری بومی Android
+
+پس از هر `mobile:prepare:android`، اسکریپت `configure-android-native.mjs` تنظیمات Android Manifest، رنگ شروع برنامه، آیکون و Splash اختصاصی را مجدداً اعمال می‌کند. فونت فارسی اکنون از فایل‌های همراه برنامه تأمین می‌شود و هنگام اجرا وابستگی به Google Fonts ندارد. دکمهٔ Back اندروید به‌ترتیب پنجره‌ها، شیت‌ها و منوی توقف را کنترل می‌کند؛ در پس‌زمینه snapshot فعلی ذخیره می‌شود.
+
+راهنمای تست دستگاه، محدودیت‌ها و آمادگی انتشار در [ANDROID_READINESS.md](ANDROID_READINESS.md) آمده است.

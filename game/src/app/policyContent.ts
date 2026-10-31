@@ -47,7 +47,7 @@ const persian: PolicyDocument = {
       paragraphs: [
         'در کد فعلی، ایجاد حساب کاربری، ورود با شماره تلفن یا ایمیل، پروفایل آنلاین، چت و ارسال عمدی اطلاعات پیشرفت بازیکن به سرور بازی پیاده‌سازی نشده است. همچنین در کد فعلی SDK اختصاصی تبلیغات یا تحلیل رفتار بازیکن وجود ندارد.',
         'وضعیت پناهگاه، موجودی و تراکنش‌های مجازی، تنظیمات صدا، زبان، کاهش حرکت و جایگاه پیشرفت داستان در localStorage مرورگر یا WebView دستگاه ذخیره می‌شوند. هنگام خطای ذخیره‌سازی ممکن است تغییرات بعد از خروج از بین بروند.',
-        'برای نمایش صفحهٔ وب و دریافت فایل‌های بازی و داستان، ارتباط شبکه‌ای با میزبان سایت برقرار می‌شود. همچنین فونت Vazirmatn از Google Fonts بارگذاری می‌شود؛ در نتیجه مرورگر ممکن است اطلاعات فنی مانند نشانی IP و مشخصات درخواست را به میزبان سایت یا سرویس فونت ارسال کند. مدیریت لاگ‌های میزبان و سیاست سرویس ثالث خارج از ذخیره‌سازی محلی بازی است.',
+        'در نسخهٔ وب، مرورگر برای دریافت فایل‌های بازی و داستان به میزبان وب متصل می‌شود و میزبان ممکن است داده‌های فنی درخواست مانند نشانی IP را در لاگ‌های خود ثبت کند. فونت فارسی همراه برنامه بسته‌بندی شده و از سرویس خارجی فونت دریافت نمی‌شود. در نسخهٔ اندروید فایل‌های اصلی بازی و داستان از بستهٔ نصب بارگذاری می‌شوند؛ سیاست‌های میزبانی وب به نسخهٔ وب مربوط هستند.',
         'کد فعلی برای ردیابی تبلیغاتی کوکی اختصاصی ایجاد نمی‌کند؛ با این حال دربارهٔ کوکی‌ها، لاگ‌ها یا ابزارهای احتمالی سرویس میزبانی نباید بدون بررسی تنظیمات محیط انتشار ادعای قطعی کرد.'
       ]
     },
@@ -55,7 +55,7 @@ const persian: PolicyDocument = {
       id: 'permissions',
       title: '۴. مجوزها و دسترسی‌های دستگاه',
       paragraphs: [
-        'دسترسی به اینترنت برای باز کردن نسخهٔ وب و بارگذاری منابع از میزبان و Google Fonts استفاده می‌شود. استفاده از حافظهٔ محلی مرورگر برای ذخیرهٔ بازی است و معمولاً پنجرهٔ درخواست مجوز سیستم‌عامل ندارد.',
+        'نسخهٔ وب برای دریافت فایل‌ها از میزبان به اتصال شبکه نیاز دارد. نسخهٔ اندروید فایل‌های ضروری بازی را همراه خود دارد و برای اجرای اصلی بازی نیازی به دریافت آن‌ها از اینترنت ندارد؛ مجوز INTERNET در Android Manifest برای زیرساخت WebView/Capacitor وجود دارد، اما در کد فعلی ارسال پیشرفت بازیکن به سرور پیاده‌سازی نشده است. ذخیره در حافظهٔ محلی معمولاً پنجرهٔ درخواست مجوز ندارد.',
         'پخش صدا اختیاری است، پس از تعامل کاربر فعال می‌شود و صرفاً از خروجی صدای دستگاه استفاده می‌کند؛ مجوز میکروفون لازم ندارد.',
         'نسخهٔ وب فعلی درخواست دسترسی به دوربین، میکروفون، موقعیت مکانی، مخاطبان، تصاویر و فایل‌های شخصی یا اعلان‌های دستگاه ندارد. نسخهٔ بسته‌بندی‌شدهٔ اندروید یا هر انتشار آینده باید پیش از انتشار از نظر Android Manifest و مجوزهای افزوده‌شده دوباره بررسی شود.'
       ]
@@ -66,7 +66,7 @@ const persian: PolicyDocument = {
       paragraphs: [
         'می‌توانید موسیقی و افکت‌های صوتی را خاموش کنید، زبان را تغییر دهید و حرکت‌های تزئینی را کاهش دهید. این تنظیمات از ذخیرهٔ پیشرفت پناهگاه مستقل هستند.',
         '«بازی جدید» فقط وضعیت بازی را از نو شروع می‌کند و لزوماً زبان، صدا، داده‌های داستان یا نسخهٔ بازیابی‌شدهٔ ذخیره را پاک نمی‌کند.',
-        'برای حذف کامل اطلاعات محلی این نسخه، از تنظیمات مرورگر گزینهٔ پاک‌کردن داده‌های سایت / حافظهٔ محلی مربوط به دامنهٔ بازی را انتخاب کنید. پاک‌کردن داده‌ها یا حذف برنامه ممکن است پیشرفت را به‌طور دائمی از دسترس خارج کند؛ همگام‌سازی ابری یا بازیابی حساب در نسخهٔ فعلی وجود ندارد.'
+        'برای حذف کامل اطلاعات محلی این نسخه، از تنظیمات مرورگر گزینهٔ پاک‌کردن داده‌های سایت / حافظهٔ محلی مربوط به دامنهٔ بازی را انتخاب کنید. پاک‌کردن داده‌ها یا حذف برنامه ممکن است پیشرفت را به‌طور دائمی از دسترس خارج کند؛ همگام‌سازی ابری یا بازیابی حساب در نسخهٔ فعلی وجود ندارد. در نسخهٔ اندروید پشتیبان‌گیری خودکار سیستم‌عامل غیرفعال است.'
       ]
     },
     {
@@ -74,7 +74,7 @@ const persian: PolicyDocument = {
       title: '۶. خرید، تبلیغات و سرویس‌های ثالث',
       paragraphs: [
         'در نسخهٔ فعلی خرید درون‌برنامه‌ای با پول واقعی، اشتراک، معاملهٔ سکه با پول واقعی، تبلیغات درون بازی و خدمات چندنفره یا اجتماعی پیاده‌سازی نشده است.',
-        'نمایش فایل‌های بازی از میزبان وب و دریافت فونت از Google Fonts وابستگی‌های شبکه‌ای فعلی هستند. اگر در نسخه‌های بعدی پرداخت، تبلیغات، حساب آنلاین، تحلیل‌گر یا سرویس ثالث جدید اضافه شود، توضیحات و رضایت‌های لازم باید پیش از فعال‌سازی به‌روزرسانی شوند.'
+        'نسخهٔ وب منابع را از میزبان بازی دریافت می‌کند؛ نسخهٔ اندروید فایل‌های ضروری و فونت را از بستهٔ نصب اجرا می‌کند. اگر در نسخه‌های بعدی پرداخت، تبلیغات، حساب آنلاین، تحلیل‌گر یا سرویس ثالث جدید اضافه شود، توضیحات و رضایت‌های لازم باید پیش از فعال‌سازی به‌روزرسانی شوند.'
       ]
     },
     {
@@ -125,7 +125,7 @@ const english: PolicyDocument = {
       paragraphs: [
         'The current code does not implement accounts, email/phone sign-in, online player profiles, chat, or intentional upload of player progress to a game server. No dedicated in-game advertising or player analytics SDK is present in the current code.',
         'Your shelter state, virtual balances and transactions, sound and language preferences, reduced-motion preference and story position are stored in browser/WebView localStorage. If local storage fails, later changes may not persist.',
-        'Opening the web game and loading its assets or story files involves requests to the website host. The Vazirmatn font is loaded from Google Fonts, so browsers may disclose technical request data such as IP address to the host and font provider. Host logs and the provider’s own practices are outside the game’s local-save functionality.',
+        'The web edition fetches game assets and story files from its website host, which may log technical request data such as IP addresses. The Persian font is packaged locally and is not requested from an external font service. The Android edition loads the core game and story files from its installed package; website hosting practices apply to the web edition.',
         'The current game code does not set its own advertising-tracking cookies. Cookies, server logs or other services configured by the deployment host should be verified separately before making broader promises.'
       ]
     },
@@ -133,7 +133,7 @@ const english: PolicyDocument = {
       id: 'permissions',
       title: '4. Device access and permissions',
       paragraphs: [
-        'Network access is used to load the web game and assets from the host and Google Fonts. Local browser storage saves your progress and usually does not trigger a system permission prompt.',
+        'The web edition requires a network connection to fetch files from its host. The Android edition packages the essential game files, so normal gameplay does not require downloading them. Its Android Manifest declares INTERNET for the WebView/Capacitor infrastructure, but the current code does not upload player progress to a game server. Local storage usually does not display an operating-system permission prompt.',
         'Audio playback is optional and begins after user interaction. It uses speaker output only and does not require microphone access.',
         'The current web version does not request access to the camera, microphone, location, contacts, personal photos or files, or notifications. Before releasing a packaged Android build, its Android Manifest and any additional permissions must be audited separately.'
       ]
@@ -144,7 +144,7 @@ const english: PolicyDocument = {
       paragraphs: [
         'You can disable music and sound effects, change language and reduce decorative motion. These preferences are stored separately from shelter progress.',
         '“New game” resets game progress but does not necessarily erase language, audio settings, story progress or a retained recovery copy of a corrupted save.',
-        'To remove all local data for this version, use your browser’s site-data/local-storage clearing controls for the game origin. Clearing site data or uninstalling the application can permanently remove progress; there is currently no cloud sync or account-based recovery.'
+        'To remove all local data for this version, use your browser’s site-data/local-storage clearing controls for the game origin. Clearing site data or uninstalling the application can permanently remove progress; there is currently no cloud sync or account-based recovery. Android automatic system backup is disabled for this build.'
       ]
     },
     {
@@ -152,7 +152,7 @@ const english: PolicyDocument = {
       title: '6. Purchases, ads and third parties',
       paragraphs: [
         'The current version does not implement real-money in-app purchases, subscriptions, real-money coin exchanges, in-game ads, multiplayer or social services.',
-        'The current network dependencies include the website host and Google Fonts. Introducing payments, advertising, accounts, analytics or other third-party integrations will require a review of this notice and any applicable user consents before deployment.'
+        'The web edition downloads assets from the game website; the Android edition ships essential content and fonts with the app. Introducing payments, advertising, accounts, analytics or other third-party integrations will require a review of this notice and any applicable user consents before deployment.'
       ]
     },
     {

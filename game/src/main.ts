@@ -1,3 +1,5 @@
+import '@fontsource-variable/vazirmatn';
+import { installAndroidRuntime } from './platform/androidRuntime';
 import { mountSurvivorPanel } from './app/ui/survivorPanel';
 import { mountCommandPanel } from './app/ui/commandPanel';
 import { mountRadiationPanel } from './app/ui/radiationPanel';
@@ -403,6 +405,12 @@ updateSelectedButtons();
 
 const storyButton = document.querySelector<HTMLButtonElement>('#story-open');
 if (storyButton) mountStoryViewer(storyButton);
+
+installAndroidRuntime({
+  getSheet: gameDock.getSheet,
+  closeSheet: () => gameDock.showSheet(null),
+  save: () => { if (lastSnapshot) saveLocalBase(lastSnapshot); }
+});
 
 subscribeLocaleChange(() => {
   if (lastSnapshot) renderSceneUi(lastSnapshot, lastSaved, lastMessage);

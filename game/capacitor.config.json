@@ -1,5 +1,19 @@
 {
   "appId": "com.undergroundsurvive.game",
   "appName": "Underground Survive",
-  "webDir": "dist"
+  "webDir": "dist",
+  "backgroundColor": "#0b1422",
+  "android": {
+    "backgroundColor": "#0b1422",
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false,
+    "zoomEnabled": false
+  },
+  "plugins": {
+    "SystemBars": {
+      "hidden": true,
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover"
+    }
+  }
 }
