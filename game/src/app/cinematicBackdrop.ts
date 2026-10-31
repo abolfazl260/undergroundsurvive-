@@ -13,8 +13,6 @@ export const BACKDROP_SOURCE = {
   width: 1920,
   height: 1200,
   surfaceY: 265,
-  skySampleHeight: 90,
-  skylineTop: 360,
   embeddedShaftEndX: 340,
   maskEndX: 430,
   sampleStartX: 465
@@ -42,12 +40,12 @@ export function backgroundPlacement(
   }
   const height = Math.round(worldHeight * textureScale);
   const ground = Math.round(groundLineY * textureScale);
-  // Keep a large atmospheric sky and a naturally proportioned city strip.
-  const skylineTop = Math.max(0, Math.min(ground - 1, Math.round(BACKDROP_SOURCE.skylineTop * worldWidth / 960)));
+  // The source skyline is one continuous strip. Splitting and repeating its
+  // upper edge created a visible horizontal seam and duplicate buildings.
   return {
     width: Math.round(worldWidth * textureScale),
-    height, ground, skylineTop,
-    skylineHeight: ground - skylineTop,
+    height, ground, skylineTop: 0,
+    skylineHeight: ground,
     rockHeight: height - ground
   };
 }
@@ -62,9 +60,8 @@ export function paintAlignedCinematicBackdrop(
   placement: BackgroundPlacement
 ): void {
   const { width, height, ground, skylineTop, skylineHeight, rockHeight } = placement;
-  const { width: sw, height: sh, surfaceY, skySampleHeight } = BACKDROP_SOURCE;
-  // Stretch only diffuse clouds; never scale buildings/structures to fill sky.
-  ctx.drawImage(original, 0, 0, sw, skySampleHeight, 0, 0, width, skylineTop);
+  const { width: sw, height: sh, surfaceY } = BACKDROP_SOURCE;
+  // A single uninterrupted skyline avoids duplicate buildings and sky seams.
   ctx.drawImage(original, 0, 0, sw, surfaceY, 0, skylineTop, width, skylineHeight);
   ctx.drawImage(original, 0, surfaceY, sw, sh - surfaceY,
     0, ground, width, rockHeight);
