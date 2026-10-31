@@ -26,9 +26,9 @@ describe('Manual signed Android release', () => {
     const scriptDir = dirname(fileURLToPath(import.meta.url));
     const workflow = readFileSync(join(scriptDir, '..', '..', '.github', 'workflows',
       'android-signed-release.yml'), 'utf8');
-    assert.match(workflow, /^on:\\n  workflow_dispatch:/m);
+    assert.ok(workflow.includes('on:\n  workflow_dispatch:'));
     assert.doesNotMatch(workflow, /^  (?:push|pull_request|schedule|workflow_call):/m);
-    assert.match(workflow, /github.ref == 'refs\\/heads\\/main'/);
+    assert.ok(workflow.includes("github.ref == 'refs/heads/main'"));
   });
 
   it('accepts valid Play Store version metadata', () => {
