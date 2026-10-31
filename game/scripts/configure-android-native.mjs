@@ -1,9 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const LAUNCHER = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<vector xmlns:android=\"http://schemas.android.com/apk/res/android\" android:width=\"108dp\" android:height=\"108dp\" android:viewportWidth=\"108\" android:viewportHeight=\"108\">\n<path android:fillColor=\"#0B1422\" android:pathData=\"M0,0H108V108H0Z\"/>\n<path android:fillColor=\"#183746\" android:pathData=\"M12,28H96V92H12Z\"/>\n<path android:fillColor=\"#456F79\" android:pathData=\"M14,31H94V38H14Z\"/>\n<path android:fillColor=\"#C5A773\" android:pathData=\"M21,22H87V29H21Z\"/>\n<path android:fillColor=\"#80B5AC\" android:pathData=\"M27,42H81V83H27Z\"/>\n<path android:fillColor=\"#102D3A\" android:pathData=\"M33,47H75V79H33Z\"/>\n<path android:fillColor=\"#DDA65C\" android:pathData=\"M43,51H65V75H43Z\"/>\n<path android:fillColor=\"#193D47\" android:pathData=\"M46,54H62V72H46Z\"/>\n<path android:fillColor=\"#AFE3C4\" android:pathData=\"M59,60H63V67H59Z\"/>\n<path android:fillColor=\"#456F79\" android:pathData=\"M17,85H91V91H17Z\"/>\n<path android:fillColor=\"#C5A773\" android:pathData=\"M18,16H90V20H18Z\"/>\n</vector>";
+// The approved launcher artwork is versioned in public/ so both web and Android use the same image.
+const LAUNCHER_IMAGE = join(root, 'public', 'assets', 'branding', 'underground-launcher.webp');
 const COLORS = "<?xml version=\"1.0\" encoding=\"utf-8\"?><resources><color name=\"underground_background\">#0B1422</color></resources>";
 
 export function patchAndroidManifest(xml) {
@@ -60,6 +61,16 @@ function writeIfChanged(path, content) {
   mkdirSync(dirname(path), { recursive: true });
   if (!existsSync(path) || readFileSync(path, 'utf8') !== content) writeFileSync(path, content);
 }
+function copyIfChanged(source, destination) {
+  if (!existsSync(source)) throw new Error('Approved launcher image is missing: ' + source);
+  const bytes = readFileSync(source);
+  if (bytes.subarray(0, 4).toString('ascii') !== 'RIFF' || bytes.subarray(8, 12).toString('ascii') !== 'WEBP') {
+    throw new Error('Approved launcher image must be WebP');
+  }
+  mkdirSync(dirname(destination), { recursive: true });
+  if (!existsSync(destination) || !readFileSync(destination).equals(bytes)) copyFileSync(source, destination);
+}
+
 export function prepareAndroidNative(projectRoot = join(root, 'android', 'app', 'src', 'main')) {
   const manifest = join(projectRoot, 'AndroidManifest.xml');
   const styles = join(projectRoot, 'res', 'values', 'styles.xml');
@@ -68,10 +79,12 @@ export function prepareAndroidNative(projectRoot = join(root, 'android', 'app', 
   const updatedStyles = patchAndroidLaunchTheme(readFileSync(styles, 'utf8'));
   writeIfChanged(manifest, updatedManifest);
   writeIfChanged(styles, updatedStyles);
-  writeIfChanged(join(projectRoot, 'res', 'drawable', 'underground_launcher.xml'), LAUNCHER);
+  // A stale vector with the same resource name would cause a duplicate-resource build failure.
+  rmSync(join(projectRoot, 'res', 'drawable', 'underground_launcher.xml'), { force: true });
+  copyIfChanged(LAUNCHER_IMAGE, join(projectRoot, 'res', 'drawable-nodpi', 'underground_launcher.webp'));
   writeIfChanged(join(projectRoot, 'res', 'values', 'underground_colors.xml'), COLORS);
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  try { prepareAndroidNative(); console.log('Android native icon, splash and manifest configured.'); }
+  try { prepareAndroidNative(); console.log('Android native artwork, splash and manifest configured.'); }
   catch (error) { console.error('Android preparation failed: ' + error.message); process.exitCode = 1; }
 }
