@@ -3,7 +3,7 @@ import { LifeSupportService, type LifeSupportSnapshot, type LifeSupportView } fr
 import type { AssignmentBlock } from '../survivors/roster';
 import { laboratoryFacilities, researchFacility, type LaboratoryFacility } from '../laboratory/laboratory';
 import { SurvivorRoster, type SurvivorSnapshot } from '../survivors/roster';
-import { KitchenProcessor, type CookingSnapshot, type CookingContext, type CookingBlock } from '../kitchen/kitchen';
+import { KITCHEN_CONFIG, KitchenProcessor, recipeFor, type CookingSnapshot, type CookingContext, type CookingBlock } from '../kitchen/kitchen';
 import { GuardPosts } from '../defense/guardPost';
 import { CapabilityGate, CAPABILITY_REASONS, type CommandCenterSnapshot } from '../command/commandCenter';
 import { RadiationField, type RadiationSnapshot, type RadiationOccupant } from '../radiation/radiation';
@@ -14,7 +14,7 @@ import { AirSystem, ROOM_AIR_EMISSIONS, type AirSystemState } from '../air/air';
 import { BuildingLayout, type BaseSnapshot } from '../building/layout';
 import { Wallet, type WalletSnapshot } from './wallet';
 import { ResourceEngine, type ResourceSnapshot } from './resources';
-import { POWER_BALANCE, allocatePower, canActivateNetwork, canWire, installWire, legacyPower, removeWire,
+import { POWER_BALANCE, allocatePower, appliancePowerDemand, canActivateNetwork, canWire, installWire, legacyPower, removeWire,
   restorePower, setRoomPriority, starterPower, type PowerAllocation, type PowerPriority,
   type PowerSnapshot } from '../power/network';
 import {
@@ -74,7 +74,13 @@ export class GameSession {
     return this.kitchenState.block(roomId, recipeId, this.cookingContext());
   }
   startCooking(roomId: string, recipeId: string, operationId: string): CookingBlock | null {
-    if(!this.powerStatus().activeRoomIds.includes(roomId))return 'power';
+    // The recipe's energy is paid once at start. Reserve its peak on the
+    // selected circuit before spending inventory; running then uses base demand.
+    const room = this.world.rooms.find(r => r.id === roomId && r.type === 'kitchen');
+    const recipe = recipeFor(recipeId);
+    const peak = room && recipe
+      ? new Map([[roomId, KITCHEN_CONFIG.minOperatingPower + recipe.power]]) : undefined;
+    if (!this.powerStatus(peak).activeRoomIds.includes(roomId)) return 'power';
     return this.kitchenState.start(roomId, recipeId, operationId, this.cookingContext());
   }
   toggleCooking(roomId: string): boolean { return this.kitchenState.toggle(roomId); }
@@ -289,8 +295,23 @@ export class GameSession {
   get power(): PowerSnapshot { return { ...this.powerState,
     cables: this.powerState.cables.map(c => ({...c})),
     overrides: this.powerState.overrides.map(o => ({...o})) }; }
-  powerStatus(): PowerAllocation {
-    return allocatePower(this.powerState, this.world.rooms, this.researchState.modifiers());
+  /** Live appliance requirements; disabled/damaged units release their
+   * reserved circuit capacity. This is independent of global stored power. */
+  private applianceLoads(): Map<string, number> {
+    const water = new Map(this.waterState.snapshot().cycles.map(c => [c.id, c.enabled]));
+    const vents = new Map(this.airState.snapshot().vents.map(v => [v.id, v.enabled && v.health > 0]));
+    const cooking = new Map(this.kitchenState.snapshot().cycles.map(c => [c.roomId, c.enabled]));
+    return new Map(this.world.rooms.map(room => {
+      const enabled = room.type === 'waterTreatment' ? (water.get(room.id) ?? true) :
+        room.type === 'ventilation' ? (vents.get(room.id) ?? true) :
+        room.type === 'kitchen' ? (cooking.get(room.id) ?? true) : true;
+      return [room.id, enabled ? appliancePowerDemand(room) : 0] as const;
+    }));
+  }
+  powerStatus(temporaryDemand?: ReadonlyMap<string, number>): PowerAllocation {
+    const demands = this.applianceLoads();
+    if (temporaryDemand) for(const [id, units] of temporaryDemand) demands.set(id, units);
+    return allocatePower(this.powerState, this.world.rooms, this.researchState.modifiers(), demands);
   }
   /** Cable operations validate geometry and funds before mutating anything. */
   installCable(x: number, y: number, riser = false): CommandResult {
@@ -319,7 +340,7 @@ export class GameSession {
   }
   activatePowerNetwork(): CommandResult {
     if (this.powerState.mode === 'physical') return {ok:false,reason:'شبکهٔ فیزیکی فعال است.'};
-    if (!canActivateNetwork(this.powerState,this.world.rooms,this.researchState.modifiers()))
+    if (!canActivateNetwork(this.powerState,this.world.rooms,this.researchState.modifiers(),this.applianceLoads()))
       return {ok:false,reason:'ابتدا تمام اتاق‌ها را با کابل به نیروگاه متصل کنید.'};
     this.powerState = {...this.powerState,mode:'physical'};
     return {ok:true};
