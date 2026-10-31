@@ -8,6 +8,7 @@ import { mountKitchenPanel } from './app/ui/kitchenPanel';
 import './kitchen.css';
 import './style.css';
 import { mountGameDock } from './app/gameDock';
+import { confirmDestructiveAction } from './app/confirmDestructiveAction';
 import { mountStoryViewer } from './modules/narrative/viewer';
 import { setupGameMenu } from './app/gameMenu';
 import './audio.css';
@@ -46,6 +47,23 @@ const gameDock = mountGameDock();
 
 const audio = new AudioManager();
 const status = document.querySelector<HTMLElement>('#status');
+// In compact landscape screens the footer is hidden; keep action feedback readable.
+const actionToast = document.createElement('div');
+actionToast.id = 'game-action-toast';
+actionToast.hidden = true;
+actionToast.setAttribute('role', 'status');
+actionToast.setAttribute('aria-live', 'polite');
+document.querySelector('#app')?.append(actionToast);
+let actionToastTimer: number | undefined;
+function showActionToast(message: string): void {
+  if (!window.matchMedia('(max-height: 500px)').matches) return;
+  // Time-based resource ticks should not continually interrupt a player's action.
+  if (message.startsWith('چرخهٔ ') || message === 'پژوهش تکمیل شد.') return;
+  actionToast.textContent = localizeGameMessage(message);
+  actionToast.hidden = false;
+  if (actionToastTimer !== undefined) window.clearTimeout(actionToastTimer);
+  actionToastTimer = window.setTimeout(() => { actionToast.hidden = true; }, 4000);
+}
 const renderHud = mountHud(document);
 const resourcePanel = mountResourcePanel(document);
 const renderPower = mountPowerPanel(document,
@@ -197,6 +215,7 @@ const renderAirHud = mountAirHud(document);
 const renderKitchen = mountKitchenPanel(document.querySelector<HTMLElement>('#kitchen-panel')!,
   (room, recipe) => scene.startCooking(room, recipe), room => scene.toggleCooking(room), room => scene.cancelCooking(room));
 const scene = new GameScene((snapshot, message) => {
+  showActionToast(message);
   const saved = saveLocalBase(snapshot);
   lastSnapshot = snapshot;
   lastSaved = saved;
@@ -341,8 +360,19 @@ powerOverlayButton?.addEventListener('click', () => {
 });
 confirmUpgrade?.addEventListener('click', () => scene.upgradeSelected());
 bonusButton?.addEventListener('click', () => scene.claimDemoBonus());
-document.querySelector<HTMLButtonElement>('#reset-layout')?.addEventListener('click', () => {
+document.querySelector<HTMLButtonElement>('#reset-layout')?.addEventListener('click', async () => {
+  const persian = document.documentElement.lang !== 'en';
+  const accepted = await confirmDestructiveAction({
+    title: persian ? 'بازنشانی تمام پیشرفت؟' : 'Reset all progress?',
+    description: persian
+      ? 'تمام اتاق‌ها، منابع و پیشرفت ذخیره‌شده به حالت اولیه بازمی‌گردند. این عملیات قابل بازگشت نیست.'
+      : 'All rooms, resources and saved progress will return to the starting state. This cannot be undone.',
+    confirmLabel: persian ? 'بازنشانی کامل' : 'Reset everything',
+    cancelLabel: persian ? 'انصراف' : 'Cancel'
+  });
+  if (!accepted) return;
   scene.resetLayout();
+  gameDock.showSheet(null);
 });
 
 updateSelectedButtons();
