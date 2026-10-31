@@ -15,7 +15,7 @@ export function setupGameMenu(
   savedGameExists: boolean,
   audio: AudioManager,
   onAudioChange: () => void
-): () => void {
+): (forceDefeat?: boolean) => void {
   const dialog = document.querySelector<HTMLDialogElement>('#game-menu-dialog');
   const menuButton = document.querySelector<HTMLButtonElement>('#menu-toggle');
   const toolsPolicyButton = document.querySelector<HTMLButtonElement>('#menu-policies-from-tools');
