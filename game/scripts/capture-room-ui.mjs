@@ -4,6 +4,7 @@ const [base = 'http://127.0.0.1:4173', output = 'ui-evidence', mode = 'after'] =
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ args: ['--no-sandbox'] });
 for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
+  process.stdout.write(`Capture ${mode}: ${width}x${height}\n`);
   const page = await browser.newPage({viewport:{width,height},deviceScaleFactor:1});
   const errors=[];
   page.on('pageerror', error=>errors.push(error.message));
@@ -47,11 +48,11 @@ for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
     await page.reload();await page.locator('#menu-continue').click();
     await page.locator('#open-more').click();
     await page.locator('[data-assign-room="ui-guard"]').last().click();
-    await page.waitForFunction(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).survivors.assignments.length===1);
+    await page.waitForFunction(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).survivors.assignments.length===1, null, { timeout:10000 });
     await page.locator('#survivor-panel').scrollIntoViewIfNeeded();
     await page.screenshot({path:`${output}/${mode}-guard-assigned.png`});
     await page.locator('[data-release]').first().click();
-    await page.waitForFunction(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).survivors.assignments.length===0);
+    await page.waitForFunction(()=>JSON.parse(localStorage.getItem('underground-survive:game:v2')).survivors.assignments.length===0, null, { timeout:10000 });
   }
   await page.close();
 }
