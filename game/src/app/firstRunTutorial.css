@@ -15,6 +15,8 @@
   box-shadow: 0 15px 55px #0009, inset 0 1px 0 #ffffff16;
   font-family: 'Vazirmatn Variable', Tahoma, sans-serif;
   text-align: start;
+  /* Map interaction remains usable underneath the informational coach. */
+  pointer-events: none;
 }
 /* Keep the room gallery and tool sheets unobstructed during a guided action. */
 .first-run-coach[hidden],
@@ -32,6 +34,7 @@ body:has(#game-sheet:not([hidden])) .first-run-coach { display: none !important;
   color: #fff; font: 800 13px/1.6 'Vazirmatn Variable', Tahoma, sans-serif;
   cursor: pointer;
 }
+.first-run-coach button { pointer-events: auto; }
 .first-run-coach button:focus-visible { outline: 3px solid #dfffe8; outline-offset: 2px; }
 @media (max-width: 640px) {
   .first-run-coach {
