@@ -8,9 +8,10 @@ export function mountOnlineLeaderboard(
   root: Document,
   getSnapshot: () => GameSnapshot | null
 ): { render: () => void } {
-  const topbar = root.querySelector<HTMLElement>('.topbar');
-  const more = root.querySelector<HTMLElement>('#open-more');
-  if (!topbar || !more) throw new Error('Online leaderboard requires the unified topbar');
+  // The rankings entry belongs to the secondary navigation. That navigation
+  // moves into the More sheet on phones without leaving an orphan grid row.
+  const navigation = root.querySelector<HTMLElement>('.story-navigation');
+  if (!navigation) throw new Error('Online leaderboard requires secondary navigation');
 
   const trigger = root.createElement('button');
   trigger.type = 'button';
@@ -21,7 +22,7 @@ export function mountOnlineLeaderboard(
   trigger.append(createIcon('network', 19));
   const label = root.createElement('span');
   trigger.append(label);
-  topbar.insertBefore(trigger, more);
+  navigation.append(trigger);
 
   const dialog = root.createElement('dialog');
   dialog.className = 'online-leaderboard-dialog';
