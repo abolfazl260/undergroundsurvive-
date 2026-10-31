@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampZoom, constrainScroll, fitCameraZoom, GAME_FOCUS, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, resizeViewport, ZOOM, type Viewport } from './viewport';
+import { clampZoom, constrainScroll, fitCameraZoom, GAME_FOCUS, GAME_VIEW, panBy, screenToWorld, singlePointerPan, PHONE_PORTRAIT_FOCUS_HEIGHT, zoomAt, zoomToWorldAnchor, resizeViewport, ZOOM, type Viewport } from './viewport';
 
 const base: Viewport = { width: 960, height: 600, zoom: 1, scrollX: 0, scrollY: 0 };
 
@@ -29,6 +29,23 @@ describe('camera zoom and pan', () => {
     const zoomed = zoomAt({ ...base, zoom: 2, scrollX: 180, scrollY: -80 }, 0.75, { x: 400, y: 200 });
     expect(zoomed.scrollX).toBe(0);
     expect(zoomed.scrollY).toBe(0);
+  });
+
+  it('keeps taps separate from one-finger dragging and preserves the first swipe distance', () => {
+    const down = { x: 100, y: 200 };
+    const small = { x: 105, y: 204 };
+    const firstDrag = { x: 109, y: 209 };
+    const nextDrag = { x: 111, y: 230 };
+    expect(singlePointerPan(down, down, small, false, 10)).toEqual({
+      dragging: false, delta: null
+    });
+    const start = singlePointerPan(down, small, firstDrag, false, 10);
+    expect(start).toEqual({ dragging: true, delta: { x: 9, y: 9 } });
+    expect(singlePointerPan(down, firstDrag, nextDrag, true, 10)).toEqual({
+      dragging: true, delta: { x: 2, y: 21 }
+    });
+    // A pure tap with jitter must continue to operate the selected editing tool.
+    expect(singlePointerPan(down, down, { x: 102, y: 202 }, false, 10).dragging).toBe(false);
   });
 
   it('supports pinch zoom with a moving screen midpoint', () => {
@@ -97,6 +114,29 @@ describe('responsive world framing', () => {
     }
     expect(fitCameraZoom(0, 100)).toBe(1);
     expect(fitCameraZoom(Infinity, 100)).toBe(1);
+  });
+
+  it('leaves meaningful vertical travel for a portrait phone at 100% zoom', () => {
+    // Use the HiDPI framebuffer dimensions from a 390x844 phone at 2x density.
+    const width = 780;
+    const height = 1688;
+    const zoom = fitCameraZoom(width, height);
+    expect(height / zoom).toBeCloseTo(PHONE_PORTRAIT_FOCUS_HEIGHT);
+    const worldHeightVisible = height / zoom;
+    expect(GAME_VIEW.worldHeight - worldHeightVisible).toBeGreaterThanOrEqual(150);
+    const start: Viewport = {
+      width, height, zoom, worldWidth: GAME_VIEW.worldWidth,
+      worldHeight: GAME_VIEW.worldHeight,
+      scrollX: (GAME_VIEW.worldWidth - width) / 2,
+      scrollY: (GAME_VIEW.worldHeight - height) / 2
+    };
+    const first = { ...start, ...constrainScroll(start) };
+    const moved = panBy(first, { x: 0, y: -240 });
+    expect(moved.scrollY).toBeGreaterThan(first.scrollY + 60);
+    expect(moved.scrollX).toBeCloseTo(first.scrollX);
+    // Landscape and desktop should not acquire additional camera magnification.
+    expect(fitCameraZoom(1688, 780)).toBeCloseTo(Math.max(1688 / GAME_FOCUS.width, 780 / GAME_FOCUS.height));
+    expect(fitCameraZoom(1920, 1080)).toBeCloseTo(Math.max(1920 / GAME_FOCUS.width, 1080 / GAME_FOCUS.height));
   });
 
   it('uses absolute camera zoom limits derived from relative UI factors', () => {

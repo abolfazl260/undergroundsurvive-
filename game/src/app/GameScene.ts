@@ -23,7 +23,7 @@ import { DIGGING_ART_ASSET, DiggingAnimation } from './diggingAnimation';
 import { CINEMATIC_BUNKER_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
 import { roomCorridors } from './roomCorridors';
 import { roomUtilityWarnings } from './roomUtilityWarnings';
-import { clampZoom, constrainScroll, fitCameraZoom, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport, type ZoomLimits } from './viewport';
+import { clampZoom, constrainScroll, fitCameraZoom, GAME_VIEW, panBy, screenToWorld, singlePointerPan, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport, type ZoomLimits } from './viewport';
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
 const localizedRoomBadges: Record<keyof typeof ROOM_DEFINITIONS, string> = {
@@ -218,7 +218,7 @@ export class GameScene extends Phaser.Scene {
     if(this.recoveryFailed) this.notify('ذخیره قابل بازیابی نیست؛ نسخهٔ اصلی برای بازیابی نگهداری شد.');
     else if (this.layout.disconnectedRoomIds.length)
       this.notify('ذخیرهٔ قدیمی دارای اتاق‌های جداافتاده است؛ اتاق‌ها حفظ شده‌اند. برای اصلاح، آن‌ها را به شبکهٔ آسانسور منتقل کنید.');
-    else this.notify('ابزار ساخت را انتخاب کنید؛ با اسکرول یا دو انگشت زوم کنید و با کشیدن، نقشه را جابه‌جا کنید.');
+    else this.notify('برای جابه‌جایی نقشه با یک انگشت بکشید؛ برای زوم از دو انگشت یا دکمه‌های زوم استفاده کنید.');
     if (this.gameplayPaused) this.scene.pause();
     // Only now is saved world state, artwork, and initial scene rendering ready.
     this.onBootReady();
@@ -414,11 +414,18 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (Math.hypot(contact.x - contact.startX, contact.y - contact.startY) > 14 / this.scale.zoom) {
-      contact.dragged = true;
-    }
-    if (contact.dragged || this.gestureUsed) {
-      this.applyView(panBy(this.currentView(), { x: dx, y: dy }));
+    // Pointer coordinates use the HiDPI canvas, so 10 CSS pixels is converted
+    // through the reciprocal Phaser scale. A drag must carry the full distance
+    // from its touch-down point instead of discarding the activation distance.
+    const pan = singlePointerPan(
+      { x: contact.startX, y: contact.startY },
+      { x: contact.x - dx, y: contact.y - dy },
+      { x: contact.x, y: contact.y },
+      contact.dragged, 10 / this.scale.zoom
+    );
+    contact.dragged = pan.dragging;
+    if (pan.delta || this.gestureUsed) {
+      this.applyView(panBy(this.currentView(), pan.delta ?? { x: dx, y: dy }));
       return;
     }
     this.updateHover(pointer);
