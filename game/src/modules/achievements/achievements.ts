@@ -30,7 +30,10 @@ export interface AchievementSnapshot {
 }
 export interface AchievementSource {
   base: { rooms: readonly { type: string }[]; terrain: { highestFloor: number } };
-  wallet: { transactions: readonly { kind: string }[] };
+  wallet: {
+    transactions: readonly { kind: string }[];
+    checkpoint?: { counts: Partial<Record<string,number>> };
+  };
   resources: { tickCount: number };
 }
 export interface AchievementView {
@@ -50,7 +53,8 @@ export function progressFor(metric: AchievementMetric, source: AchievementSource
   if (metric === 'cycles') return source.resources.tickCount;
   if (metric === 'roomTypes') return new Set(source.base.rooms.map((room) => room.type)).size;
   const kind = metric === 'builds' ? 'build' : metric === 'digs' ? 'dig' : 'upgrade';
-  return source.wallet.transactions.filter((entry) => entry.kind === kind).length;
+  return (source.wallet.checkpoint?.counts[kind] ?? 0) +
+    source.wallet.transactions.filter((entry) => entry.kind === kind).length;
 }
 
 /** Unlocks are never revoked if a room is removed. */
