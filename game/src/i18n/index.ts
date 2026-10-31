@@ -370,6 +370,7 @@ const english: Readonly<Record<string, string>> = {
   "منابع و چرخهٔ زمانی پناهگاه": "Shelter resources and timed cycles",
   "نمایش یا پنهان‌کردن منابع": "Toggle resource sheet",
   "وضعیت منابع": "Resource status",
+  "ذخیرهٔ {resources} خالی است؛ اتاق‌های تولید را بررسی کنید.": "Depleted stock: {resources}. Inspect production rooms.",
   "هشدار منابع": "Resource warnings",
   "جزئیات شبکه برق": "Power network details",
   "چرخهٔ بعد در": "Next cycle in",
