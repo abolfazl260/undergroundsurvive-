@@ -20,6 +20,7 @@ import './ui/ui.css';
 import './fullscreen.css';
 import './gameHud.css';
 import './gameMenu.css';
+import './gameOver.css';
 import './achievements.css';
 import './bunkerUi.css';
 import './resourceSheet.css';
@@ -255,6 +256,9 @@ const scene = new GameScene((snapshot, message) => {
   lastSaved = saved;
   lastMessage = message;
   renderSceneUi(snapshot, saved, message);
+  // Show a durable defeat modal on the terminal tick and after restoring a
+  // zero-air save; the existing menu controls restarting from a new run.
+  if (snapshot.air.quality <= 0) openStartMenu(true);
 }, savedGame, (zoom) => {
   if (zoomLevel) zoomLevel.textContent = Math.round(zoom * 100) + '%';
   if (zoomIn) zoomIn.disabled = zoom >= ZOOM.max - 0.001;

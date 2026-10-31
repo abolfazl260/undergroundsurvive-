@@ -11,6 +11,15 @@ const reasons = {
   overload: ['Population exceeds air coverage', 'جمعیت از ظرفیت تهویه بیشتر است'],
   emissions: ['Pollution is greater than purification', 'آلودگی از توان پاک‌سازی بیشتر است'],
 } as const;
+
+/** Do not display 0% while the actual air quality is still positive. */
+export function displayedAirPercent(value: number): number {
+  return value <= 0 ? 0 : Math.max(1, Math.round(value));
+}
+export function displayedAirFraction(value: number): string {
+  return (value <= 0 ? 0 : Math.max(0.1, value)).toFixed(1);
+}
+
 /** Tiny HUD status shares the existing compact room tile on portrait screens. */
 export function mountAirHud(root: ParentNode) {
   const node = root.querySelector<HTMLElement>('#hud-air-status');
@@ -18,10 +27,10 @@ export function mountAirHud(root: ParentNode) {
     if (!node) return;
     const a = snapshot.air, en = getLocale() === 'en';
     node.dataset.status = airStatus(a.quality);
-    node.textContent = (en ? 'Air ' : 'هوا ') + Math.round(a.quality) + '%';
+    node.textContent = (en ? 'Air ' : 'هوا ') + displayedAirPercent(a.quality) + '%';
     node.title = reasons[a.reason][en ? 0 : 1];
     node.setAttribute('aria-label', (en ? 'Air quality: ' : 'کیفیت هوا: ') +
-      Math.round(a.quality) + (en ? ' percent, ' : ' درصد، ') + reasons[a.reason][en ? 0 : 1]);
+      displayedAirPercent(a.quality) + (en ? ' percent, ' : ' درصد، ') + reasons[a.reason][en ? 0 : 1]);
   };
 }
 
@@ -36,7 +45,7 @@ export function mountAirPanel(root: HTMLElement, toggle: (id: string) => void, r
     title.textContent = en ? 'Air quality and ventilation' : 'کیفیت هوا و تهویه';
     const quality = document.createElement('p');
     quality.className = 'air-quality-readout';
-    quality.textContent = `${a.quality.toFixed(1)} / 100 · ${statusText}`;
+    quality.textContent = `${displayedAirFraction(a.quality)} / 100 · ${statusText}`;
     quality.setAttribute('role', 'status');
     const coverage = document.createElement('p');
     coverage.textContent = en

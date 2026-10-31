@@ -159,6 +159,9 @@ export class GameSession {
   }
   private airState = new AirSystem();
   get air(): AirSystem { return this.airState; }
+  /** Zero breathable air is an irreversible defeat for this run.
+   * Derived from saved air quality so reloading cannot revive a lost shelter. */
+  get isGameOver(): boolean { return this.airState.snapshot().quality <= 0; }
   toggleVent(id: string, operationId: string): boolean {
     this.airState.sync(this.world.rooms);
     return this.airState.toggle(id, operationId);
@@ -382,7 +385,7 @@ export class GameSession {
 
   /** Simulation advances only when the Phaser scene is active (not paused/offline). */
   advanceTime(deltaMs: number): number {
-    if (!Number.isFinite(deltaMs) || deltaMs <= 0) return 0;
+    if (!Number.isFinite(deltaMs) || deltaMs <= 0 || this.isGameOver) return 0;
     let remaining = Math.min(deltaMs, 60_000), ticks = 0;
     while (remaining > 0) {
       const step = Math.min(remaining, this.resources.remainingMs);
@@ -407,6 +410,9 @@ export class GameSession {
         if(this.resources.tickCount%24===0)this.radiationState.triggerSurge('leaking-pipe');
       }
       remaining -= step;
+      // Finish the terminal tick's other subsystems before stopping, keeping
+      // research/air/radiation clocks aligned for strict save restoration.
+      if (this.isGameOver) break;
     }
     // Resource debits can suspend a job on the very tick power is depleted.
     this.reconcileSurvivorJobs();
@@ -441,6 +447,7 @@ export class GameSession {
   canAfford(cost: number): boolean { return this.purse.canAfford(cost); }
 
   private execute(cost: number, kind: SpendKind, apply: (layout: BuildingLayout) => PlacementResult): CommandResult {
+    if (this.isGameOver) return { ok: false, reason: 'بازی پایان یافته است؛ برای ادامه بازی جدیدی شروع کنید.' };
     // Mutate an isolated candidate first; failed placement must not charge the wallet.
     const candidate = BuildingLayout.restore(this.world.snapshot());
     if (!candidate) return { ok: false, reason: 'اطلاعات نقشه معتبر نیست.' };
@@ -473,6 +480,7 @@ export class GameSession {
   }
 
   upgradeRoom(id: string, operationId?: string): CommandResult {
+    if (this.isGameOver) return { ok: false, reason: 'بازی پایان یافته است.' };
     const details = this.upgradeDetails(id);
     if (!details) return { ok: false, reason: 'اتاق انتخاب‌شده وجود ندارد.' };
     if (!this.world.canEditRoom(this.world.rooms.find((room) => room.id === id)!))
@@ -494,6 +502,7 @@ export class GameSession {
   }
 
   claimDemoBonus(): CommandResult {
+    if (this.isGameOver) return { ok: false, reason: 'بازی پایان یافته است.' };
     if (this.bonusClaimed) return { ok: false, reason: 'کمک‌هزینهٔ آزمایشی قبلاً دریافت شده است.' };
     if (!this.purse.credit(DEMO_BONUS_COINS, 'demo-bonus'))
       return { ok: false, reason: 'افزایش موجودی ممکن نیست.' };

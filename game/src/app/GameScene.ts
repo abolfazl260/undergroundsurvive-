@@ -62,6 +62,7 @@ export class GameScene extends Phaser.Scene {
     Math.min(4, ZOOM.max * Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1))
   );
   private get layout(): BuildingLayout { return this.session.layout; }
+  get isGameOver(): boolean { return this.session.isGameOver; }
   private selectedRoom: BuildableRoomType = 'habitat';
   private mode: ToolMode = 'build';
   private pendingMoveId: string | null = null;
@@ -235,6 +236,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   resumeGameplay(): void {
+    if (this.isGameOver) return;
     this.gameplayPaused = false;
     if (this.sceneReady && this.scene.isPaused()) this.scene.resume();
   }
@@ -268,6 +270,11 @@ export class GameScene extends Phaser.Scene {
     this.session.setRadiationOccupants((this.traffic?.residents??[]).map(r=>({id:r.id,x:r.cell.x,y:r.cell.y,protection:0})));
     const researchBefore=this.session.research.snapshot().activeResearchId;
     const completed = this.session.advanceTime(delta);
+    if (this.session.isGameOver) {
+      this.pauseGameplay();
+      this.notify('کیفیت هوای پناهگاه به صفر رسید؛ بازی را باختید.');
+      return;
+    }
     const seconds = Math.ceil(this.session.resources.remainingMs / 1000);
     if (seconds !== this.lastCycleCountdown) {
       this.lastCycleCountdown = seconds;
