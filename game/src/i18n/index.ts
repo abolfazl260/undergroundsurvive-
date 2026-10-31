@@ -11,7 +11,6 @@ const english: Readonly<Record<string, string>> = {
   "سکه‌های شما": "Your coins",
   "فهرست نمونه بازیکنان": "Sample player list",
   "رتبه‌بندی نمونه بازیکنان": "Sample player rankings",
-  "این فهرست آزمایشی است؛ بازیکنان دیگر واقعی نیستند و اطلاعاتی به سرور ارسال نمی‌شود.": "Demo list: other players are fictional, and no information is sent to a server.",
   "بستن رتبه‌بندی": "Close rankings",
   "شما": "You",
   "امتیاز": "pts",
