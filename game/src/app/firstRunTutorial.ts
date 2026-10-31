@@ -27,6 +27,7 @@ interface FirstRunTutorialOptions {
   openStory: () => void;
   selectWater: () => void;
   selectUpgrade: () => void;
+  clearGuide: () => void;
   doc?: Document;
   storage?: Pick<Storage, 'getItem' | 'setItem'> | null;
 }
@@ -44,7 +45,7 @@ const copy = {
     skip: 'رد کردن راهنما',
     progress: (step: number) => `مرحله ${step} از ۳`,
     story: ['داستان پناهگاه', 'سه ماه از بسته‌شدن درهای پناهگاه گذشته است. پیش از شروع، روایت آلودگی مرموز تهران را ببینید.', 'نمایش داستان'],
-    water: ['اولین تصفیه‌خانه آب', 'ساخت را انتخاب کنید، سپس در فضای سبز و خالی کنار اتاق‌های موجود روی زمین بزنید. تصفیه‌خانه دو خانه جا می‌گیرد.', 'انتخاب تصفیه‌خانه'],
+    water: ['اولین تصفیه‌خانه آب', 'ساخت را انتخاب کنید، سپس روی محدوده روشن کنار اتاق‌های موجود بزنید. تصفیه‌خانه دو خانه جا می‌گیرد. اگر جایی نیست، نخست حفاری کنید.', 'انتخاب تصفیه‌خانه'],
     upgrade: ['اولین ارتقای پناهگاه', 'ابزار ارتقا را انتخاب کنید، روی یک اتاق سطح ۱ بزنید و پرداخت ارتقا به سطح ۲ را تأیید کنید.', 'انتخاب ابزار ارتقا']
   },
   en: {
@@ -52,7 +53,7 @@ const copy = {
     skip: 'Skip tutorial',
     progress: (step: number) => `Step ${step} of 3`,
     story: ['The shelter story', 'Three months have passed since the shelter doors sealed. Discover what happened in Tehran before you begin.', 'Watch story'],
-    water: ['Build your first water plant', 'Select Build, then tap a free green area next to the existing rooms. The water plant needs two cells.', 'Select water treatment'],
+    water: ['Build your first water plant', 'Select Build, then tap the outlined space next to the existing rooms. The water plant needs two cells; excavate if no free area remains.', 'Select water treatment'],
     upgrade: ['Upgrade your first room', 'Choose Upgrade, tap any level 1 room, then confirm the payment to reach level 2.', 'Choose upgrade tool']
   }
 } as const;
@@ -116,6 +117,7 @@ export function mountFirstRunTutorial(options: FirstRunTutorialOptions): FirstRu
     if (next === step) return;
     step = next;
     persist();
+    if (step === 'done') options.clearGuide();
     render();
   }
 
@@ -132,6 +134,8 @@ export function mountFirstRunTutorial(options: FirstRunTutorialOptions): FirstRu
       started = true;
       render();
       if (step === 'story') options.openStory();
+      if (step === 'water') options.selectWater();
+      if (step === 'upgrade') options.selectUpgrade();
     },
     storyFinished() {
       if (step !== 'story') return;
