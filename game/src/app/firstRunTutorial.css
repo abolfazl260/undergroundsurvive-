@@ -20,7 +20,8 @@
 }
 /* Keep the room gallery and tool sheets unobstructed during a guided action. */
 .first-run-coach[hidden],
-body:has(#game-sheet:not([hidden])) .first-run-coach { display: none !important; }
+body:has(#game-sheet:not([hidden])) .first-run-coach,
+body:has(.story-dialog[open]) .first-run-coach { display: none !important; }
 .first-run-coach__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .first-run-coach__marker { font-size: 11px; color: #8dd8c3; font-weight: 800; }
 .first-run-coach__skip { min-width: 44px; min-height: 44px; padding: 7px 10px; border: 0; background: transparent; color: #bfd1d8; font: inherit; font-size: 11px; cursor: pointer; }
