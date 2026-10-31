@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getPolicyDocument, POLICY_ISSUES_URL, POLICY_UPDATED } from './policyContent';
+import { getPolicyDocument, POLICY_UPDATED } from './policyContent';
 
 describe('menu policies', () => {
   it('has the same complete, ordered sections in both supported languages', () => {
@@ -23,8 +23,15 @@ describe('menu policies', () => {
     }
   });
 
-  it('dates the notice and uses a verified public project contact', () => {
-    expect(POLICY_UPDATED).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(POLICY_ISSUES_URL).toBe('https://github.com/abolfazl260/undergroundsurvive-/issues');
+  it('dates the notice without exposing an external support link', () => {
+    expect(POLICY_UPDATED).toMatch(/^\\d{4}-\\d{2}-\\d{2}$/);
+    for (const locale of ['fa', 'en'] as const) {
+      const doc = getPolicyDocument(locale);
+      expect(Object.keys(doc)).toEqual(['updated', 'summary', 'sections']);
+      const visibleCopy = [doc.updated, doc.summary,
+        ...doc.sections.flatMap(({ title, paragraphs, bullets }) =>
+          [title, ...paragraphs, ...(bullets ?? [])])].join(' ');
+      expect(visibleCopy).not.toMatch(/github|گیت[\\s‌-]*هاب|گیتهاب|github\\.io|github\\.com/i);
+    }
   });
 });

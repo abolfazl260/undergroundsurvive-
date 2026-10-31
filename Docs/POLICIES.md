@@ -12,7 +12,7 @@ The in-game notice is maintained in `game/src/app/policyContent.ts` with matchin
 5. User choices, storage clearing and new-game limitations.
 6. Real-money payments, subscriptions, advertising and third parties.
 7. Fictional safety content, minors and prototype limitations.
-8. Policy revision practices and the public support channel.
+8. Policy revisions, privacy guidance and current support limitations.
 
 ## Verified current-code observations
 
@@ -29,7 +29,7 @@ The in-game notice is maintained in `game/src/app/policyContent.ts` with matchin
 - Confirm rights/licenses for all art, fonts, audio and third-party content before making stronger IP claims.
 - Recheck whether accounts, cloud saves, social systems, purchases, ads or notifications have been added.
 - Update both languages and `POLICY_UPDATED` together whenever actual behavior changes.
-- A public GitHub issue is not a private data-rights request channel. Before commercial release, add an operator identity and a private privacy contact, plus jurisdiction-specific legal notices as appropriate.
+- No external issue tracker or development-platform link should appear in the in-game policy screen. Before commercial release, add an operator identity and a verified private privacy contact, plus jurisdiction-specific legal notices as appropriate.
 
 This page describes implementation-visible practices and does not substitute for deployment-specific legal review.
 
