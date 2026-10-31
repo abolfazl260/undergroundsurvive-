@@ -767,3 +767,122 @@ html.native-android #app #game-sheet[data-sheet="more"] .mobile-secondary-action
     max-height:calc(100dvh - var(--hud-top-occupied,100px) - 8px);
   }
 }
+
+
+/* Single-row game HUD: remove wasted title space and keep core actions reachable.
+   On narrow phones only the middle command strip scrolls horizontally; menu,
+   resources and More stay visible and the playfield gains a full row of height. */
+#app > .topbar {
+  display:flex;
+  flex-direction:row;
+  flex-wrap:nowrap;
+  align-items:center;
+  justify-content:flex-start;
+  gap:6px;
+  box-sizing:border-box;
+  height:calc(56px + var(--game-safe-top));
+  min-height:calc(56px + var(--game-safe-top));
+  max-height:calc(56px + var(--game-safe-top));
+  padding:calc(6px + var(--game-safe-top)) max(7px,env(safe-area-inset-right))
+          6px max(7px,env(safe-area-inset-left));
+  overflow:visible;
+}
+#app > .topbar > #menu-toggle {
+  order:0;position:static;flex:0 0 44px;
+  width:44px;min-width:44px;height:44px;min-height:44px;
+}
+#app > .topbar .header-command-strip {
+  order:1;display:flex;flex:1 1 0;width:0;min-width:0;max-width:100%;
+  align-items:center;justify-content:flex-start;gap:6px;
+  box-sizing:border-box;
+  overflow-x:auto;overflow-y:hidden;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  touch-action:pan-x;
+}
+#app > .topbar .header-command-strip::-webkit-scrollbar {display:none;}
+#app > .topbar .header-command-strip:focus-visible {
+  outline:2px solid #a8fff0;outline-offset:-2px;border-radius:7px;
+}
+#app > .topbar .header-command-strip > #action-dock {
+  order:0;position:static;inset:auto;
+  display:flex;flex:0 0 auto;width:auto;min-width:0;max-width:none;
+  justify-content:flex-start;gap:5px;margin:0;padding:0;
+  background:none;box-shadow:none;border:0;
+}
+#app > .topbar .header-command-strip > #action-dock > button {
+  flex:0 0 auto;box-sizing:border-box;
+  min-width:98px;width:auto;min-height:44px;height:44px;
+  padding:5px 9px;gap:5px;font-size:12px;
+}
+#app > .topbar .header-command-strip #action-dock .dock-primary {
+  min-width:104px;
+}
+#app > .topbar .header-command-strip > .top-view-controls {
+  order:1;display:flex;position:static;inset:auto;
+  flex:0 0 auto;justify-content:flex-start;align-items:center;
+  width:auto;min-width:0;max-width:none;margin:0;gap:4px;
+}
+#app > .topbar .header-command-strip > .top-view-controls .zoom-controls {
+  flex:0 0 auto;width:auto;min-width:0;max-width:none;
+  display:flex;gap:1px;padding:0;
+}
+#app > .topbar .header-command-strip > .top-view-controls .zoom-controls button,
+#app > .topbar .header-command-strip > .top-view-controls .zoom-controls button:last-child {
+  display:grid;flex:0 0 44px;place-items:center;
+  width:44px;min-width:44px;height:44px;min-height:44px;
+}
+#app > .topbar .header-command-strip > .top-view-controls #zoom-level {
+  flex:0 0 38px;min-width:38px;width:38px;max-width:38px;
+}
+#app > .topbar .header-command-strip > .hud-bar {
+  order:2;display:flex;flex:0 0 auto;position:static;inset:auto;
+  width:auto;max-width:none;min-width:0;align-items:center;
+  justify-content:flex-start;gap:5px;margin:0;
+}
+#app > .topbar .header-command-strip > .hud-bar .hud-tile {
+  display:flex;flex:0 0 auto;max-width:none;min-height:44px;height:44px;
+  min-width:69px;padding:4px 8px;
+}
+#app > .topbar .header-command-strip > .hud-bar .hud-tile:not(.hud-tile-coins) {
+  display:flex;min-width:102px;
+}
+#app > .topbar .header-command-strip > .story-navigation {
+  order:3;display:flex;flex:0 0 auto;position:static;inset:auto;
+  width:auto;max-width:none;justify-content:flex-start;margin:0;
+}
+#app > .topbar > .top-resource-control {
+  order:2;position:static;flex:0 0 auto;min-width:44px;margin:0;
+}
+#app > .topbar > .top-resource-control #resource-details-toggle {
+  box-sizing:border-box;min-width:44px;min-height:44px;height:44px;
+}
+#app > .topbar > #open-more {
+  order:3;position:static;flex:0 0 44px;min-width:44px;
+  width:44px;height:44px;min-height:44px;margin:0;
+}
+@media(max-width:1160px) {
+  #app > .topbar .header-command-strip > #action-dock {
+    width:auto;justify-self:auto;
+  }
+  #app > .topbar .header-command-strip > .top-view-controls {
+    width:auto;justify-self:auto;
+  }
+  #app > .topbar .header-command-strip > .hud-bar {width:auto;justify-content:flex-start;}
+  #app > .topbar .top-resource-control .top-resources-text {display:none;}
+  #app > .topbar .top-resource-control #resource-details-toggle {
+    width:44px;min-width:44px;padding:0;
+  }
+}
+@media(max-width:540px) {
+  #app > .topbar {gap:4px;padding-inline:max(4px,env(safe-area-inset-left));}
+  #app > .topbar .header-command-strip {gap:4px;}
+  #app > .topbar .header-command-strip > #action-dock > button {
+    min-width:94px;font-size:11px;padding-inline:5px;
+  }
+  #app > .topbar .header-command-strip #action-dock .dock-primary {min-width:99px;}
+  #app > .topbar .header-command-strip > .hud-bar .hud-tile:not(.hud-tile-coins) {
+    display:flex;
+  }
+}
