@@ -828,7 +828,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private notify(message: string): void {
-    this.report(this.session.snapshot(), message);
+    const snapshot = this.session.snapshot();
+    // Also react immediately to resource spending, refills and toggles;
+    // waiting for the next five-second cycle would leave a stale icon.
+    this.refreshRoomUtilityWarnings();
+    this.report(snapshot, message);
   }
 
   private drawBackdrop(): void {
