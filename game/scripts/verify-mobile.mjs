@@ -17,6 +17,17 @@ export function configurationProblems(config, pkg) {
     errors.push('Mobile production config must not load a remote server or allow cleartext/navigation exceptions');
   }
   if (config.android?.allowMixedContent) errors.push('Mixed content is forbidden in the mobile build');
+  if (config.android?.webContentsDebuggingEnabled) errors.push('Do not enable WebView debugging in the shipped app');
+  if (config.android?.zoomEnabled) errors.push('Disable WebView zoom; Phaser owns pinch controls');
+  if (config.backgroundColor !== '#0b1422' || config.android?.backgroundColor !== '#0b1422') {
+    errors.push('Use the game background color for Android launch and WebView');
+  }
+  if (!/^8\.\d+\.\d+$/.test(pkg?.dependencies?.['@capacitor/app'] ?? '')) {
+    errors.push('Pinned @capacitor/app v8 is needed for Android back handling');
+  }
+  if (!pkg?.dependencies?.['@fontsource-variable/vazirmatn']) {
+    errors.push('Self-hosted Persian font is needed for offline Android');
+  }
   const packages = [
     pkg?.dependencies?.['@capacitor/core'],
     pkg?.dependencies?.['@capacitor/android'],
@@ -51,6 +62,9 @@ export function assetProblems(root) {
     if (!/viewport-fit=cover/.test(html)) errors.push('Safe-area viewport meta tag is required');
     if (/(?:src|href)=["']\/(?!\/)/.test(html)) errors.push('Built assets contain absolute root URLs');
     if (html.includes('/@vite/client')) errors.push('Development Vite client must not ship in native bundles');
+    if (html.includes('fonts.googleapis.com') || html.includes('fonts.gstatic.com')) {
+      errors.push('Offline Android must not request Google Fonts at runtime');
+    }
   }
   return errors;
 }
