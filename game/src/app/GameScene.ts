@@ -22,6 +22,7 @@ import { TWO_CELL_CONSTRUCTION_ART_ASSET, TwoCellConstructionAnimation } from '.
 import { DIGGING_ART_ASSET, DiggingAnimation } from './diggingAnimation';
 import { RUINED_CITY_BACKGROUND, terrainOverlayOpacity } from './backgroundArt';
 import { roomCorridors } from './roomCorridors';
+import { roomUtilityWarnings } from './roomUtilityWarnings';
 import { clampZoom, constrainScroll, fitCameraZoom, GAME_VIEW, panBy, screenToWorld, zoomAt, zoomToWorldAnchor, ZOOM, type Point, type Viewport, type ZoomLimits } from './viewport';
 
 type Contact = { x: number; y: number; startX: number; startY: number; dragged: boolean };
@@ -67,6 +68,14 @@ export class GameScene extends Phaser.Scene {
   private elevatorCarLayer?: Phaser.GameObjects.Graphics;
   private roomLayer?: Phaser.GameObjects.Container;
   private roomBadges: Phaser.GameObjects.Container[] = [];
+  private readonly roomUtilityViews = new Map<string, {
+    graphics: Phaser.GameObjects.Graphics;
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    key: string;
+  }>();
   private airBadges: {id: string; label: Phaser.GameObjects.Text}[] = [];
   private preview?: Phaser.GameObjects.Graphics;
   private powerOverlay=false;
@@ -503,6 +512,8 @@ export class GameScene extends Phaser.Scene {
     this.notify(result.ok?'اولویت مصرف برق تغییر کرد.':result.reason);
   }
   private paintPower():void {
+    // Utility warnings must update even when the optional cable overlay is hidden.
+    this.refreshRoomUtilityWarnings();
     const g=this.powerLayer;if(!g)return;g.clear();
     if(!this.powerOverlay)return;
     const cables=this.session.power.cables;
@@ -938,6 +949,7 @@ export class GameScene extends Phaser.Scene {
     // Graphics are recreated on structural redraw only, not on every fade tick.
     this.constructionViews.clear();
     this.roomBadges = [];
+    this.roomUtilityViews.clear();
     this.airBadges = [];
     // Draw connector passages over the room artwork, then restore UI labels on top.
     const roomLabels: Phaser.GameObjects.GameObject[] = [];
@@ -1009,6 +1021,14 @@ export class GameScene extends Phaser.Scene {
       // Removing the coloured rounded outline restores that original frame.
       this.roomLayer.add(graphics);
 
+      // A transparent, non-interactive layer per finished room. It darkens
+      // only the affected interior, leaving its steel frame and neighbours.
+      const utilityGraphics = this.add.graphics();
+      this.roomLayer.add(utilityGraphics);
+      this.roomUtilityViews.set(room.id, {
+        graphics: utilityGraphics, left, top, width, height, key: ''
+      });
+
       // At high zoom, keep the nameplate at its original screen size so it
       // does not obscure the newly detailed artwork. Text textures render at
       // 3× resolution instead of stretching a tiny 9px bitmap.
@@ -1046,9 +1066,72 @@ export class GameScene extends Phaser.Scene {
     }
     this.paintRoomCorridors();
     this.roomLayer.add(roomLabels); // Names and status remain legible above the doors.
+    this.refreshRoomUtilityWarnings();
     this.updateBadgeScale();
     this.updateAirBadges();
     this.refreshConstructionViews();
+  }
+
+  /**
+   * Refresh only rooms whose warning flags changed. No textures, tweens,
+   * hit targets or rebuild of all room art are needed on five-second ticks.
+   */
+  private refreshRoomUtilityWarnings(): void {
+    if (this.roomUtilityViews.size === 0) return;
+    const resources = this.session.resources.snapshot();
+    const lifeSupport = this.session.lifeSupport.snapshot();
+    const water = this.session.water.snapshot();
+    const air = this.session.air.snapshot();
+    const states = roomUtilityWarnings({
+      rooms: this.layout.rooms,
+      power: this.session.powerStatus(),
+      powerStock: resources.stock.power,
+      lifeSupportRooms: lifeSupport.roomStatuses,
+      waterRaw: water.raw,
+      waterCycles: water.cycles,
+      vents: air.vents,
+      ventilationHasTicked: air.nowMs > 0
+    });
+
+    for (const [roomId, view] of this.roomUtilityViews) {
+      const state = states.get(roomId);
+      const key = state ? `${Number(state.power)}:${Number(state.water)}` : '0:0';
+      if (view.key === key) continue;
+      view.key = key;
+      const g = view.graphics;
+      g.clear();
+      if (!state?.power && !state?.water) continue;
+
+      // Power outage switches off the interior. Water loss uses a gentler
+      // shade to preserve the distinction without requiring any text.
+      g.fillStyle(0x030b14, state.power ? 0.71 : 0.38);
+      g.fillRoundedRect(view.left + 2, view.top + 2, view.width, view.height, 3);
+
+      const icons: ('power' | 'water')[] = [];
+      if (state.power) icons.push('power');
+      if (state.water) icons.push('water');
+      for (const [index, kind] of icons.entries()) {
+        const cx = view.left + view.width - 11 - index * 24;
+        const cy = view.top + view.height - 14;
+        g.fillStyle(0x071621, 0.96).fillRoundedRect(cx - 11, cy - 12, 22, 24, 6);
+        g.lineStyle(1.3, kind === 'power' ? 0xffc46b : 0x83dcff, 0.95)
+          .strokeRoundedRect(cx - 10.5, cy - 11.5, 21, 23, 5);
+        if (kind === 'power') {
+          // Solid lightning bolt: visible at mobile scale and with no text.
+          g.fillStyle(0xffdb78, 1).fillPoints([
+            { x: cx + 1, y: cy - 8 }, { x: cx - 5, y: cy + 1 },
+            { x: cx - 1, y: cy + 1 }, { x: cx - 3, y: cy + 8 },
+            { x: cx + 6, y: cy - 2 }, { x: cx + 2, y: cy - 2 }
+          ], true);
+        } else {
+          // Filled water drop, distinct in both shape and colour.
+          g.fillStyle(0x79d7fc, 1);
+          g.fillTriangle(cx, cy - 8, cx - 5, cy + 2, cx + 5, cy + 2);
+          g.fillCircle(cx, cy + 2, 5);
+          g.fillStyle(0xe4f9ff, 0.72).fillEllipse(cx - 1.5, cy, 2, 4);
+        }
+      }
+    }
   }
 
   /** Small steel passages only at actual same-floor, side-by-side room joins. */
