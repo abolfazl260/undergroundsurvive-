@@ -60,7 +60,9 @@ export interface LifeSupportView {
   readonly graceTicks: number;
   readonly events: LifeSupportEvent[];
 }
+/** Resource quantities stay bounded; lifetime counters and ledger IDs must not. */
 const validNumber = (n: unknown) => Number.isSafeInteger(n) && (n as number) >= 0 && (n as number) <= 100_000;
+const validLifetimeCount = (n: unknown) => Number.isSafeInteger(n) && (n as number) >= 0;
 export const linkKey = (a: string, b: string): string => [a, b].sort().join('::');
 
 /** Only rooms with a physical side-to-side built-in pipe/duct port share an edge.
@@ -198,10 +200,10 @@ export class LifeSupportService {
       return pairs.length <= LIFE_SUPPORT_CONFIG.maxRooms &&
         pairs.every(([k,v]) => k.length > 0 && k.length < 200 && k !== '__legacy__' && validNumber(v));
     };
-    if (s.schemaVersion !== 2 || !validNumber(s.oxygen) || !validNumber(s.ticks) ||
+    if (s.schemaVersion !== 2 || !validNumber(s.oxygen) || !validLifetimeCount(s.ticks) ||
       !validNumber(s.graceTicks) || (s.graceTicks ?? Infinity) > LIFE_SUPPORT_CONFIG.legacyGraceTicks ||
       !lotsValid(s.waterLots) || !lotsValid(s.oxygenLots) ||
-      !validNumber(s.legacyWater) || !validNumber(s.legacyOxygen) || !validNumber(s.waterLedgerSeen) ||
+      !validNumber(s.legacyWater) || !validNumber(s.legacyOxygen) || !validLifetimeCount(s.waterLedgerSeen) ||
       (s.legacyOxygen! + Object.values(s.oxygenLots!).reduce((a,b)=>a+b,0)) !== s.oxygen ||
       !validNumber(s.lastProduced) || !validNumber(s.lastWaterProduced) || !validNumber(s.lastWaterUsed) || !validNumber(s.lastOxygenUsed) ||
       !Array.isArray(s.closedLinks) || s.closedLinks.length > 500 ||
@@ -209,7 +211,7 @@ export class LifeSupportService {
       new Set(s.closedLinks).size !== s.closedLinks.length ||
       !Array.isArray(s.events) || s.events.length > 100 ||
       !s.events.every(e => e && ['life-support-shortage', 'survivor-exposure'].includes(e.type) &&
-        ['water', 'oxygen'].includes(e.resource) && typeof e.roomId === 'string' && validNumber(e.tick)) ||
+        ['water', 'oxygen'].includes(e.resource) && typeof e.roomId === 'string' && validLifetimeCount(e.tick) && e.tick <= s.ticks!) ||
       !Array.isArray(s.roomStatuses) || s.roomStatuses.length > LIFE_SUPPORT_CONFIG.maxRooms ||
       !s.roomStatuses.every(r => r && typeof r.id === 'string' && ['online','degraded','offline'].includes(r.status) &&
         Array.isArray(r.missing) && r.missing.every(m => m === 'water' || m === 'oxygen'))) return null;
@@ -259,7 +261,7 @@ export class LifeSupportService {
     const excess=Math.max(0,water.available()-water.capacity());
     if(excess)water.spend(excess); // a demolished tank may lower capacity
     const actual=water.available();
-    const records=(water.records?.()??[]).filter(r=>validNumber(r.id)&&validNumber(r.clean))
+    const records=(water.records?.()??[]).filter(r=>validLifetimeCount(r.id)&&validNumber(r.clean))
       .sort((a,b)=>a.id-b.id);
     const maxId=records.at(-1)?.id??this.state.waterLedgerSeen;
     this.state.lastWaterProduced=0;
@@ -358,6 +360,7 @@ export class LifeSupportService {
     this.state.lastWaterUsed = 0;
     this.state.lastOxygenUsed = 0;
     this.state.events = [];
+    if (!Number.isSafeInteger(this.state.ticks + 1)) throw new Error('Life-support tick counter overflow');
     this.state.ticks++;
     if (this.state.graceTicks > 0) {
       this.state.graceTicks--;

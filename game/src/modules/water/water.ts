@@ -74,7 +74,8 @@ export class WaterProductionProcessor {
   static restore(raw: unknown): WaterProductionProcessor | null {
     if (!raw || typeof raw !== 'object') return null;
     const s = raw as WaterSnapshot;
-    if (s.schemaVersion !== 1 || ![s.raw,s.clean,s.reserve,s.completed].every(n => Number.isSafeInteger(n) && n >= 0 && n <= 100_000) ||
+    if (s.schemaVersion !== 1 || ![s.raw,s.clean,s.reserve].every(n => Number.isSafeInteger(n) && n >= 0 && n <= 100_000) ||
+        !Number.isSafeInteger(s.completed) || s.completed < 0 ||
       s.reserve > WATER_CONFIG.sourceReserve || !Array.isArray(s.cycles) || s.cycles.length > 160 ||
       !Array.isArray(s.ledger) || s.ledger.length > 100 || !Array.isArray(s.operations) || s.operations.length > 5000 ||
       !s.operations.every(id => typeof id === 'string' && id.length > 0) || new Set(s.operations).size !== s.operations.length ||
