@@ -49,6 +49,8 @@ export class GameScene extends Phaser.Scene {
   private readonly constructionViews = new Map<string, {
     current: Phaser.GameObjects.Image;
     incoming: Phaser.GameObjects.Image;
+    /** The upgraded room fades in only after the eight construction frames. */
+    revealTarget?: Phaser.GameObjects.Image;
     effects: Phaser.GameObjects.Graphics;
     left: number;
     top: number;
@@ -489,11 +491,25 @@ export class GameScene extends Phaser.Scene {
     this.session.survivors.release(id);this.notify('نیرو آزاد شد.');
   }
   commandPopulation():number{return this.traffic?.residents.length??0;}
+  /** The room's game level is committed immediately; only its artwork transition is staged. */
+  private beginUpgradeConstruction(roomId: string, previousLevel: number | undefined): void {
+    if (previousLevel === undefined) return;
+    const room = this.layout.rooms.find((candidate) => candidate.id === roomId);
+    if (!room || !this.assets.resolve(TWO_CELL_CONSTRUCTION_ART_ASSET.key, this.textures, 0)) return;
+    // The approved atlas is two cells wide. Other dimensions need their own artwork.
+    this.construction.startUpgrade(room.id, room.width, room.height, previousLevel, this.menuSettings.reducedMotion);
+  }
+
   upgradeCommandCenter():void {
     if(this.gameplayPaused)return;
     const id=this.session.commandStatus().activeRoomId;
+    const previousLevel=this.layout.rooms.find((room)=>room.id===id)?.level;
     const result=id?this.session.upgradeRoom(id,crypto.randomUUID()):{ok:false as const,reason:'اتاق فرماندهی فعال لازم است.'};
-    if(result.ok)this.paintRooms();this.notify(result.ok?'فرماندهی ارتقا یافت.':result.reason);
+    if(result.ok) {
+      this.beginUpgradeConstruction(id!, previousLevel);
+      this.paintRooms();
+    }
+    this.notify(result.ok?'فرماندهی ارتقا یافت.':result.reason);
   }
   togglePowerOverlay():void {
     this.powerOverlay = !this.powerOverlay;
@@ -659,8 +675,12 @@ export class GameScene extends Phaser.Scene {
       this.notify(details ? details.blockedReason ?? 'این اتاق در بالاترین سطح قرار دارد.' : 'اتاق انتخاب‌شده وجود ندارد.');
       return;
     }
+    const previousLevel = this.layout.rooms.find((room) => room.id === id)?.level;
     const result = this.session.upgradeRoom(id,crypto.randomUUID());
-    if (result.ok) this.paintRooms();
+    if (result.ok) {
+      this.beginUpgradeConstruction(id, previousLevel);
+      this.paintRooms();
+    }
     this.onUpgradeSelection(this.session.upgradeDetails(id));
     this.paintPreview();
     this.onAudioCue(result.ok ? 'upgrade' : 'error');
@@ -780,8 +800,8 @@ export class GameScene extends Phaser.Scene {
     if (result.ok) {
       if (this.mode === 'build') {
         const newRoom = this.layout.getRoomAt(x, y);
-        // Keep the purchase/save transaction unchanged. Animate only fresh
-        // two-cell rooms, never restored, moved or upgraded rooms.
+        // Keep the purchase/save transaction unchanged. Animate fresh two-cell
+        // builds only; upgrades independently replay this same visual timeline.
         if (newRoom?.width === 2 && newRoom.height === 1 &&
           this.assets.resolve(TWO_CELL_CONSTRUCTION_ART_ASSET.key, this.textures, 0)) {
           this.construction.start(
@@ -823,6 +843,7 @@ export class GameScene extends Phaser.Scene {
     if (!current || !this.layout.canEditRoom(current)) return;
     const result = this.session.removeRoom(roomId);
     if (result.ok) {
+      this.construction.cancel(roomId);
       this.paintTerrain();
       this.paintRooms();
       this.paintPower();
@@ -973,19 +994,31 @@ export class GameScene extends Phaser.Scene {
         TWO_CELL_CONSTRUCTION_ART_ASSET.key, this.textures, constructionVisual.frame
       );
       if (constructionArt && constructionVisual) {
-        // Draw the finished interior underneath, so the last frame dissolves
-        // naturally into the correct room instead of popping into existence.
-        const completeArt = roomArtCandidates(room.type, room.level)
+        const upgradeFromLevel = this.construction.upgradeFromLevel(room.id);
+        // During an upgrade, keep the previous level behind the scaffold. The
+        // new art is completely hidden until the final reveal (unlike a fresh build).
+        const baseArt = roomArtCandidates(room.type, upgradeFromLevel ?? room.level)
           .map(({ key, frame }) => this.assets.resolve(key, this.textures, frame))
           .find((resolved) => resolved !== null) ?? null;
-        if (completeArt) {
-          this.roomLayer.add(this.add.image(left + 2, top + 2, completeArt.key, completeArt.frame)
+        if (baseArt) {
+          this.roomLayer.add(this.add.image(left + 2, top + 2, baseArt.key, baseArt.frame)
             .setOrigin(0, 0).setDisplaySize(width, height));
         } else {
           const backing = this.add.graphics();
           backing.fillStyle(definition.color).fillRoundedRect(left + 2, top + 2, width, height, 4);
           backing.fillStyle(definition.accent, 0.21).fillRect(left + 10, top + 9, width - 16, 8);
           this.roomLayer.add(backing);
+        }
+        let revealTarget: Phaser.GameObjects.Image | undefined;
+        if (upgradeFromLevel !== null) {
+          const upgradedArt = roomArtCandidates(room.type, room.level)
+            .map(({ key, frame }) => this.assets.resolve(key, this.textures, frame))
+            .find((resolved) => resolved !== null) ?? null;
+          if (upgradedArt) {
+            revealTarget = this.add.image(left + 2, top + 2, upgradedArt.key, upgradedArt.frame)
+              .setOrigin(0, 0).setDisplaySize(width, height).setAlpha(constructionVisual.reveal);
+            this.roomLayer.add(revealTarget);
+          }
         }
         const constructionSprite = this.add.image(
           left + 2, top + 2, constructionArt.key, constructionVisual.frame
@@ -996,9 +1029,9 @@ export class GameScene extends Phaser.Scene {
         const effects = this.add.graphics();
         this.roomLayer.add([constructionSprite, incoming, effects]);
         this.constructionViews.set(room.id, {
-          current: constructionSprite, incoming, effects, left, top, width, height
+          current: constructionSprite, incoming, revealTarget, effects, left, top, width, height
         });
-        continue; // Do not reveal the finished room's nameplate until completion.
+        continue; // Show the new image and level badge only after construction.
       }
       if (constructionVisual !== null) this.construction.cancel(room.id);
       // Level 2 receives its own illustrated interior; missing assets safely
@@ -1186,6 +1219,7 @@ export class GameScene extends Phaser.Scene {
       if (!state) continue;
       view.current.setFrame(state.frame).setAlpha(1 - state.reveal);
       view.incoming.setFrame(state.nextFrame).setAlpha(state.blend * (1 - state.reveal));
+      view.revealTarget?.setAlpha(state.reveal);
 
       // A quiet warm construction lamp, two drifting dust motes and a thin
       // yellow progress strip. No large flash, emitter or new texture.

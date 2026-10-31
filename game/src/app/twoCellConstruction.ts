@@ -3,7 +3,7 @@ import type { TextureAsset } from './assets/assetManager';
 /**
  * Generic two-cell room construction, without people or room-specific machinery.
  * Frames are ordered left-to-right, top-to-bottom in a four-column WebP atlas.
- * A successful build is committed immediately; only its visual reveal is delayed.
+ * Successful builds and upgrades commit immediately; only the final image reveal is delayed.
  */
 export const TWO_CELL_CONSTRUCTION_ART_ASSET: TextureAsset = {
   key: 'two-cell-construction-art',
@@ -47,11 +47,26 @@ const smoothstep = (value: number): number => {
 /** Presentation-only state: never stored in saves and never changes room placement. */
 export class TwoCellConstructionAnimation {
   private readonly elapsedByRoom = new Map<string, number>();
+  /** Keep an upgrade's preceding art visible until the final construction reveal. */
+  private readonly previousUpgradeLevel = new Map<string, number>();
 
   start(roomId: string, width: number, height: number, reducedMotion = false): boolean {
     if (!roomId || width !== 2 || height !== 1 || reducedMotion) return false;
+    this.previousUpgradeLevel.delete(roomId);
     this.elapsedByRoom.set(roomId, 0);
     return true;
+  }
+
+  /** Use the exact build timeline for a successful two-cell upgrade. */
+  startUpgrade(roomId: string, width: number, height: number, fromLevel: number, reducedMotion = false): boolean {
+    if (!Number.isInteger(fromLevel) || fromLevel < 1) return false;
+    if (!this.start(roomId, width, height, reducedMotion)) return false;
+    this.previousUpgradeLevel.set(roomId, fromLevel);
+    return true;
+  }
+
+  upgradeFromLevel(roomId: string): number | null {
+    return this.previousUpgradeLevel.get(roomId) ?? null;
   }
 
   /** Continuous render state for two blended sprites and a subtle progress/effects layer. */
@@ -92,10 +107,12 @@ export class TwoCellConstructionAnimation {
 
   cancel(roomId: string): void {
     this.elapsedByRoom.delete(roomId);
+    this.previousUpgradeLevel.delete(roomId);
   }
 
   clear(): void {
     this.elapsedByRoom.clear();
+    this.previousUpgradeLevel.clear();
   }
 
   get active(): boolean {
@@ -109,7 +126,7 @@ export class TwoCellConstructionAnimation {
     for (const [roomId, elapsed] of this.elapsedByRoom) {
       const next = elapsed + Math.min(deltaMs, 1000);
       if (next >= CONSTRUCTION_DURATION_MS) {
-        this.elapsedByRoom.delete(roomId);
+        this.cancel(roomId);
         completed = true;
       } else {
         this.elapsedByRoom.set(roomId, next);

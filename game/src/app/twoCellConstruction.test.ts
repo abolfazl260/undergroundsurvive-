@@ -70,6 +70,52 @@ describe('generic two-cell construction art', () => {
     expect(animation.visual('room')?.progress).toBeCloseTo(1 / 8, 5);
   });
 
+  it('replays the same eight-stage animation for an upgrade and delays the new artwork reveal', () => {
+    const animation = new TwoCellConstructionAnimation();
+    expect(animation.startUpgrade('habitat', 2, 1, 1)).toBe(true);
+    expect(animation.upgradeFromLevel('habitat')).toBe(1);
+    expect(animation.visual('habitat')).toMatchObject({ frame: 0, reveal: 0 });
+    for (let i = 0; i < CONSTRUCTION_FRAMES; i++) {
+      expect(animation.advance(CONSTRUCTION_FRAME_MS)).toBe(false);
+      expect(animation.visual('habitat')?.reveal).toBe(0);
+    }
+    expect(animation.advance(CONSTRUCTION_REVEAL_MS / 2)).toBe(false);
+    expect(animation.visual('habitat')?.reveal).toBeCloseTo(0.5, 5);
+    expect(animation.advance(CONSTRUCTION_REVEAL_MS / 2)).toBe(true);
+    expect(animation.upgradeFromLevel('habitat')).toBeNull();
+    expect(animation.visual('habitat')).toBeNull();
+  });
+
+  it('does not stretch the two-cell construction atlas to other room widths or animate reduced-motion upgrades', () => {
+    const animation = new TwoCellConstructionAnimation();
+    expect(animation.startUpgrade('command', 3, 1, 1)).toBe(false);
+    expect(animation.startUpgrade('narrow', 1, 1, 1)).toBe(false);
+    expect(animation.startUpgrade('accessible', 2, 1, 1, true)).toBe(false);
+    expect(animation.startUpgrade('invalid', 2, 1, 0)).toBe(false);
+    expect(animation.active).toBe(false);
+    expect(animation.startUpgrade('two-cell', 2, 1, 2)).toBe(true);
+    expect(animation.upgradeFromLevel('two-cell')).toBe(2);
+    // A new successful upgrade replaces the previous reveal state cleanly.
+    animation.advance(CONSTRUCTION_FRAME_MS);
+    expect(animation.startUpgrade('two-cell', 2, 1, 3)).toBe(true);
+    expect(animation.visual('two-cell')?.frame).toBe(0);
+    expect(animation.upgradeFromLevel('two-cell')).toBe(3);
+    animation.clear();
+    expect(animation.upgradeFromLevel('two-cell')).toBeNull();
+    expect(animation.active).toBe(false);
+  });
+
+  it('delays upgraded level art in GameScene without replaying animation after reload', () => {
+    const source = readFileSync('src/app/GameScene.ts', 'utf8');
+    expect(source).toContain('this.beginUpgradeConstruction(id, previousLevel)');
+    expect(source).toContain('this.construction.startUpgrade(room.id, room.width, room.height, previousLevel');
+    expect(source).toContain('this.construction.upgradeFromLevel(room.id)');
+    expect(source).toContain('upgradeFromLevel ?? room.level');
+    expect(source).toContain('setAlpha(constructionVisual.reveal)');
+    expect(source).toContain('view.revealTarget?.setAlpha(state.reveal)');
+    expect(source).toContain('this.construction.clear()');
+  });
+
   it('does not animate other widths or reduced-motion rooms', () => {
     const animation = new TwoCellConstructionAnimation();
     expect(animation.start('small', 1, 1)).toBe(false);
