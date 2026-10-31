@@ -39,4 +39,11 @@ if (!existsSync(nativeDir)) {
   process.exit(2);
 }
 cap('sync', platform);
+if (platform === 'android') {
+  const result = spawnSync(process.execPath, [join(root, 'scripts', 'configure-android-native.mjs')], {
+    cwd: root, stdio: 'inherit'
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) process.exit(result.status ?? 1);
+}
 console.log('Capacitor ' + platform + ' native project is ready.');
