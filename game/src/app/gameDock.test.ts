@@ -65,3 +65,30 @@ describe('digging artwork replacement', () => {
     expect(PRIMARY_EDITOR_TOOLS.find((tool) => tool.id === 'dig')?.label).toBe('حفاری');
   });
 });
+
+describe('mobile command center regression', () => {
+  it('keeps compact HUD at two rows with accessible touch-sized primary actions', () => {
+    const styles = readFileSync('src/resourceSheet.css', 'utf8');
+    const compact = styles.slice(styles.lastIndexOf('/* Compact command center'));
+    expect(compact).toContain('grid-template-rows:44px 44px;');
+    expect(compact).toContain('#app > .topbar #action-dock');
+    expect(compact).toContain('#app > .topbar .top-view-controls');
+    expect(compact).toContain('min-height:44px');
+    expect(compact).toContain('.mobile-secondary-actions');
+    expect(compact).toContain('#app #game-sheet[data-sheet="more"]');
+  });
+  it('moves existing secondary buttons into More instead of hiding or cloning them', () => {
+    const dock = readFileSync('src/app/gameDock.ts', 'utf8');
+    expect(dock).toContain("matchMedia?.('(max-width: 1160px)')");
+    expect(dock).toContain('secondaryActions.append(storyNavigation)');
+    expect(dock).toContain('secondaryActions.append(fullscreen)');
+    expect(dock).toContain('topbar.insertBefore(storyNavigation, resourceTrigger)');
+    expect(dock).toContain('viewControls.append(fullscreen)');
+  });
+  it('keeps online ranking entry inside the responsive secondary navigation', () => {
+    const leaderboard = readFileSync('src/app/ui/onlineLeaderboard.ts', 'utf8');
+    expect(leaderboard).toContain("querySelector<HTMLElement>('.story-navigation')");
+    expect(leaderboard).toContain('navigation.append(trigger)');
+    expect(leaderboard).not.toContain('topbar.insertBefore(trigger, more)');
+  });
+});

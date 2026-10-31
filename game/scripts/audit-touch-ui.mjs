@@ -23,21 +23,33 @@ async function checkTapTargets(page, state, width, height) {
   assert.deepEqual(failures, [], `Touch target sizes at ${width}x${height} (${state})`);
 }
 
-/** All persistent game controls must sit wholly inside the unified top HUD. */
+/** Primary actions stay inside a two-row HUD; secondary shortcuts stay
+ * reachable in More on compact layouts, not hidden or clipped elsewhere. */
 async function checkUnifiedTopControls(page, width, height) {
   const result = await page.evaluate(() => {
     const topbar = document.querySelector('.topbar');
     const header = topbar.getBoundingClientRect();
-    const ids = [
+    const compact = matchMedia('(max-width: 1160px)').matches;
+    const extra = document.querySelector('#game-sheet .mobile-secondary-actions');
+    const primaryIds = [
       '#menu-toggle', '#dock-build', '#dock-tools',
       '#zoom-in', '#zoom-out', '#zoom-reset',
-      '#resource-details-toggle', '#story-open', '#achievements-open',
-      '#open-more', '#screen-fullscreen'
+      '#resource-details-toggle', '#open-more'
+    ];
+    const secondaryIds = [
+      '#story-open', '#achievements-open', '#screen-fullscreen',
+      '#online-leaderboard-open'
     ];
     const problems = [];
-    for (const id of ids) {
+    if (compact && header.height > 125) problems.push('compact header exceeds two-row height: ' + header.height);
+    for (const id of [...primaryIds, ...secondaryIds]) {
       const button = document.querySelector(id);
       if (!button) { problems.push(id + ': missing'); continue; }
+      const secondaryInMore = compact && secondaryIds.includes(id);
+      if (secondaryInMore) {
+        if (!extra?.contains(button)) problems.push(id + ': missing from More sheet');
+        continue; // Tested for visibility and tap size once More opens.
+      }
       if (!topbar.contains(button)) { problems.push(id + ': not part of topbar'); continue; }
       if (getComputedStyle(button).display === 'none' || !button.getClientRects().length) continue;
       const rect = button.getBoundingClientRect();
@@ -51,7 +63,7 @@ async function checkUnifiedTopControls(page, width, height) {
     }
     return problems;
   });
-  assert.deepEqual(result, [], `Only top-bar game controls at ${width}x${height}`);
+  assert.deepEqual(result, [], `Compact header and reachable shortcuts at ${width}x${height}`);
 }
 
 async function checkPopoverBelowTopbar(page, selector) {
@@ -118,6 +130,16 @@ async function run(width, height) {
   await page.locator('#open-more').tap();
   assert.equal(await page.locator('#game-sheet').getAttribute('data-sheet'), 'more');
   await checkTapTargets(page, 'more', width, height);
+  // The original story/achievement buttons must remain visible and clickable
+  // after reparenting; fullscreen and online actions remain conditional.
+  const shortcutsInMore = width <= 1160;
+  if (shortcutsInMore) {
+    for (const selector of ['#story-open', '#achievements-open']) {
+      assert.equal(await page.locator(selector).isVisible(), true, selector + ' reachable in More');
+      const bounds = await page.locator(selector).boundingBox();
+      assert.ok(bounds && bounds.width >= 44 && bounds.height >= 44, selector + ' tap target');
+    }
+  }
 
   // Reset is destructive: cancel must never change saved progress.
   await page.locator('.advanced-controls > summary').tap();
