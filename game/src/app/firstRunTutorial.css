@@ -1,0 +1,51 @@
+.first-run-coach {
+  position: fixed;
+  z-index: 75;
+  top: calc(env(safe-area-inset-top, 0px) + 70px);
+  inset-inline-start: max(12px, env(safe-area-inset-left, 0px));
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(44dvh, 340px);
+  overflow: auto;
+  box-sizing: border-box;
+  color: #f2fbfc;
+  background: linear-gradient(150deg, rgba(14, 33, 47, .97), rgba(7, 22, 34, .97));
+  border: 1px solid rgba(122, 225, 196, .55);
+  border-radius: 16px;
+  padding: 14px 16px 16px;
+  box-shadow: 0 15px 55px #0009, inset 0 1px 0 #ffffff16;
+  font-family: 'Vazirmatn Variable', Tahoma, sans-serif;
+  text-align: start;
+}
+.first-run-coach[hidden] { display: none !important; }
+.first-run-coach__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.first-run-coach__marker { font-size: 11px; color: #8dd8c3; font-weight: 800; }
+.first-run-coach__skip { padding: 7px; border: 0; background: transparent; color: #bfd1d8; font: inherit; font-size: 11px; cursor: pointer; }
+.first-run-coach__progress { color: #8de2c4; font-size: 11px; font-weight: 800; margin-top: 4px; }
+.first-run-coach__title { margin: 5px 0; font-size: 17px; line-height: 1.7; font-weight: 900; color: #fff; }
+.first-run-coach__description { margin: 4px 0 12px; font-size: 12px; line-height: 1.9; color: #d4e2e8; }
+.first-run-coach__action {
+  display: block; width: 100%; min-height: 44px; padding: 9px 12px;
+  border-radius: 10px; border: 1px solid #8ae9c8;
+  background: linear-gradient(135deg, #297d69, #146057);
+  color: #fff; font: 800 13px/1.6 'Vazirmatn Variable', Tahoma, sans-serif;
+  cursor: pointer;
+}
+.first-run-coach button:focus-visible { outline: 3px solid #dfffe8; outline-offset: 2px; }
+@media (max-width: 640px) {
+  .first-run-coach {
+    top: calc(env(safe-area-inset-top, 0px) + 61px);
+    inset-inline-start: max(8px, env(safe-area-inset-left, 0px));
+    width: min(310px, calc(100vw - 16px));
+    max-height: 38dvh;
+    padding: 10px 12px 12px;
+    border-radius: 12px;
+  }
+  .first-run-coach__title { font-size: 15px; margin: 1px 0; }
+  .first-run-coach__description { font-size: 11px; line-height: 1.75; margin-bottom: 7px; }
+}
+@media (max-height: 460px) {
+  .first-run-coach { top: calc(env(safe-area-inset-top, 0px) + 44px); max-height: 63dvh; width: min(290px, 45vw); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .first-run-coach * { scroll-behavior: auto; }
+}
