@@ -8,6 +8,16 @@ on:
         required: false
         type: boolean
         default: false
+      run_extended_quality:
+        description: Run extended integration, soak and real mobile-touch browser tests
+        required: true
+        type: boolean
+        default: true
+      strict_reproducibility:
+        description: Require committed lockfile and matching output from two clean builds
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -41,6 +51,39 @@ jobs:
         run: |
           npm run build
           npm run mobile:check
+      - name: Manual integration and simulated long-run tests
+        if: ${{ inputs.run_extended_quality }}
+        env:
+          GAME_SOAK_HOURS: '4'
+        run: |
+          npm run quality:integration
+          npm run quality:soak
+      - name: Manual mobile touch and corrupted-save scenarios
+        if: ${{ inputs.run_extended_quality }}
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+          npm run preview -- --port 4173 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [[ "$ready" -ne 1 ]]; then echo "::error::Preview server failed"; exit 1; fi
+          npm run quality:browser
+      - name: Optional strict clean-build reproducibility verification
+        if: ${{ inputs.strict_reproducibility }}
+        run: npm run quality:repro
+      - name: Upload manual Android QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manual-android-debug-quality-${{ github.run_number }}
+          path: game/quality-evidence/
+          if-no-files-found: ignore
+          retention-days: 14
 
   android-debug:
     name: Android debug APK
