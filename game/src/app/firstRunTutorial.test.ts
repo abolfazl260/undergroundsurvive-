@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { initialTutorialStep, nextTutorialStep, type TutorialStep } from './firstRunTutorial';
-import type { GameSnapshot } from '../modules/economy/session';
+import { GameSession, type GameSnapshot } from '../modules/economy/session';
 
 const makeSnapshot = (rooms: Array<{ type: 'waterTreatment' | 'habitat'; level: number }>) => ({
   base: { rooms }
@@ -14,6 +14,18 @@ describe('first-run tutorial', () => {
     expect(initialTutorialStep('upgrade', true)).toBe('upgrade');
     expect(initialTutorialStep('done', false)).toBe('done');
     expect(initialTutorialStep('corrupted', true)).toBe('done');
+  });
+
+  it('recognizes a real paid build and upgrade via the GameSession economy', () => {
+    const session = GameSession.create();
+    expect(nextTutorialStep('water', session.snapshot())).toBe('water');
+    expect(session.canBuild('waterTreatment', 8, -1).ok).toBe(true);
+    expect(session.build('waterTreatment', 8, -1).ok).toBe(true);
+    expect(nextTutorialStep('water', session.snapshot())).toBe('upgrade');
+    expect(nextTutorialStep('upgrade', session.snapshot())).toBe('upgrade');
+    expect(session.upgradeRoom('initial-habitat').ok).toBe(true);
+    expect(nextTutorialStep('upgrade', session.snapshot())).toBe('done');
+    expect(session.wallet.balance).toBeLessThan(1500);
   });
 
   it('requires construction of a real water-treatment room', () => {
