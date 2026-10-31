@@ -37,6 +37,55 @@ export function roomMatchesCategory(type: BuildableRoomType, category: RoomCateg
   return category === 'all' || ROOM_CATEGORY[type] === category;
 }
 
+
+/** Every button continues to use the game's existing editor and power mechanics. */
+export const PRIMARY_EDITOR_TOOLS = [
+  { id: 'elevator', icon: 'elevator', label: 'آسانسور', hint: 'توسعه شفت آسانسور' },
+  { id: 'build', icon: 'package', label: 'ساخت', hint: 'اتاق جدید بسازید' },
+  { id: 'dig', icon: 'pickaxe', label: 'حفاری', hint: '۳۵ سکه برای هر خانه' },
+  { id: 'move', icon: 'move', label: 'جابه‌جایی', hint: 'انتقال اتاق' },
+  { id: 'upgrade', icon: 'arrow-up', label: 'ارتقا', hint: 'افزایش سطح اتاق' },
+  { id: 'remove', icon: 'trash', label: 'تخریب', hint: 'حذف سازه' },
+  { id: 'navigate', icon: 'route', label: 'آدمک', hint: 'هدایت بازماندگان' }
+] as const;
+
+export const POWER_EDITOR_TOOLS = [
+  { id: 'cable', icon: 'wire', label: 'کابل · ۱۵', hint: 'کابل‌کشی بین اتاق‌ها' },
+  { id: 'riser', icon: 'riser', label: 'رابط عمودی · ۳۵', hint: 'اتصال بین طبقات' },
+  { id: 'cutCable', icon: 'wire-cut', label: 'حذف کابل', hint: 'حذف اتصال انتخابی' },
+  { id: 'power-overlay-toggle', icon: 'network', label: 'نمایش شبکه برق', hint: 'نمایش اتصال‌ها و قطعی‌ها' }
+] as const;
+
+type EditorToolCard = typeof PRIMARY_EDITOR_TOOLS[number] | typeof POWER_EDITOR_TOOLS[number];
+function illustrateToolButton(root: Document, button: HTMLButtonElement, item: EditorToolCard): void {
+  button.classList.add('tool-card', 'tool-card--' + item.id);
+  button.dataset.toolLabel = item.label;
+  button.dataset.toolHint = item.hint;
+  const art = root.createElement('span');
+  art.className = 'tool-card-art';
+  art.setAttribute('aria-hidden', 'true');
+  const platform = root.createElement('span');
+  platform.className = 'tool-card-platform';
+  art.append(platform, createIcon(item.icon, 54));
+  const copy = root.createElement('span');
+  copy.className = 'tool-card-copy';
+  const name = root.createElement('span');
+  name.className = 'ui-control-label';
+  name.textContent = t(item.label);
+  const hint = root.createElement('small');
+  hint.className = 'tool-card-hint';
+  hint.textContent = t(item.hint);
+  copy.append(name, hint);
+  button.replaceChildren(art, copy);
+}
+function makeToolHeading(root: Document, label: string, icon: 'bolt' | 'wrench'): HTMLElement {
+  const heading = root.createElement('h3');
+  heading.className = 'tool-section-heading';
+  heading.dataset.toolSection = label;
+  heading.append(createIcon(icon), root.createTextNode(t(label)));
+  return heading;
+}
+
 /** Extract native artwork from the existing sprite atlases; never use the UI concept image as a game texture. */
 function attachRoomPreview(button: HTMLButtonElement, root: Document): void {
   const type = button.dataset.room as BuildableRoomType;
@@ -125,14 +174,66 @@ export function mountGameDock(root: Document = document): {
   const storyNavigation = root.querySelector<HTMLElement>('.story-navigation');
   const heading = sheet.querySelector<HTMLElement>('.sidebar-heading');
   if (storyNavigation && heading) sheet.insertBefore(storyNavigation, heading);
+  // Reparent original controls instead of cloning them; event handlers stay connected.
   const toolsContainer = root.createElement('section');
   toolsContainer.className = 'dock-tools-container';
   toolsContainer.setAttribute('aria-label', t('ابزارهای زمین و اتاق'));
-  toolsContainer.append(toolGrid);
+  const mainSection = root.createElement('section');
+  mainSection.className = 'tool-section tool-section-primary';
+  const mainHeading = makeToolHeading(root, 'ابزارهای اصلی', 'wrench');
+  toolGrid.setAttribute('aria-label', t('ابزارهای اصلی'));
+  PRIMARY_EDITOR_TOOLS.forEach((item) => {
+    const button = toolGrid.querySelector<HTMLButtonElement>(`[data-tool="${item.id}"]`);
+    if (!button) throw new Error(`Missing editor tool: ${item.id}`);
+    illustrateToolButton(root, button, item);
+  });
+  mainSection.append(mainHeading, toolGrid);
+  const powerSection = root.createElement('section');
+  powerSection.className = 'tool-section tool-section-power';
+  const powerHeading = makeToolHeading(root, 'ابزارهای شبکه برق', 'bolt');
+  const powerGrid = root.createElement('div');
+  powerGrid.className = 'power-tools-grid';
+  powerGrid.setAttribute('role', 'group');
+  powerGrid.setAttribute('aria-label', t('ابزارهای شبکه برق'));
+  POWER_EDITOR_TOOLS.forEach((item) => {
+    const selector = item.id === 'power-overlay-toggle'
+      ? '#power-overlay-toggle'
+      : `[data-tool="${item.id}"]`;
+    const button = toolGrid.querySelector<HTMLButtonElement>(selector);
+    if (!button) throw new Error(`Missing power tool: ${item.id}`);
+    illustrateToolButton(root, button, item);
+    powerGrid.append(button);
+  });
+  powerSection.append(powerHeading, powerGrid);
+  const viewControls = root.createElement('div');
+  viewControls.className = 'tool-viewport-controls';
   const zoom = root.querySelector<HTMLElement>('.zoom-controls');
-  if (zoom) toolsContainer.append(zoom);
-  if (fullscreen) toolsContainer.append(fullscreen);
+  if (zoom) viewControls.append(zoom);
+  if (fullscreen) viewControls.append(fullscreen);
+  toolsContainer.append(mainSection, powerSection, viewControls);
   sheet.append(toolsContainer);
+
+  // Mode tabs mirror the illustrated reference design and remain keyboard accessible.
+  const titleBar = sheet.querySelector<HTMLElement>('.sheet-titlebar');
+  const modeTabs = root.createElement('nav');
+  modeTabs.className = 'sheet-mode-tabs';
+  modeTabs.setAttribute('aria-label', t('ابزارهای اصلی'));
+  const makeModeTab = (label: string, icon: 'package' | 'wrench') => {
+    const tab = root.createElement('button');
+    tab.type = 'button';
+    tab.className = 'sheet-mode-tab';
+    tab.dataset.modeLabel = label;
+    tab.setAttribute('aria-controls', 'game-sheet');
+    tab.append(createIcon(icon));
+    const span = root.createElement('span');
+    span.textContent = t(label);
+    tab.append(span);
+    modeTabs.append(tab);
+    return tab;
+  };
+  const roomsTab = makeModeTab('ساخت اتاق', 'package');
+  const toolsTab = makeModeTab('ابزارها', 'wrench');
+  titleBar?.insertBefore(modeTabs, closeButton);
 
   const categories = root.createElement('nav');
   categories.className = 'room-categories';
@@ -219,6 +320,8 @@ export function mountGameDock(root: Document = document): {
     moreButton.setAttribute('aria-expanded', String(next === 'more'));
     buildButton.setAttribute('aria-expanded', String(next === 'rooms'));
     toolsButton.setAttribute('aria-expanded', String(next === 'tools'));
+    roomsTab.setAttribute('aria-pressed', String(next === 'rooms'));
+    toolsTab.setAttribute('aria-pressed', String(next === 'tools'));
     dock.dataset.sheetOpen = String(next !== null);
     dock.dataset.activeSheet = next ?? '';
     if (next === 'rooms') filterRooms(activeCategory);
@@ -236,10 +339,26 @@ export function mountGameDock(root: Document = document): {
     });
     label.textContent = t('اتاق انتخاب‌شده');
     confirm.lastChild!.textContent = t('شروع ساخت');
+    [roomsTab, toolsTab].forEach((button) => {
+      button.querySelector('span')!.textContent = t(button.dataset.modeLabel ?? '');
+    });
+    for (const heading of [mainHeading, powerHeading]) {
+      heading.lastChild!.textContent = t(heading.dataset.toolSection ?? '');
+    }
+    toolGrid.setAttribute('aria-label', t('ابزارهای اصلی'));
+    powerGrid.setAttribute('aria-label', t('ابزارهای شبکه برق'));
+    toolsContainer.setAttribute('aria-label', t('ابزارهای زمین و اتاق'));
+    for (const button of [...toolGrid.querySelectorAll<HTMLButtonElement>('.tool-card'),
+      ...powerGrid.querySelectorAll<HTMLButtonElement>('.tool-card')]) {
+      button.querySelector<HTMLElement>('.ui-control-label')!.textContent = t(button.dataset.toolLabel ?? '');
+      button.querySelector<HTMLElement>('.tool-card-hint')!.textContent = t(button.dataset.toolHint ?? '');
+    }
     showSheet(current);
   });
   buildButton.addEventListener('click', () => toggleSheet('rooms'));
   toolsButton.addEventListener('click', () => toggleSheet('tools'));
+  roomsTab.addEventListener('click', () => showSheet('rooms'));
+  toolsTab.addEventListener('click', () => showSheet('tools'));
   moreButton.addEventListener('click', () => toggleSheet('more'));
   closeButton.addEventListener('click', () => showSheet(null));
   scrim.addEventListener('click', () => showSheet(null));
