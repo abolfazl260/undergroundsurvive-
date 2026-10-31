@@ -132,7 +132,7 @@ export class Wallet {
   /** Accept all legacy v1 receipts, including >5,000, then migrate to bounded v2. */
   static restore(input: unknown): Wallet | null {
     if (!input || typeof input !== 'object') return null;
-    const data = input as Partial<WalletSnapshot> & {schemaVersion?: number};
+    const data = input as Partial<Omit<WalletSnapshot, 'schemaVersion'>> & { schemaVersion?: number };
     if ((data.schemaVersion !== 1 && data.schemaVersion !== 2) ||
         !Array.isArray(data.transactions) || data.transactions.length < 1 ||
         !validBalance(data.balance) || !Number.isSafeInteger(data.nextTransactionId) ||
