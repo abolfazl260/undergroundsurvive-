@@ -28,8 +28,10 @@ for (const [width,height] of [[390,844],[768,1024],[1440,900],[844,390]]) {
   if(mode==='after') {
     const fits=await page.evaluate(()=>{
       const p=document.querySelector('#upgrade-panel').getBoundingClientRect();
-      const d=document.querySelector('#action-dock').getBoundingClientRect();
-      return p.bottom<=d.top && p.top>=0 && p.left>=0 && p.right<=innerWidth;
+      const header=document.querySelector('.topbar').getBoundingClientRect();
+      // Contextual actions now open below the unified TOP HUD, never above a bottom dock.
+      return p.top>=header.bottom-3 && p.bottom<=innerHeight+2 &&
+        p.left>=-1 && p.right<=innerWidth+1;
     });
     if(!fits) throw new Error(`Room panel overlaps HUD at ${width}x${height}`);
     if(errors.length) throw new Error(errors.join('\n'));
